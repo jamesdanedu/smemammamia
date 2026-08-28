@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Admin — Mamma Mia! | St Mary's Edenderry</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* ==========================================================================
+   Admin — the same Aegean whitewash palette as the public site, dialled down
+   for dense data. White cards, hairline rules, tabular figures, tinted pills.
+   ========================================================================== */
+
+body { padding-top: 0; }
+
+/* ---- Top bar ---- */
+.admin-bar {
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 20px;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-title {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-family: var(--font-brand);
+    font-weight: 700;
+    font-size: 1.02rem;
+    letter-spacing: 0.01em;
+    color: var(--cyan);
+}
+
+.admin-title span {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}
+
+.bar-actions { display: flex; gap: 8px; align-items: center; }
+
+.wrap { max-width: 1160px; margin: 0 auto; padding: 24px 18px 70px; }
+
+/* ---- Sign-in gate ---- */
+.gate { max-width: 400px; margin: 9vh auto; }
+
+/* a small chapel arch over the sign-in, the one flourish this page gets */
+.gate-arch {
+    width: 44px;
+    height: 22px;
+    margin: 0 auto 16px;
+    border: 1px solid var(--cyan);
+    border-bottom: none;
+    border-radius: 22px 22px 0 0;
+    opacity: 0.5;
+}
+
+/* ---- Tabs ---- */
+.tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    margin-bottom: 20px;
+    padding: 2px 2px 8px;
+    scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+    flex-shrink: 0;
+    min-height: 40px;
+    padding: 9px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text-dim);
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: var(--shadow);
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.tab:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
+
+.tab.active {
+    background: var(--cyan);
+    border-color: var(--cyan);
+    color: #fff;
+    box-shadow: var(--pop-blue);
+}
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+.panel-title {
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 12px;
+}
+
+/* ---- Stat tiles ---- */
+.stats {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    margin-bottom: 22px;
+}
+
+.stat {
+    padding: 16px 17px;
+    border-radius: var(--radius);
+    background: #fff;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.stat .n {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.75rem;
+    line-height: 1.15;
+    color: var(--cyan);
+    font-variant-numeric: tabular-nums;
+}
+
+.stat .l {
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-top: 4px;
+}
+
+.stat.money .n { color: var(--lime); }
+
+.figure { font-variant-numeric: tabular-nums; color: var(--cyan); }
+
+.perf-line { font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.perf-left { color: var(--text); }
+
+/* ---- Capacity bar ---- */
+.cap-bar {
+    height: 10px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-top: 11px;
+}
+
+.cap-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan-soft), var(--cyan));
+    transition: width 0.5s;
+}
+
+/* ---- Tables — always scroll inside their own box ---- */
+.table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.87rem;
+    min-width: 760px;
+}
+
+th {
+    text-align: left;
+    padding: 11px 13px;
+    background: var(--surface-2);
+    color: var(--text-dim);
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 700;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border-strong);
+}
+
+td {
+    padding: 11px 13px;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    vertical-align: top;
+    font-variant-numeric: tabular-nums;
+}
+
+td strong { color: var(--text); }
+
+/* references and dates are scanned down the column — never break them */
+.ref, .night { white-space: nowrap; }
+.ref { letter-spacing: 0.02em; }
+
+.email-sub { display: inline-block; max-width: 108px; font-size: 0.72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+tbody tr:hover td { background: var(--bg-2); }
+
+/* ---- Status pills — tinted, never a hairline sitting on a solid fill ---- */
+.tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-2);
+    color: var(--text-dim);
+    font-family: var(--font-body);
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+
+.tag-confirmed { background: var(--lime-tint);   color: #4f6636; border-color: #cadcb6; }
+.tag-held      { background: var(--yellow-tint); color: #8a6208; border-color: #eed9a6; }
+.tag-cancelled { background: var(--surface-2);   color: var(--text-dim); border-color: var(--border-strong); }
+.tag-cash      { background: #f3edf7;            color: #63497a; border-color: #e0d3ea; }
+.tag-sent      { background: var(--cyan-tint);   color: #144f7c; border-color: #c5dcec; }
+.tag-pending   { background: #fdf6ea;            color: #8a6208; border-color: #f0e2c2; }
+.tag-failed    { background: var(--pink-tint);   color: #9c2555; border-color: #efc2d3; }
+
+/* ---- Banners ---- */
+.banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-left-width: 4px;
+    box-shadow: var(--shadow);
+}
+
+.banner strong { font-weight: 700; }
+
+.banner-ok   { background: var(--lime-tint);   border-color: #cadcb6; border-left-color: var(--lime); }
+.banner-warn { background: var(--yellow-tint); border-color: #eed9a6; border-left-color: var(--yellow); }
+.banner-bad  { background: var(--pink-tint);   border-color: #efc2d3; border-left-color: var(--pink); }
+
+/* ---- Small buttons ---- */
+.mini-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 13px;
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    background: #fff;
+    color: var(--cyan);
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: var(--shadow);
+    transition: background 0.14s, transform 0.14s, box-shadow 0.14s, border-color 0.14s;
+}
+
+.mini-btn:hover:not(:disabled) {
+    background: var(--cyan-tint);
+    border-color: var(--cyan);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.mini-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---- Toolbars ---- */
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px; }
+.toolbar .field { margin: 0; flex: 1 1 180px; min-width: 0; }
+.toolbar .field.grow { flex: 2 1 260px; }
+.toolbar .field input, .toolbar .field select { padding: 11px 13px; font-size: 16px; }
+.toolbar .btn { flex: 0 0 auto; }
+
+/* ---- Settings rows ---- */
+.set-row { padding: 14px 0; border-bottom: 1px dashed var(--border); }
+.set-row:last-child { border-bottom: none; }
+
+.cap-input {
+    width: 112px;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    background: #fff;
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+.cap-input:focus {
+    outline: none;
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 3px var(--cyan-tint);
+}
+
+.check-label {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+input[type="checkbox"] {
+    accent-color: var(--cyan);
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    flex: 0 0 auto;
+    cursor: pointer;
+}
+
+/* ---- Seller list ---- */
+.seller-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--border);
+}
+
+.seller-row:last-child { border-bottom: none; }
+
+/* ---- Mobile ---- */
+@media (max-width: 720px) {
+    .admin-bar { padding: 10px 14px; }
+    .wrap { padding: 18px 14px 62px; }
+    .gate { margin: 5vh auto; }
+    .tab { min-height: 44px; }
+    .mini-btn { min-height: 44px; padding: 10px 14px; }
+    .stat .n { font-size: 1.5rem; }
+    .seller-row { padding: 11px 0; }
+}
+
+/* ---- Print (door lists live and die on paper) ---- */
+@media print {
+    body::before, body::after, .admin-bar, .tabs, .toolbar, .no-print { display: none !important; }
+    body { background: #fff; color: #000; }
+    .wrap { padding: 0; }
+    .table-scroll { border: 1px solid #999; border-radius: 0; box-shadow: none; overflow: visible; }
+    table { min-width: 0; }
+    th { background: #eee; color: #000; border-bottom: 1px solid #999; }
+    td { color: #000; }
+    .card { border: 1px solid #999; background: #fff; box-shadow: none; }
+    .tag { background: #fff !important; color: #000 !important; border: 1px solid #999; }
+}
+</style>
+</head>
+<body>
+
+<div class="admin-bar">
+  <div class="admin-title">Mamma Mia! <span>· Admin</span></div>
+  <div class="bar-actions">
+    <button class="mini-btn" id="refresh-btn" style="display:none">↻ Refresh</button>
+    <button class="mini-btn" id="logout-btn" style="display:none">Sign out</button>
+    <a class="mini-btn" href="index.html" style="text-decoration:none">← Site</a>
+  </div>
+</div>
+
+<!-- =================== PASSWORD GATE =================== -->
+<div class="wrap gate" id="gate">
+  <div class="card card-neon text-center">
+    <div class="gate-arch" aria-hidden="true"></div>
+    <h1 style="font-size:1.25rem;margin-bottom:6px">🔒 Admin access</h1>
+    <p class="dim mb-3" style="font-size:0.88rem">Enter the admin password to manage bookings.</p>
+    <div style="text-align:left">
+    <div id="gate-alert" class="alert alert-error hidden"></div>
+    <div class="field">
+      <label for="pw">Password</label>
+      <input type="password" id="pw" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary btn-block" id="gate-btn">Sign in</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== DASHBOARD =================== -->
+<div class="wrap hidden" id="dash">
+
+  <div id="dash-alert" class="alert alert-error hidden"></div>
+
+  <div class="tabs">
+    <button class="tab active" data-panel="overview">Overview</button>
+    <button class="tab" data-panel="bookings">Bookings</button>
+    <button class="tab" data-panel="door">Door list</button>
+    <button class="tab" data-panel="add">Add booking</button>
+    <button class="tab" data-panel="wall">Message wall</button>
+    <button class="tab" data-panel="settings">Settings</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <section class="panel active" id="panel-overview">
+    <div id="email-banner" class="hidden"></div>
+    <div id="capacity-banner" class="hidden"></div>
+    <div class="stats" id="stat-tiles"></div>
+
+    <h2 class="panel-title">By performance</h2>
+    <div class="grid-2" id="perf-cards"></div>
+
+    <h2 class="panel-title" style="margin-top:26px">Tickets by seller</h2>
+    <div class="card" id="seller-list"><p class="dim">No confirmed bookings yet.</p></div>
+  </section>
+
+  <!-- BOOKINGS -->
+  <section class="panel" id="panel-bookings">
+    <div class="toolbar">
+      <div class="field grow"><input type="search" id="search" placeholder="Search name, email or MM-XXXXXX"></div>
+      <div class="field"><select id="filter-night"><option value="">All nights</option></select></div>
+      <div class="field"><select id="filter-status">
+        <option value="">All statuses</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="held">Held</option>
+        <option value="cancelled">Cancelled</option>
+      </select></div>
+      <div class="field"><select id="filter-email">
+        <option value="">Any email state</option>
+        <option value="pending">Email not sent</option>
+        <option value="sent">Email sent</option>
+      </select></div>
+      <button class="btn btn-ghost" id="csv-btn" style="padding:11px 18px;font-size:0.82rem">⬇ CSV</button>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>Ref</th><th>Name</th><th>Contact</th><th>Night</th><th>Qty</th><th>Amount</th><th>Status</th><th>Email</th><th>Sold by</th><th></th>
+        </tr></thead>
+        <tbody id="bookings-body"><tr><td colspan="10" class="dim">Loading…</td></tr></tbody>
+      </table>
+    </div>
+    <p class="dim mt-2" style="font-size:0.82rem" id="bookings-count"></p>
+  </section>
+
+  <!-- DOOR LIST -->
+  <section class="panel" id="panel-door">
+    <div class="toolbar no-print">
+      <div class="field"><select id="door-night"></select></div>
+      <button class="btn btn-ghost" id="print-door" style="padding:11px 18px;font-size:0.82rem">🖨️ Print</button>
+    </div>
+    <h2 id="door-heading" style="font-size:1.05rem;margin-bottom:12px"></h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th style="width:34px">✓</th><th>Name</th><th>Qty</th><th>Ref</th><th>Paid</th><th>Sold by</th></tr></thead>
+        <tbody id="door-body"><tr><td colspan="6" class="dim">Choose a night.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ADD BOOKING -->
+  <section class="panel" id="panel-add">
+    <div class="card" style="max-width:560px">
+      <h2 style="font-size:1.05rem;margin-bottom:5px">Add a cash or door booking</h2>
+      <p class="dim mb-3" style="font-size:0.86rem">For tickets sold in person. Counts against capacity straight away.</p>
+      <div id="add-alert" class="alert hidden"></div>
+
+      <div class="field"><label for="add-night">Performance</label><select id="add-night"></select></div>
+      <div class="field"><label for="add-name">Customer name</label><input type="text" id="add-name" placeholder="Jane Murphy"></div>
+      <div class="field"><label for="add-qty">Tickets</label><input type="number" id="add-qty" value="2" min="1" max="30"></div>
+      <div class="field"><label for="add-email">Email <span class="faint" style="text-transform:none">(optional)</span></label><input type="email" id="add-email"></div>
+      <div class="field"><label for="add-phone">Phone <span class="faint" style="text-transform:none">(optional)</span></label><input type="tel" id="add-phone"></div>
+      <div class="field"><label for="add-seller">Sold by</label><input type="text" id="add-seller" placeholder="Student or staff name"></div>
+      <div class="field"><label for="add-notes">Notes <span class="faint" style="text-transform:none">(optional)</span></label><input type="text" id="add-notes"></div>
+      <label class="check-label" style="margin-bottom:16px">
+        <input type="checkbox" id="add-free"> Complimentary (no money taken)
+      </label>
+      <button class="btn btn-primary btn-block" id="add-btn">Add booking</button>
+    </div>
+  </section>
+
+  <!-- WALL -->
+  <section class="panel" id="panel-wall">
+    <p class="dim mb-2" style="font-size:0.86rem">Approve messages to make them visible on the public wall.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>When</th><th>From</th><th>Message</th><th>State</th><th></th></tr></thead>
+        <tbody id="wall-body"><tr><td colspan="5" class="dim">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="panel" id="panel-settings">
+    <div class="card mb-3" style="max-width:620px">
+      <h2 style="font-size:1.05rem;margin-bottom:5px">Capacity and sales</h2>
+      <p class="dim mb-3" style="font-size:0.86rem">Change how many tickets are on sale, or close a night.</p>
+      <div id="settings-list"></div>
+    </div>
+
+    <div class="card" style="max-width:620px">
+      <h2 style="font-size:1.05rem;margin-bottom:5px">Sync performances</h2>
+      <p class="dim mb-3" style="font-size:0.86rem">
+        Copies the dates, labels and capacities from <code>config.js</code> into the database.
+        Run this after you edit the show dates.
+      </p>
+      <button class="btn btn-ghost" id="sync-btn">Sync from config.js</button>
+      <div id="sync-alert" class="alert hidden mt-2"></div>
+    </div>
+  </section>
+
+</div>
+
+<script src="config.js"></script>
+<script>
+(function () {
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const KEY = 'mm_admin_pw';
+
+    let pw = sessionStorage.getItem(KEY) || '';
+    let cache = { summary: null, bookings: [], wall: [] };
+
+    /* ---------------- api ---------------- */
+    async function api(action, extra = {}) {
+        const res = await fetch(CONFIG.api.admin, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pw, action, ...extra })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) { signOut('Session expired — sign in again.'); throw new Error('unauthorised'); }
+        if (!res.ok) throw new Error(data.error || 'Request failed');
+        return data;
+    }
+
+    function note(el, message, kind = 'error') {
+        const box = $(el);
+        if (!message) { box.classList.add('hidden'); return; }
+        box.className = 'alert alert-' + kind;
+        box.textContent = message;
+    }
+
+    /* ---------------- gate ---------------- */
+    async function signIn() {
+        const value = $('pw').value;
+        if (!value) return;
+        pw = value;
+        $('gate-btn').disabled = true;
+        $('gate-btn').textContent = 'Checking…';
+        try {
+            await api('summary');
+            sessionStorage.setItem(KEY, pw);
+            openDashboard();
+        } catch (err) {
+            note('gate-alert', err.message === 'unauthorised' ? 'Incorrect password.' : err.message);
+            pw = '';
+        } finally {
+            $('gate-btn').disabled = false;
+            $('gate-btn').textContent = 'Sign in';
+        }
+    }
+
+    function signOut(message) {
+        sessionStorage.removeItem(KEY);
+        pw = '';
+        $('dash').classList.add('hidden');
+        $('gate').classList.remove('hidden');
+        $('refresh-btn').style.display = 'none';
+        $('logout-btn').style.display = 'none';
+        if (message) note('gate-alert', message);
+    }
+
+    $('gate-btn').addEventListener('click', signIn);
+    $('pw').addEventListener('keypress', e => { if (e.key === 'Enter') signIn(); });
+    $('logout-btn').addEventListener('click', () => signOut(''));
+    $('refresh-btn').addEventListener('click', loadAll);
+
+    function openDashboard() {
+        $('gate').classList.add('hidden');
+        $('dash').classList.remove('hidden');
+        $('refresh-btn').style.display = '';
+        $('logout-btn').style.display = '';
+        fillNightSelects();
+        loadAll();
+    }
+
+    /* ---------------- tabs ---------------- */
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            $('panel-' + tab.dataset.panel).classList.add('active');
+            if (tab.dataset.panel === 'wall') loadWall();
+        });
+    });
+
+    /* ---------------- selects ---------------- */
+    function fillNightSelects() {
+        const options = CONFIG.performances.map(p => `<option value="${p.key}">${p.label}</option>`).join('');
+        $('filter-night').innerHTML = '<option value="">All nights</option>' + options;
+        $('door-night').innerHTML = options;
+        $('add-night').innerHTML = options;
+    }
+
+    /* ---------------- load ---------------- */
+    async function loadAll() {
+        try {
+            const [summary, list] = await Promise.all([api('summary'), api('list')]);
+            cache.summary = summary;
+            cache.bookings = list.bookings || [];
+            renderOverview();
+            renderBookings();
+            renderSettings();
+            loadDoorList();
+            note('dash-alert', '');
+        } catch (err) {
+            if (err.message !== 'unauthorised') note('dash-alert', err.message);
+        }
+    }
+
+    /* ---------------- overview ---------------- */
+    function renderOverview() {
+        const t = cache.summary.totals;
+
+        $('stat-tiles').innerHTML = [
+            [t.tickets, 'Tickets sold'],
+            [t.bookings, 'Bookings'],
+            [CONFIG.money(t.revenue), 'Taken', 'money'],
+            [t.onlineTickets, 'Online'],
+            [t.cashTickets, 'Cash / door']
+        ].map(([n, l, cls]) => `<div class="stat ${cls || ''}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+
+        $('perf-cards').innerHTML = (cache.summary.performances || []).map(p => {
+            const pct = p.capacity ? Math.min(100, Math.round(p.sold / p.capacity * 100)) : 0;
+            return `<div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+                  <strong>${p.label}</strong>
+                  ${p.on_sale ? '' : '<span class="tag tag-cancelled">Closed</span>'}
+                </div>
+                <div class="mt-1 dim perf-line">
+                  <strong class="figure">${p.sold}</strong> of ${p.capacity} sold ·
+                  <strong class="perf-left">${p.remaining}</strong> left
+                </div>
+                <div class="cap-bar"><div class="cap-fill" style="width:${pct}%"></div></div>
+                <div class="dim mt-1" style="font-size:0.78rem">${pct}% full</div>
+            </div>`;
+        }).join('');
+
+        /* ---- email health ---- */
+        const email = cache.summary.email || {};
+        const banner = $('email-banner');
+
+        if (!email.configured) {
+            banner.className = 'banner banner-bad';
+            banner.innerHTML = '<span><strong>Confirmation emails are switched off.</strong> ' +
+                'No customer is being emailed. Set EMAIL_FROM and a provider key in Vercel.</span>';
+        } else if (email.pending > 0) {
+            banner.className = 'banner banner-warn';
+            banner.innerHTML =
+                `<span><strong>${email.pending} confirmation${email.pending === 1 ? '' : 's'} not sent yet.</strong> ` +
+                (email.failing ? `${email.failing} had an error. ` : 'These retry automatically. ') +
+                `Sending via ${(email.providers || []).join(' + ') || 'no provider'}.</span>` +
+                '<button class="mini-btn" id="reconcile-btn">Send them now</button>';
+        } else {
+            banner.className = 'banner banner-ok';
+            banner.innerHTML = '<span>All confirmations sent. Email via ' +
+                ((email.providers || []).join(' + ') || 'no provider') + '.</span>' +
+                '<button class="mini-btn" id="reconcile-btn">Run checks now</button>';
+        }
+        banner.classList.remove('hidden');
+
+        const reconcileBtn = $('reconcile-btn');
+        if (reconcileBtn) reconcileBtn.addEventListener('click', runReconcile);
+
+        /* ---- bookings rescued past capacity need a human ---- */
+        const cap = $('capacity-banner');
+        if (cache.summary.overCapacity > 0) {
+            cap.className = 'banner banner-bad';
+            cap.innerHTML = `<span><strong>${cache.summary.overCapacity} booking(s) went through after the night filled up.</strong> ` +
+                'They paid, so they have been honoured. Filter the bookings list to check seating.</span>';
+            cap.classList.remove('hidden');
+        } else {
+            cap.classList.add('hidden');
+        }
+
+        const sellers = Object.entries(cache.summary.bySeller || {}).sort((a, b) => b[1] - a[1]);
+        $('seller-list').innerHTML = sellers.length
+            ? sellers.map(([who, n]) =>
+                `<div class="seller-row">
+                   <span>${escapeHtml(who)}</span><strong class="figure">${n}</strong>
+                 </div>`).join('')
+            : '<p class="dim">No confirmed bookings yet.</p>';
+    }
+
+    /* ---------------- bookings table ---------------- */
+    function filteredBookings() {
+        const q = $('search').value.trim().toLowerCase();
+        const night = $('filter-night').value;
+        const status = $('filter-status').value;
+        const emailState = $('filter-email').value;
+
+        return cache.bookings.filter(b => {
+            if (night && b.performance_date !== night) return false;
+            if (status && b.status !== status) return false;
+            if (emailState === 'pending' && b.confirmation_sent_at) return false;
+            if (emailState === 'sent' && !b.confirmation_sent_at) return false;
+            if (q) {
+                const hay = [b.booking_reference, b.customer_name, b.customer_email, b.customer_phone, b.booked_by]
+                    .join(' ').toLowerCase();
+                if (!hay.includes(q)) return false;
+            }
+            return true;
+        });
+    }
+
+    function renderBookings() {
+        const rows = filteredBookings();
+        $('bookings-count').textContent = `${rows.length} of ${cache.bookings.length} bookings`;
+
+        $('bookings-body').innerHTML = rows.length ? rows.map(b => {
+            const perf = CONFIG.getPerformance(b.performance_date);
+            const held = b.status === 'held' && b.held_until && new Date(b.held_until) > new Date();
+            const statusTag = b.status === 'confirmed' ? '<span class="tag tag-confirmed">Confirmed</span>'
+                : b.status === 'cancelled' ? '<span class="tag tag-cancelled">Cancelled</span>'
+                : held ? '<span class="tag tag-held">Holding</span>'
+                : '<span class="tag tag-cancelled">Expired</span>';
+            const payTag = b.payment_status === 'cash' ? ' <span class="tag tag-cash">Cash</span>' : '';
+            const overTag = b.over_capacity ? ' <span class="tag tag-failed">Over capacity</span>' : '';
+
+            let emailTag;
+            if (b.status !== 'confirmed') {
+                emailTag = '<span class="faint">—</span>';
+            } else if (b.confirmation_sent_at) {
+                emailTag = `<span class="tag tag-sent">Sent</span><br><span class="faint email-sub">${
+                    new Date(b.confirmation_sent_at).toLocaleDateString('en-IE')}</span>`;
+            } else if (b.last_email_error) {
+                emailTag = `<span class="tag tag-failed">Failed</span><br><span class="faint email-sub" title="${
+                    escapeHtml(b.last_email_error)}">${escapeHtml(b.last_email_error.slice(0, 28))}…</span>`;
+            } else {
+                emailTag = '<span class="tag tag-pending">Queued</span>';
+            }
+
+            return `<tr>
+                <td><strong class="ref">${b.booking_reference}</strong></td>
+                <td><strong>${escapeHtml(b.customer_name)}</strong></td>
+                <td>${escapeHtml(b.customer_email || '')}<br><span class="faint">${escapeHtml(b.customer_phone || '')}</span></td>
+                <td class="night">${perf ? perf.short : b.performance_date}</td>
+                <td><strong>${b.quantity}</strong></td>
+                <td>${CONFIG.money(b.amount)}</td>
+                <td>${statusTag}${payTag}${overTag}</td>
+                <td>${emailTag}</td>
+                <td>${escapeHtml(b.booked_by || '')}</td>
+                <td style="white-space:nowrap">
+                  ${b.status === 'confirmed' ? `<button class="mini-btn" data-resend="${b.booking_reference}">Resend</button> ` : ''}
+                  ${b.status === 'cancelled' ? '' : `<button class="mini-btn" data-cancel="${b.booking_reference}">Cancel</button>`}
+                </td>
+            </tr>`;
+        }).join('') : '<tr><td colspan="10" class="dim">No bookings match those filters.</td></tr>';
+
+        $('bookings-body').querySelectorAll('[data-resend]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const ref = btn.dataset.resend;
+                btn.disabled = true;
+                btn.textContent = 'Sending…';
+                try {
+                    const result = await api('resend-confirmation', { bookingRef: ref });
+                    btn.textContent = result.ok ? 'Sent ✓' : 'Failed';
+                    if (!result.ok) note('dash-alert', `Could not resend ${ref}: ${result.reason}`);
+                    else setTimeout(loadAll, 900);
+                } catch (err) {
+                    note('dash-alert', err.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Resend';
+                }
+            });
+        });
+
+        $('bookings-body').querySelectorAll('[data-cancel]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const ref = btn.dataset.cancel;
+                if (!confirm(`Cancel booking ${ref}? The tickets go back on sale.`)) return;
+                btn.disabled = true;
+                try { await api('cancel', { bookingRef: ref }); await loadAll(); }
+                catch (err) { note('dash-alert', err.message); btn.disabled = false; }
+            });
+        });
+    }
+
+    ['search', 'filter-night', 'filter-status', 'filter-email'].forEach(id =>
+        $(id).addEventListener('input', renderBookings));
+
+    /* ---------------- reconciler ---------------- */
+    async function runReconcile() {
+        const btn = $('reconcile-btn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+        try {
+            const r = await api('run-reconcile');
+            const parts = [];
+            if (r.rescue?.rescued) parts.push(`${r.rescue.rescued} paid booking(s) rescued`);
+            if (r.emails?.sent)    parts.push(`${r.emails.sent} email(s) sent`);
+            if (r.emails?.failed)  parts.push(`${r.emails.failed} still failing`);
+            note('dash-alert', parts.length ? parts.join(' · ') : 'Nothing outstanding — all clear.',
+                 r.emails?.failed ? 'error' : 'success');
+            await loadAll();
+        } catch (err) {
+            note('dash-alert', err.message);
+            if (btn) { btn.disabled = false; btn.textContent = 'Run checks now'; }
+        }
+    }
+
+    /* ---------------- CSV ---------------- */
+    $('csv-btn').addEventListener('click', () => {
+        const rows = filteredBookings();
+        const header = ['Reference', 'Name', 'Email', 'Phone', 'Performance', 'Tickets', 'Amount',
+                        'Status', 'Payment', 'Sold by', 'Booked at', 'Confirmation sent', 'Email error'];
+        const body = rows.map(b => [
+            b.booking_reference, b.customer_name, b.customer_email, b.customer_phone || '',
+            b.performance_date, b.quantity, b.amount, b.status, b.payment_status,
+            b.booked_by || '', new Date(b.created_at).toLocaleString('en-IE'),
+            b.confirmation_sent_at ? new Date(b.confirmation_sent_at).toLocaleString('en-IE') : '',
+            b.last_email_error || ''
+        ]);
+        const csv = [header, ...body]
+            .map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+            .join('\r\n');
+
+        const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'mamma-mia-bookings.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    });
+
+    /* ---------------- door list ---------------- */
+    async function loadDoorList() {
+        const date = $('door-night').value;
+        if (!date) return;
+        const perf = CONFIG.getPerformance(date);
+        try {
+            const { bookings } = await api('door-list', { performanceDate: date });
+            const total = bookings.reduce((t, b) => t + b.quantity, 0);
+            $('door-heading').textContent = `${perf ? perf.label : date} — ${bookings.length} bookings, ${total} tickets`;
+            $('door-body').innerHTML = bookings.length ? bookings.map(b => `
+                <tr>
+                  <td style="font-size:1.1rem">☐</td>
+                  <td><strong>${escapeHtml(b.customer_name)}</strong></td>
+                  <td><strong>${b.quantity}</strong></td>
+                  <td class="ref">${b.booking_reference}</td>
+                  <td>${b.payment_status === 'cash' ? 'Cash' : b.payment_status === 'refunded' ? 'Comp' : 'Card'}</td>
+                  <td>${escapeHtml(b.booked_by || '')}</td>
+                </tr>`).join('')
+                : '<tr><td colspan="6" class="dim">No confirmed bookings for this night yet.</td></tr>';
+        } catch (err) {
+            note('dash-alert', err.message);
+        }
+    }
+
+    $('door-night').addEventListener('change', loadDoorList);
+    $('print-door').addEventListener('click', () => window.print());
+
+    /* ---------------- add booking ---------------- */
+    $('add-btn').addEventListener('click', async () => {
+        const name = $('add-name').value.trim();
+        const qty = parseInt($('add-qty').value, 10);
+        if (name.length < 2) return note('add-alert', 'Please enter the customer name.');
+        if (!Number.isInteger(qty) || qty < 1) return note('add-alert', 'Please enter a valid number of tickets.');
+
+        $('add-btn').disabled = true;
+        try {
+            const { booking } = await api('cash-booking', {
+                performanceDate: $('add-night').value,
+                customerName: name,
+                quantity: qty,
+                customerEmail: $('add-email').value.trim(),
+                customerPhone: $('add-phone').value.trim(),
+                bookedBy: $('add-seller').value.trim() || 'DOOR',
+                notes: $('add-notes').value.trim(),
+                free: $('add-free').checked
+            });
+            note('add-alert', `Added — reference ${booking.booking_reference}.`, 'success');
+            ['add-name', 'add-email', 'add-phone', 'add-notes'].forEach(id => { $(id).value = ''; });
+            await loadAll();
+        } catch (err) {
+            note('add-alert', err.message);
+        } finally {
+            $('add-btn').disabled = false;
+        }
+    });
+
+    /* ---------------- wall ---------------- */
+    async function loadWall() {
+        try {
+            const { messages } = await api('wall-list');
+            cache.wall = messages || [];
+            $('wall-body').innerHTML = cache.wall.length ? cache.wall.map(m => `
+                <tr>
+                  <td class="faint" style="white-space:nowrap">${new Date(m.created_at).toLocaleDateString('en-IE')}</td>
+                  <td><strong>${escapeHtml(m.author)}</strong></td>
+                  <td>${escapeHtml(m.body)}</td>
+                  <td>${m.hidden ? '<span class="tag tag-cancelled">Hidden</span>'
+                        : m.approved ? '<span class="tag tag-confirmed">Live</span>'
+                        : '<span class="tag tag-held">Pending</span>'}</td>
+                  <td style="white-space:nowrap">
+                    ${m.approved ? '' : `<button class="mini-btn" data-approve="${m.id}">Approve</button> `}
+                    ${m.hidden ? `<button class="mini-btn" data-show="${m.id}">Unhide</button>`
+                               : `<button class="mini-btn" data-hide="${m.id}">Hide</button>`}
+                  </td>
+                </tr>`).join('')
+                : '<tr><td colspan="5" class="dim">No messages yet.</td></tr>';
+
+            $('wall-body').querySelectorAll('[data-approve]').forEach(b =>
+                b.addEventListener('click', () => moderate(b.dataset.approve, { approved: true, hidden: false })));
+            $('wall-body').querySelectorAll('[data-hide]').forEach(b =>
+                b.addEventListener('click', () => moderate(b.dataset.hide, { hidden: true })));
+            $('wall-body').querySelectorAll('[data-show]').forEach(b =>
+                b.addEventListener('click', () => moderate(b.dataset.show, { hidden: false })));
+
+        } catch (err) { note('dash-alert', err.message); }
+    }
+
+    async function moderate(id, patch) {
+        try { await api('wall-moderate', { id, ...patch }); loadWall(); }
+        catch (err) { note('dash-alert', err.message); }
+    }
+
+    /* ---------------- settings ---------------- */
+    function renderSettings() {
+        $('settings-list').innerHTML = (cache.summary.performances || []).map(p => `
+            <div class="set-row">
+              <strong>${p.label}</strong>
+              <div style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">
+                <input type="number" class="cap-input" value="${p.capacity}" min="0" data-cap="${p.key}"
+                       aria-label="Capacity for ${p.label}">
+                <label class="check-label">
+                  <input type="checkbox" data-sale="${p.key}" ${p.on_sale ? 'checked' : ''}> On sale
+                </label>
+                <button class="mini-btn" data-save="${p.key}">Save</button>
+                <span class="dim" style="font-size:0.8rem">${p.sold} sold</span>
+              </div>
+            </div>`).join('');
+
+        $('settings-list').querySelectorAll('[data-save]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const key = btn.dataset.save;
+                btn.disabled = true;
+                btn.textContent = 'Saving…';
+                try {
+                    await api('set-performance', {
+                        performanceDate: key,
+                        capacity: $('settings-list').querySelector(`[data-cap="${key}"]`).value,
+                        onSale: $('settings-list').querySelector(`[data-sale="${key}"]`).checked
+                    });
+                    await loadAll();
+                } catch (err) {
+                    note('dash-alert', err.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Save';
+                }
+            });
+        });
+    }
+
+    $('sync-btn').addEventListener('click', async () => {
+        $('sync-btn').disabled = true;
+        try {
+            await api('sync-performances', {
+                performances: CONFIG.performances.map(p => ({ key: p.key, label: p.label, capacity: p.capacity }))
+            });
+            note('sync-alert', 'Performances synced from config.js.', 'success');
+            await loadAll();
+        } catch (err) {
+            note('sync-alert', err.message);
+        } finally {
+            $('sync-btn').disabled = false;
+        }
+    });
+
+    /* ---------------- helpers ---------------- */
+    function escapeHtml(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    /* ---------------- boot ---------------- */
+    if (pw) {
+        api('summary').then(openDashboard).catch(() => signOut(''));
+    }
+})();
+</script>
+</body>
+</html>

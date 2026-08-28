@@ -1,0 +1,599 @@
+/* ==========================================================================
+   MAMMA MIA!  ·  St Mary's Secondary School, Edenderry
+   Shared "Aegean whitewash" theme
+   --------------------------------------------------------------------------
+   Limewashed white walls, Santorini blue, bougainvillea and olive. Hairline
+   rules, soft daylight shadows, arched shapes borrowed from Cycladic chapels.
+   Every class name from the previous theme is kept, so page markup written
+   against it keeps working.
+   ========================================================================== */
+
+:root {
+    /* Grounds — warm limewash, cooled by the sea */
+    --bg:            #fbf9f5;
+    --bg-2:          #f4f9fc;
+    --bg-3:          #fdfbf6;
+    --surface:       #ffffff;
+    --surface-2:     #f3f8fb;
+    --border:        #e2eaef;
+    --border-strong: #cbdae3;
+
+    /* Sea, flowers, olive, sun */
+    --pink:          #c2356b;   /* bougainvillea */
+    --pink-soft:     #e18bab;
+    --pink-tint:     #fbe7ee;
+    --cyan:          #1b6ca8;   /* Aegean blue — token name kept for compatibility */
+    --cyan-soft:     #2f93d4;
+    --cyan-tint:     #e6f1f9;
+    --lime:          #6f8b4e;   /* olive */
+    --lime-tint:     #eef3e6;
+    --purple:        #7a5b8f;
+    --yellow:        #e0a020;   /* afternoon sun */
+    --yellow-tint:   #fdf2da;
+    --orange:        #c2663f;   /* terracotta */
+
+    /* Text — neutrals biased toward the sea, never flat grey */
+    --text:          #22333f;
+    --text-dim:      #5a6d7a;
+    --text-faint:    #8ba0ad;
+
+    /* Daylight shadows (the old hard-offset tokens now resolve to these) */
+    --shadow:        0 1px 2px rgba(34, 51, 63, 0.05), 0 10px 26px rgba(34, 51, 63, 0.07);
+    --shadow-lg:     0 2px 4px rgba(34, 51, 63, 0.05), 0 22px 52px rgba(34, 51, 63, 0.11);
+    --shadow-in:     inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    --pop:           var(--shadow);
+    --pop-lg:        var(--shadow-lg);
+    --pop-pink:      0 10px 26px rgba(194, 53, 107, 0.20);
+    --pop-blue:      0 10px 26px rgba(27, 108, 168, 0.22);
+
+    --radius:        14px;
+    --radius-lg:     22px;
+    --arch:          210px 210px var(--radius) var(--radius);
+    --nav-h:         64px;
+
+    --font-display:  'Fraunces', Georgia, 'Times New Roman', serif;
+    --font-brand:    'Fraunces', Georgia, serif;
+    --font-body:     'Karla', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+    padding-top: var(--nav-h);
+    line-height: 1.68;
+}
+
+/* Ambient: sky above, limewash below, a whisper of plaster texture --------- */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background:
+        radial-gradient(900px 520px at 78% -10%, rgba(47, 147, 212, 0.16), transparent 66%),
+        radial-gradient(700px 460px at 6% 4%,    rgba(224, 160, 32, 0.10),  transparent 62%),
+        radial-gradient(900px 620px at 50% 106%, rgba(111, 139, 78, 0.09),  transparent 66%),
+        linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 46%, var(--bg-3) 100%);
+}
+
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.55;
+    background-image:
+        repeating-linear-gradient(112deg, rgba(34, 51, 63, 0.022) 0 1px, transparent 1px 5px),
+        repeating-linear-gradient(28deg,  rgba(34, 51, 63, 0.018) 0 1px, transparent 1px 7px);
+}
+
+/* Sea band — drop <div class="grid-floor"></div> into a hero -------------- */
+.grid-floor {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 120px;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.grid-floor::before,
+.grid-floor::after {
+    content: '';
+    position: absolute;
+    left: -50%;
+    right: -50%;
+    height: 200%;
+    top: 34%;
+    border-radius: 44% 46% 0 0 / 62% 58% 0 0;
+    animation: swell 13s ease-in-out infinite alternate;
+}
+
+.grid-floor::before {
+    background: rgba(47, 147, 212, 0.16);
+    top: 30%;
+}
+
+.grid-floor::after {
+    background: rgba(27, 108, 168, 0.20);
+    top: 46%;
+    animation-duration: 17s;
+    animation-direction: alternate-reverse;
+}
+
+@keyframes swell {
+    from { transform: translateX(-2.5%) translateY(0); }
+    to   { transform: translateX(2.5%)  translateY(-7px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .grid-floor::before, .grid-floor::after { animation: none; }
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* Typography ------------------------------------------------------------- */
+h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.16;
+    letter-spacing: -0.012em;
+    text-wrap: balance;
+}
+
+.section-title {
+    font-size: clamp(1.75rem, 4.4vw, 2.6rem);
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 10px;
+    letter-spacing: -0.015em;
+}
+
+/* a small arch above a section heading, like a whitewashed chapel */
+.section-title::before {
+    content: '';
+    display: block;
+    width: 42px;
+    height: 21px;
+    margin: 0 auto 14px;
+    border: 1.5px solid var(--cyan);
+    border-bottom: none;
+    border-radius: 21px 21px 0 0;
+    opacity: 0.55;
+}
+
+.section-sub {
+    text-align: center;
+    color: var(--text-dim);
+    margin-bottom: 40px;
+    font-size: 1.03rem;
+    max-width: 620px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.neon-pink { color: var(--pink); }
+.neon-cyan { color: var(--cyan); }
+.neon-lime { color: var(--lime); }
+
+/* Display treatment for the wordmark: sea gradient, no gimmicks ----------- */
+.chrome {
+    background: linear-gradient(168deg, #2f93d4 0%, #1b6ca8 48%, #14527f 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+}
+
+.pop-text { color: var(--cyan); }
+
+/* Painted taverna-sign label */
+.sticker {
+    display: inline-block;
+    padding: 6px 15px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--cyan);
+}
+
+/* Arched top — Cycladic chapel doorway */
+.arch { border-radius: var(--arch); }
+
+/* Layout ----------------------------------------------------------------- */
+.container {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.section {
+    padding: 72px 0;
+    position: relative;
+}
+
+/* Navigation ------------------------------------------------------------- */
+.navbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--nav-h);
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(14px) saturate(1.1);
+    -webkit-backdrop-filter: blur(14px) saturate(1.1);
+    border-bottom: 1px solid var(--border);
+}
+
+.nav-container {
+    max-width: 1120px;
+    height: 100%;
+    margin: 0 auto;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.nav-logo {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--cyan);
+    font-family: var(--font-brand);
+    font-weight: 700;
+    font-size: 1.02rem;
+    letter-spacing: 0.01em;
+    flex-shrink: 0;
+}
+
+.nav-logo-img {
+    height: 34px;
+    width: auto;
+    border-radius: 5px;
+}
+
+.nav-logo-text { color: var(--cyan); }
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.nav-links::-webkit-scrollbar { display: none; }
+
+.nav-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;          /* let the strip scroll rather than squash the labels */
+    min-height: 40px;
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.94rem;
+    font-weight: 600;
+    padding: 8px 13px;
+    border-radius: 8px;
+    white-space: nowrap;
+    transition: color 0.18s, background 0.18s;
+}
+
+.nav-link:hover { color: var(--text); background: var(--surface-2); }
+
+.nav-link.active { color: var(--cyan); }
+
+.nav-link.active::after {
+    content: '';
+    position: absolute;
+    left: 13px; right: 13px; bottom: 4px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--cyan);
+}
+
+.nav-link.book-btn {
+    background: var(--cyan);
+    color: #fff;
+    font-weight: 700;
+    padding: 10px 18px;
+    border-radius: 999px;
+    box-shadow: var(--pop-blue);
+}
+
+.nav-link.book-btn:hover { background: #17618f; color: #fff; }
+.nav-link.book-btn::after { display: none; }
+
+/* Buttons ---------------------------------------------------------------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.01em;
+    padding: 14px 30px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.18s, box-shadow 0.18s, background 0.18s, border-color 0.18s;
+    -webkit-appearance: none;
+}
+
+.btn-primary {
+    background: var(--cyan);
+    color: #fff;
+    box-shadow: var(--pop-blue);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #17618f;
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px rgba(27, 108, 168, 0.3);
+}
+
+.btn-ghost {
+    background: #fff;
+    color: var(--cyan);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow);
+}
+
+.btn-ghost:hover:not(:disabled) {
+    border-color: var(--cyan);
+    transform: translateY(-2px);
+}
+
+.btn-lime {
+    background: var(--lime);
+    color: #fff;
+    box-shadow: 0 10px 26px rgba(111, 139, 78, 0.24);
+}
+
+.btn-lime:hover:not(:disabled) { background: #627c43; transform: translateY(-2px); }
+
+.btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    filter: saturate(0.4);
+}
+
+.btn-block { width: 100%; }
+
+/* Cards ------------------------------------------------------------------ */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    box-shadow: var(--shadow);
+}
+
+.card-neon {
+    background: linear-gradient(172deg, #fff 0%, var(--cyan-tint) 100%);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-flat { box-shadow: none; }
+
+.grid-2 { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.grid-3 { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+
+/* Forms ------------------------------------------------------------------ */
+.field { margin-bottom: 18px; }
+
+.field label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+}
+
+.field input,
+.field select,
+.field textarea {
+    width: 100%;
+    padding: 13px 15px;
+    font-size: 16px; /* keeps iOS from zooming */
+    font-family: inherit;
+    font-weight: 500;
+    color: var(--text);
+    background: #fff;
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: box-shadow 0.18s, border-color 0.18s;
+}
+
+.field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231b6ca8' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    padding-right: 38px;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+    outline: none;
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 3px var(--cyan-tint);
+}
+
+.field input::placeholder, .field textarea::placeholder { color: var(--text-faint); font-weight: 400; }
+
+.field .hint { font-size: 0.83rem; color: var(--text-faint); margin-top: 6px; }
+
+/* Badges / pills --------------------------------------------------------- */
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 13px;
+    border-radius: 999px;
+    border: 1px solid;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+}
+
+.pill-available { background: var(--lime-tint);   color: #4f6636; border-color: #cadcb6; }
+.pill-low       { background: var(--yellow-tint); color: #8a6208; border-color: #eed9a6; }
+.pill-soldout   { background: var(--pink-tint);   color: #9c2555; border-color: #efc2d3; }
+
+/* Alerts ----------------------------------------------------------------- */
+.alert {
+    border-radius: 12px;
+    padding: 14px 17px;
+    font-size: 0.96rem;
+    border: 1px solid;
+    border-left-width: 4px;
+    margin-bottom: 18px;
+}
+
+.alert-error   { background: var(--pink-tint);   border-color: #efc2d3; border-left-color: var(--pink); color: #8d1f48; }
+.alert-success { background: var(--lime-tint);   border-color: #cadcb6; border-left-color: var(--lime); color: #465c30; }
+.alert-info    { background: var(--cyan-tint);   border-color: #c5dcec; border-left-color: var(--cyan); color: #144f7c; }
+
+/* Footer ----------------------------------------------------------------- */
+.footer {
+    border-top: 1px solid var(--border);
+    background: #fff;
+    padding: 40px 20px 48px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.92rem;
+}
+
+.footer a { color: var(--text-dim); text-decoration: none; font-weight: 600; }
+.footer a:hover { color: var(--cyan); text-decoration: underline; }
+
+.footer-brand {
+    font-family: var(--font-brand);
+    font-weight: 700;
+    color: var(--cyan);
+    font-size: 1.15rem;
+    margin-bottom: 8px;
+}
+
+/* Modal ------------------------------------------------------------------ */
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(19, 38, 51, 0.5);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.modal.visible { display: flex; }
+
+.modal-box {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 460px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 28px;
+}
+
+/* Spinner ---------------------------------------------------------------- */
+.spinner {
+    width: 34px;
+    height: 34px;
+    margin: 0 auto;
+    border: 3px solid var(--cyan-tint);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Utilities -------------------------------------------------------------- */
+.text-center { text-align: center; }
+.mt-1 { margin-top: 8px; }  .mt-2 { margin-top: 16px; } .mt-3 { margin-top: 26px; }
+.mb-1 { margin-bottom: 8px; } .mb-2 { margin-bottom: 16px; } .mb-3 { margin-bottom: 26px; }
+.dim { color: var(--text-dim); }
+.faint { color: var(--text-faint); }
+.hidden { display: none !important; }
+
+/* Mobile ----------------------------------------------------------------- */
+@media (max-width: 720px) {
+    :root { --nav-h: 60px; --arch: 150px 150px var(--radius) var(--radius); }
+    .section { padding: 52px 0; }
+    .card { padding: 22px; }
+    .nav-logo-text { display: none; }
+
+    /* 44px minimum touch target — thumbs are not mouse pointers */
+    .nav-link {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 10px 12px;
+        font-size: 0.88rem;
+    }
+
+    /* keep the booking button reachable while the rest of the nav scrolls */
+    .nav-link.book-btn {
+        padding: 10px 16px;
+        position: sticky;
+        right: 0;
+        margin-left: 6px;
+        box-shadow: -12px 0 14px rgba(255, 255, 255, 0.95), var(--pop-blue);
+    }
+
+    .btn { padding: 14px 24px; font-size: 0.95rem; min-height: 48px; }
+    .mini-btn { min-height: 40px; }
+
+    /* the map and email links are the two a parent actually taps —
+       grow the hit area without moving the text */
+    .info-value a,
+    .char-desc a {
+        display: inline-block;
+        padding: 13px 4px;
+        margin: -13px -4px;
+    }
+}

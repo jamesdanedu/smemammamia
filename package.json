@@ -1,0 +1,10 @@
+{
+  "name": "mamma-mia",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ticket booking site for Mamma Mia! — St Mary's Secondary School, Edenderry, January 2027",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  }
+}

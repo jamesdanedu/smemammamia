@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Booking Confirmed — Mamma Mia! | St Mary's Edenderry</title>
+<meta name="description" content="Your booking confirmation for Mamma Mia! at St Mary's Secondary School, Edenderry.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+.wrap { max-width: 620px; margin: 0 auto; padding: 50px 20px 70px; }
+
+/* an arched niche, like a chapel doorway, with the tick set inside it */
+.tick {
+    width: 84px; height: 92px;
+    margin: 0 auto 18px;
+    border-radius: 50% 50% 8px 8px / 42% 42% 8px 8px;
+    display: grid; place-items: center;
+    font-size: 2.4rem;
+    background: #fff;
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow);
+    color: var(--lime);
+    animation: rise 0.5s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+
+@keyframes rise { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* the tick already sits in an arched niche — don't repeat the arch ornament */
+#confirmed .section-title::before { display: none; }
+
+.ref-box {
+    text-align: center;
+    padding: 22px;
+    margin: 22px 0;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow);
+}
+
+.ref-label {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}
+
+.ref-value {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.6rem, 7vw, 2.3rem);
+    color: var(--cyan);
+    letter-spacing: 0.06em;
+    margin-top: 6px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.detail-row:last-child { border-bottom: none; }
+
+.detail-row .k {
+    font-family: var(--font-body);
+    font-weight: 600;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+}
+
+.detail-row .v { font-weight: 700; text-align: right; color: var(--text); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 26px; }
+
+.contact-link { color: var(--cyan); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+.licence {
+    font-size: 0.76rem;
+    color: var(--text-faint);
+    max-width: 620px;
+    margin: 16px auto 0;
+    line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+    .contact-link { display: inline-block; padding: 12px 4px; margin: -12px -4px; }
+}
+
+@media print {
+    body::before, body::after, .navbar, .actions, .footer { display: none !important; }
+    body { background: #fff; color: #000; padding-top: 0; }
+    .card { border: 1px solid #999; background: #fff; box-shadow: none; }
+    .tick { background: #fff; box-shadow: none; color: #000; }
+    .ref-box { background: #fff; box-shadow: none; }
+    .ref-value, .neon-cyan, .neon-pink { color: #000 !important; }
+    .chrome { -webkit-text-fill-color: #000; color: #000; filter: none; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">
+      <img src="schoollogo.png" alt="St Mary's Edenderry" class="nav-logo-img" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Mamma Mia!</span>
+    </a>
+    <div class="nav-links">
+      <a href="about.html" class="nav-link">About</a>
+      <a href="cast.html" class="nav-link">Cast</a>
+      <a href="photos.html" class="nav-link">Photos</a>
+      <a href="games.html" class="nav-link">Games</a>
+      <a href="quiz.html" class="nav-link">Quiz</a>
+      <a href="wall.html" class="nav-link">Wall</a>
+      <a href="booking.html" class="nav-link book-btn">Book Now</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- checking -->
+  <div id="checking" class="card text-center">
+    <div class="spinner"></div>
+    <p class="dim mt-2">Confirming your payment…</p>
+    <p class="faint mt-1" style="font-size:0.84rem">This takes just a moment. Please don't close the page.</p>
+  </div>
+
+  <!-- confirmed -->
+  <div id="confirmed" class="hidden">
+    <div class="text-center">
+      <div class="tick">✓</div>
+      <h1 class="section-title" style="margin-bottom:6px"><span class="neon-cyan">You're Going!</span></h1>
+      <p class="dim">Your tickets are booked and paid for. See you on the island.</p>
+    </div>
+
+    <div class="ref-box">
+      <div class="ref-label">Booking reference</div>
+      <div class="ref-value" id="ref-value">—</div>
+      <p class="dim mt-1" style="font-size:0.83rem">Every reference starts <strong>MM-</strong> (for example <strong>MM-4F2K9A</strong>). Nothing to print — just give your name at the door.</p>
+    </div>
+
+    <div id="email-status" class="alert alert-success" style="font-size:0.9rem">
+      Sending your confirmation email…
+    </div>
+
+    <div class="card">
+      <div class="detail-row"><span class="k">Name</span><span class="v" id="d-name">—</span></div>
+      <div class="detail-row"><span class="k">Performance</span><span class="v" id="d-night">—</span></div>
+      <div class="detail-row"><span class="k">Doors / Curtain</span><span class="v" id="d-time">—</span></div>
+      <div class="detail-row"><span class="k">Venue</span><span class="v" id="d-venue">—</span></div>
+      <div class="detail-row"><span class="k">Tickets</span><span class="v" id="d-qty">—</span></div>
+      <div class="detail-row"><span class="k">Paid</span><span class="v" id="d-amount">—</span></div>
+    </div>
+
+    <div class="actions">
+      <a href="#" class="btn btn-primary" id="cal-btn">📅 Add to calendar</a>
+      <button type="button" class="btn btn-ghost" onclick="window.print()">🖨️ Print</button>
+    </div>
+
+    <div class="card mt-3">
+      <h2 style="font-size:0.95rem;margin-bottom:8px">Email not arrived?</h2>
+      <p class="dim" style="font-size:0.89rem;margin-bottom:8px">
+        Give it a few minutes, then check your spam or junk folder — that's where it usually is.
+      </p>
+      <p class="dim" style="font-size:0.89rem">
+        Either way <strong style="color:var(--text)">your booking is safe</strong>. You're on the door list under
+        your name, and this page works as your record — bookmark it or print it.
+        If you'd like the email sent again, contact
+        <a id="contact-link" href="#" class="contact-link"></a> with your reference.
+      </p>
+    </div>
+  </div>
+
+  <!-- not paid / problem -->
+  <div id="problem" class="hidden">
+    <div class="card">
+      <h1 class="section-title" style="font-size:1.5rem;margin-bottom:10px"><span class="neon-pink">We couldn't confirm that payment</span></h1>
+      <p class="dim mb-2" id="problem-text">
+        Your booking reference exists, but SumUp hasn't confirmed the payment yet.
+      </p>
+      <p class="faint mb-3" style="font-size:0.88rem">
+        If money has left your account, don't pay again — send us the reference below and we'll sort it out.
+      </p>
+      <div class="ref-box" style="margin-top:0">
+        <div class="ref-label">Reference</div>
+        <div class="ref-value" id="problem-ref" style="font-size:1.5rem">—</div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn-ghost" id="retry-btn">Check again</button>
+        <a href="booking.html" class="btn btn-primary">Back to booking</a>
+      </div>
+      <p class="text-center faint mt-3" style="font-size:0.85rem">
+        Email <a id="contact-link-2" href="#" class="contact-link"></a>
+      </p>
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  <div class="footer-brand" id="footer-brand"></div>
+  <div id="footer-line"></div>
+  <div class="mt-1"><a href="index.html">Home</a> · <a href="about.html">About</a> · <a href="wall.html">Wall</a></div>
+  <p class="licence">
+    <em>Mamma Mia!</em> is presented through special arrangement with Music Theatre International (MTI).
+    All authorized performance materials are also supplied by MTI. 423 West 55th Street, New York, NY 10019.
+    <br>The videotaping or other video or audio recording of this production is strictly prohibited.
+  </p>
+</footer>
+
+<script src="config.js"></script>
+<script>
+(function () {
+    'use strict';
+    const S = CONFIG.show;
+    const $ = id => document.getElementById(id);
+
+    $('footer-brand').textContent = S.title + ' · ' + S.year;
+    $('footer-line').textContent = S.school;
+    ['contact-link', 'contact-link-2'].forEach(id => {
+        const el = $(id);
+        el.textContent = S.contactEmail;
+        el.href = 'mailto:' + S.contactEmail + '?subject=' + encodeURIComponent('Mamma Mia! booking');
+    });
+
+    const ref = new URLSearchParams(location.search).get('ref');
+    let attempts = 0;
+
+    if (!ref) {
+        show('problem');
+        $('problem-text').textContent = 'No booking reference was supplied.';
+        $('problem-ref').textContent = '—';
+        return;
+    }
+
+    $('problem-ref').textContent = ref;
+
+    function show(which) {
+        ['checking', 'confirmed', 'problem'].forEach(id => {
+            $(id).classList.toggle('hidden', id !== which);
+        });
+    }
+
+    async function verify() {
+        attempts++;
+        try {
+            const res = await fetch(CONFIG.api.verify, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bookingRef: ref })
+            });
+            const data = await res.json();
+
+            if (data.paid && data.booking) return renderConfirmed(data.booking, data.email);
+
+            // SumUp can lag a second or two after the redirect
+            if (attempts < 4) return setTimeout(verify, 1800);
+
+            show('problem');
+            if (data.error) $('problem-text').textContent = data.error;
+
+        } catch (err) {
+            console.error(err);
+            if (attempts < 4) return setTimeout(verify, 2000);
+            show('problem');
+            $('problem-text').textContent = 'We could not reach the booking system just now.';
+        }
+    }
+
+    function renderConfirmed(b, email) {
+        renderEmailStatus(email, b.customerEmail);
+        const perf = CONFIG.getPerformance(b.performanceDate);
+        $('ref-value').textContent = b.reference;
+        $('d-name').textContent    = b.customerName;
+        $('d-night').textContent   = perf ? perf.label : b.performanceDate;
+        $('d-time').textContent    = S.doorsTime + ' / ' + S.startTime;
+        $('d-venue').textContent   = S.venue;
+        $('d-qty').textContent     = b.quantity + (b.quantity === 1 ? ' ticket' : ' tickets');
+        $('d-amount').textContent  = CONFIG.money(b.amount);
+
+        $('cal-btn').href = calendarLink(b, perf);
+        $('cal-btn').setAttribute('download', 'mamma-mia.ics');
+
+        show('confirmed');
+    }
+
+    function renderEmailStatus(email, address) {
+        const box = $('email-status');
+        const to = address ? ' to <strong>' + address + '</strong>' : '';
+
+        switch (email && email.status) {
+            case 'sent':
+            case 'already sent':
+                box.className = 'alert alert-success';
+                box.innerHTML = '✉️ Confirmation email sent' + to + '.';
+                break;
+            case 'queued':
+                box.className = 'alert alert-info';
+                box.innerHTML = '✉️ Your confirmation email is on its way' + to +
+                                ' — it may take a few minutes.';
+                break;
+            case 'skipped':
+                box.classList.add('hidden');
+                break;
+            default:
+                box.className = 'alert alert-info';
+                box.innerHTML = '✉️ Your confirmation email is on its way' + to + '.';
+        }
+    }
+
+    function calendarLink(b, perf) {
+        const start = new Date(b.performanceDate + 'T' + to24(S.startTime));
+        const end = new Date(start.getTime() + 2.5 * 3600 * 1000);
+        const stamp = d => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+        const ics = [
+            'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//St Marys Edenderry//Mamma Mia!//EN',
+            'BEGIN:VEVENT',
+            'UID:' + b.reference + '@stmarysedenderry',
+            'DTSTAMP:' + stamp(new Date()),
+            'DTSTART:' + stamp(start),
+            'DTEND:' + stamp(end),
+            'SUMMARY:Mamma Mia! · ' + S.school,
+            'LOCATION:' + S.venue + ', ' + S.venueLine2,
+            'DESCRIPTION:Booking ' + b.reference + ' — ' + b.quantity + ' ticket(s). Doors ' + S.doorsTime + '.',
+            'END:VEVENT', 'END:VCALENDAR'
+        ].join('\r\n');
+
+        return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+    }
+
+    function to24(t) {
+        const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(String(t).trim());
+        if (!m) return '19:30:00';
+        let h = parseInt(m[1], 10);
+        if (/pm/i.test(m[3]) && h !== 12) h += 12;
+        if (/am/i.test(m[3]) && h === 12) h = 0;
+        return String(h).padStart(2, '0') + ':' + m[2] + ':00';
+    }
+
+    $('retry-btn').addEventListener('click', function () {
+        attempts = 0;
+        show('checking');
+        verify();
+    });
+
+    verify();
+})();
+</script>
+</body>
+</html>

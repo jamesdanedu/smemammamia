@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Book Tickets — Mamma Mia! | St Mary's Edenderry</title>
+<meta name="description" content="Book tickets online for Mamma Mia! at St Mary's Secondary School, Edenderry. Three nights, €15 a ticket, secure card payment by SumUp.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="https://gateway.sumup.com/gateway/ecom/card/v2/sdk.js"></script>
+<style>
+.page-head { text-align: center; padding: 44px 20px 6px; position: relative; overflow: hidden; }
+
+/* whitewashed chapel arch behind the heading, as on the home page */
+.head-arch {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(420px, 76vw);
+    height: 200px;
+    border: 1px solid var(--border-strong);
+    border-bottom: none;
+    border-radius: 50% 50% 0 0 / 34% 34% 0 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.15));
+    z-index: 0;
+}
+
+.page-head > *:not(.head-arch) { position: relative; z-index: 1; }
+
+.page-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.9rem, 6vw, 3rem);
+    letter-spacing: -0.025em;
+}
+
+.page-kicker {
+    font-family: var(--font-body);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-indent: 0.3em;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+}
+
+.booking-wrap { max-width: 720px; margin: 0 auto; padding: 26px 20px 70px; }
+
+/* Steps */
+.step { margin-bottom: 26px; }
+
+.step-head {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-bottom: 15px;
+}
+
+.step-num {
+    width: 34px; height: 34px;
+    flex-shrink: 0;
+    display: grid; place-items: center;
+    /* small chapel arch, flat-footed */
+    border-radius: 50% 50% 6px 6px / 44% 44% 6px 6px;
+    background: var(--cyan);
+    box-shadow: 0 6px 16px rgba(27, 108, 168, 0.22);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: #fff;
+}
+
+.step-title { font-family: var(--font-display); font-weight: 600; font-size: 1.12rem; color: var(--text); }
+
+/* Night picker */
+.night-list { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+
+.night {
+    position: relative;
+    text-align: left;
+    padding: 18px 18px;
+    border-radius: var(--radius);
+    background: #fff;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    font: inherit;
+    color: var(--text);
+    min-height: 44px;
+    transition: background 0.18s, transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+}
+
+.night:hover:not(:disabled) {
+    background: var(--surface-2);
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.night.selected {
+    background: var(--cyan-tint);
+    border-color: var(--cyan);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.night.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    font-weight: 700;
+    color: var(--cyan);
+}
+
+.night:disabled { opacity: 0.5; cursor: not-allowed; filter: saturate(0.35); }
+
+.night-day { font-family: var(--font-display); font-weight: 600; font-size: 1.12rem; margin-bottom: 2px; }
+.night-when { font-size: 0.88rem; color: var(--text-dim); margin-bottom: 10px; font-weight: 500; }
+
+/* Quantity stepper */
+.qty-row { display: flex; align-items: center; justify-content: center; gap: 20px; }
+
+.qty-btn {
+    width: 54px; height: 54px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    background: var(--cyan);
+    box-shadow: var(--pop-blue);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 1.6rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+    -webkit-appearance: none;
+}
+
+.qty-btn:hover:not(:disabled) {
+    background: #17618f;
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px rgba(27, 108, 168, 0.3);
+}
+
+.qty-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; filter: saturate(0.4); }
+
+.qty-value {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 3rem;
+    min-width: 88px;
+    text-align: center;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Summary */
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 9px 0;
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.summary-row > strong { text-align: right; min-width: 0; color: var(--text); font-weight: 700; }
+
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-strong);
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--text);
+}
+
+.summary-total .amount {
+    font-size: 1.9rem;
+    color: var(--cyan);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Payment modal */
+.hold-timer {
+    text-align: center;
+    font-size: 0.84rem;
+    color: var(--text-dim);
+    margin-top: 12px;
+    font-weight: 600;
+}
+
+.hold-timer strong { color: var(--cyan); font-variant-numeric: tabular-nums; }
+
+#sumup-card { min-height: 60px; }
+
+.pay-ok, .pay-bad { text-align: center; padding: 26px 10px; }
+.pay-ok .mark  { font-size: 3rem; color: var(--lime); }
+.pay-bad .mark { font-size: 3rem; color: var(--pink); }
+
+.trust-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 18px;
+    margin-top: 26px;
+    color: var(--text-dim);
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
+.licence {
+    font-size: 0.76rem;
+    color: var(--text-faint);
+    max-width: 620px;
+    margin: 16px auto 0;
+    line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+    .head-arch { width: min(320px, 80vw); height: 168px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">
+      <img src="schoollogo.png" alt="St Mary's Edenderry" class="nav-logo-img" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Mamma Mia!</span>
+    </a>
+    <div class="nav-links">
+      <a href="about.html" class="nav-link">About</a>
+      <a href="cast.html" class="nav-link">Cast</a>
+      <a href="photos.html" class="nav-link">Photos</a>
+      <a href="games.html" class="nav-link">Games</a>
+      <a href="quiz.html" class="nav-link">Quiz</a>
+      <a href="wall.html" class="nav-link">Wall</a>
+      <a href="booking.html" class="nav-link book-btn active">Book Now</a>
+    </div>
+  </div>
+</nav>
+
+<header class="page-head">
+  <div class="head-arch" aria-hidden="true"></div>
+  <div class="page-kicker">Tickets</div>
+  <h1 class="page-title chrome">Book Your Seats</h1>
+  <p class="dim mt-1" id="head-sub"></p>
+  <p class="faint mt-1" style="font-size:0.9rem">Three nights only on a small Greek island — a wedding, a diary and the songs of ABBA.</p>
+</header>
+
+<main class="booking-wrap">
+
+  <div id="global-alert" class="alert alert-error hidden"></div>
+
+  <div id="loading-state" class="card text-center">
+    <div class="spinner"></div>
+    <p class="faint mt-2">Checking ticket availability…</p>
+  </div>
+
+  <form id="booking-form" class="hidden" novalidate>
+
+    <!-- STEP 1 -->
+    <section class="step">
+      <div class="step-head"><div class="step-num">1</div><div class="step-title">Choose your night</div></div>
+      <div class="night-list" id="night-list"></div>
+    </section>
+
+    <!-- STEP 2 -->
+    <section class="step">
+      <div class="step-head"><div class="step-num">2</div><div class="step-title">How many tickets?</div></div>
+      <div class="card">
+        <div class="qty-row">
+          <button type="button" class="qty-btn" id="qty-minus" aria-label="One fewer ticket">−</button>
+          <div class="qty-value" id="qty-value">1</div>
+          <button type="button" class="qty-btn" id="qty-plus" aria-label="One more ticket">+</button>
+        </div>
+        <p class="text-center faint mt-2" id="qty-hint"></p>
+      </div>
+    </section>
+
+    <!-- STEP 3 -->
+    <section class="step">
+      <div class="step-head"><div class="step-num">3</div><div class="step-title">Your details</div></div>
+      <div class="card">
+        <div class="field">
+          <label for="customer-name">Full name</label>
+          <input type="text" id="customer-name" autocomplete="name" placeholder="Jane Murphy" required>
+        </div>
+        <div class="field">
+          <label for="customer-email">Email</label>
+          <input type="email" id="customer-email" autocomplete="email" inputmode="email" placeholder="jane@example.com" required>
+          <div class="hint">Your confirmation goes here — please double-check it.</div>
+        </div>
+        <div class="field">
+          <label for="customer-phone">Phone <span class="faint" style="text-transform:none">(optional)</span></label>
+          <input type="tel" id="customer-phone" autocomplete="tel" inputmode="tel" placeholder="087 123 4567">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label for="booked-by">Booked through a student? <span class="faint" style="text-transform:none">(optional)</span></label>
+          <input type="text" id="booked-by" placeholder="Student's name" maxlength="80">
+          <div class="hint">Helps us credit the right class group.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 4 -->
+    <section class="step">
+      <div class="step-head"><div class="step-num">4</div><div class="step-title">Confirm and pay</div></div>
+      <div class="card card-neon">
+        <div class="summary-row"><span>Performance</span><strong id="sum-night" style="color:var(--text)">—</strong></div>
+        <div class="summary-row"><span>Tickets</span><strong id="sum-qty" style="color:var(--text)">—</strong></div>
+        <div class="summary-row"><span>Price each</span><strong id="sum-price" style="color:var(--text)">—</strong></div>
+        <div class="summary-total"><span>Total</span><span class="amount" id="sum-total">—</span></div>
+
+        <button type="submit" class="btn btn-primary btn-block mt-3" id="pay-btn">💳 Pay by card</button>
+
+        <p class="text-center faint mt-2" style="font-size:0.8rem">
+          Card payments are handled by SumUp. We never see or store your card details.
+        </p>
+      </div>
+    </section>
+  </form>
+
+  <div class="trust-row">
+    <span>🔒 Secure checkout</span>
+    <span>💳 Powered by SumUp</span>
+    <span>🎟️ Your name on the door list</span>
+  </div>
+</main>
+
+<!-- ===================== PAYMENT MODAL ===================== -->
+<div class="modal" id="payment-modal" role="dialog" aria-modal="true" aria-labelledby="pay-title">
+  <div class="modal-box">
+    <h2 id="pay-title" style="font-size:1.2rem;margin-bottom:4px">Card payment</h2>
+    <p class="faint mb-2" id="pay-summary" style="font-size:0.9rem"></p>
+
+    <div id="payment-loading" class="text-center" style="padding:22px 0">
+      <div class="spinner"></div>
+      <p class="faint mt-2" style="font-size:0.86rem">Opening secure payment…</p>
+    </div>
+
+    <div id="sumup-card"></div>
+
+    <div class="hold-timer" id="hold-timer"></div>
+
+    <button type="button" class="btn btn-ghost btn-block mt-2" id="cancel-payment">Cancel</button>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-brand" id="footer-brand"></div>
+  <div id="footer-line"></div>
+  <div class="mt-1"><a href="index.html">Home</a> · <a href="about.html">About</a> · <a href="cast.html">Cast</a></div>
+  <p class="licence">
+    <em>Mamma Mia!</em> is presented through special arrangement with Music Theatre International (MTI).
+    All authorized performance materials are also supplied by MTI. 423 West 55th Street, New York, NY 10019.
+    <br>The videotaping or other video or audio recording of this production is strictly prohibited.
+  </p>
+</footer>
+
+<script src="config.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    const S = CONFIG.show, T = CONFIG.ticket;
+
+    const state = {
+        date: null,
+        qty: 1,
+        max: T.maxPerBooking,
+        availability: null,
+        bookingRef: null,
+        holdEndsAt: null,
+        holdTimerId: null,
+        submitting: false
+    };
+
+    const $ = id => document.getElementById(id);
+
+    /* ---------------- chrome ---------------- */
+    $('head-sub').textContent =
+        CONFIG.money(T.price) + ' per ticket · ' + S.venue;
+    $('footer-brand').textContent = S.title + ' · ' + S.year;
+    $('footer-line').textContent = S.school;
+
+    function alertBox(message, kind = 'error') {
+        const el = $('global-alert');
+        if (!message) { el.classList.add('hidden'); return; }
+        el.className = 'alert alert-' + kind;
+        el.textContent = message;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    /* ---------------- 1. load availability ---------------- */
+    async function init() {
+        if (!CONFIG.features.bookingOpen) {
+            $('loading-state').innerHTML =
+                '<h2 style="font-size:1.2rem;margin-bottom:8px">Booking is not open yet</h2>' +
+                '<p class="dim">Tickets go on sale soon — check back shortly.</p>';
+            return;
+        }
+
+        try {
+            state.availability = await CONFIG.fetchAvailability();
+        } catch (err) {
+            console.warn('availability failed', err);
+            state.availability = null;
+        }
+
+        $('loading-state').classList.add('hidden');
+        $('booking-form').classList.remove('hidden');
+
+        renderNights();
+
+        // pre-select from ?date=, else the first night with tickets
+        const wanted = new URLSearchParams(location.search).get('date');
+        const preselect = CONFIG.performances.find(p => p.key === wanted && !isSoldOut(p.key))
+            || CONFIG.performances.find(p => !isSoldOut(p.key));
+        if (preselect) selectNight(preselect.key);
+        else alertBox('All performances are sold out. Thank you for the incredible support!', 'info');
+
+        updateSummary();
+    }
+
+    function isSoldOut(key) {
+        const a = state.availability && state.availability[key];
+        return Boolean(a && (a.soldOut || a.remaining <= 0));
+    }
+
+    function remainingFor(key) {
+        const a = state.availability && state.availability[key];
+        return a ? a.remaining : null;
+    }
+
+    /* ---------------- night picker ---------------- */
+    function renderNights() {
+        $('night-list').innerHTML = CONFIG.performances.map(p => {
+            const left = remainingFor(p.key);
+            const soldOut = isSoldOut(p.key);
+
+            let pill;
+            if (soldOut) pill = '<span class="pill pill-soldout">Sold out</span>';
+            else if (left !== null && left <= 20) pill = `<span class="pill pill-low">Only ${left} left</span>`;
+            else pill = '<span class="pill pill-available">Available</span>';
+
+            const [day, ...rest] = p.label.split(' ');
+            return `
+              <button type="button" class="night" data-key="${p.key}" ${soldOut ? 'disabled' : ''}>
+                <div class="night-day">${day}</div>
+                <div class="night-when">${rest.join(' ')} · ${S.startTime}</div>
+                ${pill}
+              </button>`;
+        }).join('');
+
+        $('night-list').querySelectorAll('.night').forEach(btn => {
+            btn.addEventListener('click', () => selectNight(btn.dataset.key));
+        });
+    }
+
+    function selectNight(key) {
+        state.date = key;
+        $('night-list').querySelectorAll('.night').forEach(b => {
+            b.classList.toggle('selected', b.dataset.key === key);
+        });
+
+        const left = remainingFor(key);
+        state.max = Math.min(T.maxPerBooking, left === null ? T.maxPerBooking : left);
+        if (state.qty > state.max) state.qty = Math.max(1, state.max);
+
+        alertBox('');
+        updateSummary();
+    }
+
+    /* ---------------- quantity ---------------- */
+    $('qty-minus').addEventListener('click', () => { if (state.qty > 1) { state.qty--; updateSummary(); } });
+    $('qty-plus').addEventListener('click',  () => { if (state.qty < state.max) { state.qty++; updateSummary(); } });
+
+    function updateSummary() {
+        $('qty-value').textContent = state.qty;
+        $('qty-minus').disabled = state.qty <= 1;
+        $('qty-plus').disabled  = state.qty >= state.max;
+
+        const left = state.date ? remainingFor(state.date) : null;
+        $('qty-hint').textContent = !state.date
+            ? 'Pick a night first'
+            : (left !== null && left <= T.maxPerBooking
+                ? `${left} ticket${left === 1 ? '' : 's'} left for this night`
+                : `Up to ${T.maxPerBooking} tickets per booking`);
+
+        const perf = state.date ? CONFIG.getPerformance(state.date) : null;
+        $('sum-night').textContent = perf ? perf.label : '—';
+        $('sum-qty').textContent   = state.qty + (state.qty === 1 ? ' ticket' : ' tickets');
+        $('sum-price').textContent = CONFIG.money(T.price);
+        $('sum-total').textContent = CONFIG.money(state.qty * T.price);
+
+        $('pay-btn').disabled = !state.date || state.submitting;
+        $('pay-btn').innerHTML = state.date
+            ? `💳 Pay ${CONFIG.money(state.qty * T.price)} by card`
+            : 'Choose a night to continue';
+    }
+
+    /* ---------------- submit ---------------- */
+    $('booking-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        if (state.submitting) return;
+
+        const name  = $('customer-name').value.trim();
+        const email = $('customer-email').value.trim();
+        const phone = $('customer-phone').value.trim();
+        const via   = $('booked-by').value.trim();
+
+        if (!state.date)                       return alertBox('Please choose a performance.');
+        if (name.length < 2)                   return alertBox('Please enter your full name.');
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return alertBox('Please enter a valid email address.');
+
+        alertBox('');
+        state.submitting = true;
+        const btn = $('pay-btn');
+        btn.disabled = true;
+        btn.textContent = 'Reserving your tickets…';
+
+        try {
+            const res = await fetch(CONFIG.api.checkout, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    performanceDate: state.date,
+                    quantity: state.qty,
+                    customerName: name,
+                    customerEmail: email,
+                    customerPhone: phone,
+                    bookedBy: via || 'WEB'
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                if (res.status === 409) await refreshAvailability();
+                throw new Error(data.error || 'Could not start the payment.');
+            }
+
+            state.bookingRef = data.bookingRef;
+            state.holdEndsAt = data.expiresAt ? new Date(data.expiresAt) : new Date(Date.now() + (data.holdMinutes || 15) * 60000);
+
+            openPaymentModal(data);
+
+        } catch (err) {
+            console.error(err);
+            alertBox(err.message || 'Something went wrong. Please try again.');
+        } finally {
+            state.submitting = false;
+            updateSummary();
+        }
+    });
+
+    async function refreshAvailability() {
+        try {
+            state.availability = await CONFIG.fetchAvailability();
+            renderNights();
+            if (state.date) selectNight(state.date);
+        } catch (_) { /* leave as-is */ }
+    }
+
+    /* ---------------- payment modal ---------------- */
+    function openPaymentModal(data) {
+        const perf = CONFIG.getPerformance(state.date);
+        $('pay-summary').textContent =
+            `${perf ? perf.label : ''} · ${data.quantity} ticket${data.quantity === 1 ? '' : 's'} · ${CONFIG.money(data.amount)}`;
+
+        $('payment-loading').style.display = 'block';
+        $('sumup-card').innerHTML = '';
+        $('cancel-payment').style.display = '';
+        $('payment-modal').classList.add('visible');
+        document.body.style.overflow = 'hidden';
+
+        startHoldTimer();
+
+        if (typeof SumUpCard === 'undefined') {
+            $('payment-loading').style.display = 'none';
+            $('sumup-card').innerHTML =
+                `<div class="alert alert-error">The payment form could not load. ` +
+                `<a href="${data.checkoutUrl}" style="color:inherit;text-decoration:underline">Open the secure payment page instead</a>.</div>`;
+            return;
+        }
+
+        try {
+            SumUpCard.mount({
+                id: 'sumup-card',
+                checkoutId: data.checkoutId,
+                locale: 'en-IE',
+                country: 'IE',
+                showSubmitButton: true,
+                onLoad: function () { $('payment-loading').style.display = 'none'; },
+                onResponse: async function (type, body) {
+                    if (type === 'success') {
+                        stopHoldTimer();
+                        $('sumup-card').innerHTML =
+                            '<div class="pay-ok"><div class="mark">✓</div>' +
+                            '<h3 style="margin:8px 0 4px">Payment received</h3>' +
+                            '<p class="faint" style="font-size:0.9rem">Confirming your booking…</p></div>';
+                        $('cancel-payment').style.display = 'none';
+
+                        // server-side confirmation is the source of truth
+                        try {
+                            await fetch(CONFIG.api.verify, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ bookingRef: state.bookingRef })
+                            });
+                        } catch (_) { /* success.html will retry */ }
+
+                        location.href = 'success.html?ref=' + encodeURIComponent(state.bookingRef);
+
+                    } else if (type === 'error' || type === 'fail') {
+                        $('sumup-card').insertAdjacentHTML('beforeend',
+                            '<div class="alert alert-error mt-2">' +
+                            (body && body.message ? body.message : 'That payment did not go through. Please try again or use another card.') +
+                            '</div>');
+                    }
+                }
+            });
+        } catch (err) {
+            console.error('SumUp mount failed', err);
+            $('payment-loading').style.display = 'none';
+            $('sumup-card').innerHTML =
+                `<div class="alert alert-error">The payment form could not load. ` +
+                `<a href="${data.checkoutUrl}" style="color:inherit;text-decoration:underline">Open the secure payment page instead</a>.</div>`;
+        }
+    }
+
+    $('cancel-payment').addEventListener('click', function () {
+        $('payment-modal').classList.remove('visible');
+        document.body.style.overflow = '';
+        stopHoldTimer();
+        alertBox('Payment cancelled. Your tickets are released — you can start again any time.', 'info');
+        refreshAvailability();
+    });
+
+    function startHoldTimer() {
+        stopHoldTimer();
+        const tick = () => {
+            const ms = state.holdEndsAt - new Date();
+            if (ms <= 0) {
+                stopHoldTimer();
+                $('hold-timer').innerHTML = '<strong>Reservation expired</strong> — please close this and start again.';
+                return;
+            }
+            const m = Math.floor(ms / 60000), s = Math.floor(ms / 1000) % 60;
+            $('hold-timer').innerHTML =
+                `Tickets reserved for <strong>${m}:${String(s).padStart(2, '0')}</strong>`;
+        };
+        tick();
+        state.holdTimerId = setInterval(tick, 1000);
+    }
+
+    function stopHoldTimer() {
+        if (state.holdTimerId) clearInterval(state.holdTimerId);
+        state.holdTimerId = null;
+    }
+
+    init();
+})();
+</script>
+</body>
+</html>

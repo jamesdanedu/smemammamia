@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>About the Show — Mamma Mia! | St Mary's Edenderry</title>
+<meta name="description" content="The story, the songs and the characters of Mamma Mia!, presented by St Mary's Secondary School, Edenderry.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+.page-head { position: relative; padding: 60px 20px 66px; text-align: center; overflow: hidden; }
+
+.head-arch {
+    position: absolute;
+    top: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(460px, 84vw);
+    height: 300px;
+    border: 1px solid var(--border-strong);
+    border-bottom: none;
+    border-radius: 50% 50% 0 0 / 34% 34% 0 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0));
+    z-index: 0;
+    -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent);
+    mask-image: linear-gradient(180deg, #000 55%, transparent);
+}
+
+.page-title {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(2.4rem, 9vw, 4.4rem);
+    letter-spacing: -0.035em;
+}
+
+.page-kicker {
+    letter-spacing: 0.28em;
+    text-indent: 0.28em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+}
+
+.page-badge {
+    display: inline-block;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-indent: 0.3em;
+    text-transform: uppercase;
+    color: var(--pink);
+    border-top: 1px solid var(--border-strong);
+    border-bottom: 1px solid var(--border-strong);
+    padding: 7px 20px;
+    margin-top: 14px;
+}
+
+.lede {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.16rem;
+    color: var(--text);
+    max-width: 580px;
+    margin: 22px auto 0;
+    line-height: 1.5;
+}
+
+.prose p { color: var(--text-dim); margin-bottom: 16px; }
+.prose p strong { color: var(--text); font-weight: 700; }
+
+.quote {
+    border-left: 3px solid var(--cyan);
+    padding: 6px 0 6px 20px;
+    margin: 24px 0;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--text);
+}
+
+/* Song list */
+.act-head {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.songs { list-style: none; }
+
+.songs li {
+    counter-increment: song;
+    display: flex;
+    gap: 14px;
+    align-items: baseline;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 0.96rem;
+}
+
+.songs li:last-child { border-bottom: none; }
+
+.songs li::before {
+    content: counter(song, decimal-leading-zero);
+    font-family: var(--font-display);
+    font-size: 0.74rem;
+    color: var(--text-faint);
+    min-width: 22px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Characters */
+.char {
+    padding: 18px 20px;
+    border-radius: var(--radius);
+    background: #fff;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.char-name { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; color: var(--cyan); margin-bottom: 3px; }
+.char-desc { font-size: 0.9rem; color: var(--text-dim); }
+.char-desc a { color: var(--cyan); }
+
+/* Fact row */
+.facts-row { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+
+.fact-box {
+    text-align: center;
+    padding: 24px 14px;
+    border-radius: var(--radius);
+    background: #fff;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.fact-box .n {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.9rem;
+    color: var(--cyan);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.fact-box .l {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-top: 6px;
+}
+
+.cta-band {
+    text-align: center;
+    padding: 48px 24px;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(168deg, #fff, var(--cyan-tint));
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-lg);
+}
+
+.licence {
+    font-size: 0.76rem;
+    color: var(--text-faint);
+    max-width: 620px;
+    margin: 16px auto 0;
+    line-height: 1.6;
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">
+      <img src="schoollogo.png" alt="St Mary's Edenderry" class="nav-logo-img" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Mamma Mia!</span>
+    </a>
+    <div class="nav-links">
+      <a href="about.html" class="nav-link active">About</a>
+      <a href="cast.html" class="nav-link">Cast</a>
+      <a href="photos.html" class="nav-link">Photos</a>
+      <a href="games.html" class="nav-link">Games</a>
+      <a href="quiz.html" class="nav-link">Quiz</a>
+      <a href="wall.html" class="nav-link">Wall</a>
+      <a href="booking.html" class="nav-link book-btn">Book Now</a>
+    </div>
+  </div>
+</nav>
+
+<header class="page-head">
+  <div class="head-arch" aria-hidden="true"></div>
+  <div style="position:relative;z-index:2">
+    <div class="page-kicker">About the show</div>
+    <h1 class="page-title chrome">Mamma Mia!</h1>
+    <div class="page-badge">The Musical</div>
+    <p class="lede">A daughter's search for her father, told on a Greek island in the songs of ABBA.</p>
+  </div>
+</header>
+
+<!-- ======================= THE STORY ======================= -->
+<section class="section" style="padding-top:24px">
+  <div class="container" style="max-width:820px">
+    <h2 class="section-title"><span class="neon-cyan">The Story</span></h2>
+    <div class="prose card">
+      <p><strong>Sophie Sheridan</strong> is twenty years old, getting married tomorrow, and has never known who her father is. Going through her mother's things, she finds an old diary from the summer before she was born — and three names in it.</p>
+
+      <p>So she does something she cannot take back. She writes to all three, signs her mother's name, and invites them to the wedding. <strong>Sam</strong>, <strong>Bill</strong> and <strong>Harry</strong> arrive on the island expecting a reunion with the woman they each remember, none of them knowing about the other two.</p>
+
+      <p><strong>Donna</strong> — who runs the taverna, who has raised Sophie alone, and who has spent twenty years not talking about that summer — has no idea any of them are coming. Her old bandmates <strong>Tanya</strong> and <strong>Rosie</strong> do arrive as planned, ready to be Donna and the Dynamos one more time, and walk straight into the middle of it.</p>
+
+      <div class="quote">"On the eve of her wedding, a daughter's quest to discover the identity of her father brings three men from her mother's past back to the island they last visited twenty years ago."</div>
+
+      <p>It's funny, it's warm, it turns unexpectedly moving somewhere around the second act — and the songs are the ones the whole room already knows.</p>
+    </div>
+
+    <div class="facts-row mt-3">
+      <div class="fact-box"><div class="n">2</div><div class="l">Acts</div></div>
+      <div class="fact-box"><div class="n">13</div><div class="l">Named Roles</div></div>
+      <div class="fact-box"><div class="n">20</div><div class="l">Minimum Cast</div></div>
+      <div class="fact-box"><div class="n">PG-13</div><div class="l">MTI Rating</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= THE SONGS ======================= -->
+<section class="section">
+  <div class="container" style="max-width:960px">
+    <h2 class="section-title"><span class="neon-pink">The Songs</span></h2>
+    <p class="section-sub">You will not need the programme to sing along</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="act-head">Act One</div>
+        <ol class="songs" style="counter-reset: song 0">
+          <li>Overture / Prologue</li>
+          <li>Honey, Honey</li>
+          <li>Money, Money, Money</li>
+          <li>Thank You for the Music</li>
+          <li>Mamma Mia</li>
+          <li>Chiquitita</li>
+          <li>Dancing Queen</li>
+          <li>Lay All Your Love on Me</li>
+          <li>Super Trouper</li>
+          <li>Gimme! Gimme! Gimme!</li>
+          <li>The Name of the Game</li>
+          <li>Voulez-Vous</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <div class="act-head">Act Two</div>
+        <ol class="songs" style="counter-reset: song 12">
+          <li>Entr'acte</li>
+          <li>Under Attack</li>
+          <li>One of Us</li>
+          <li>SOS</li>
+          <li>Does Your Mother Know</li>
+          <li>Knowing Me, Knowing You</li>
+          <li>Our Last Summer</li>
+          <li>Slipping Through My Fingers</li>
+          <li>The Winner Takes It All</li>
+          <li>Take a Chance on Me</li>
+          <li>I Do, I Do, I Do, I Do, I Do</li>
+          <li>I Have a Dream</li>
+          <li>Mamma Mia (Reprise) · Dancing Queen (Reprise) · Waterloo</li>
+        </ol>
+      </div>
+    </div>
+
+    <p class="text-center faint mt-3" style="font-size:0.86rem;">
+      Running order follows the standard licensed edition and may vary slightly in our production.
+    </p>
+  </div>
+</section>
+
+<!-- ====================== THE CHARACTERS ====================== -->
+<section class="section">
+  <div class="container" style="max-width:960px">
+    <h2 class="section-title"><span class="neon-cyan">Who's Who</span></h2>
+    <p class="section-sub">Thirteen named roles, plus a full company of islanders and wedding guests</p>
+
+    <div class="grid-3">
+      <div class="char"><div class="char-name">Sophie Sheridan</div><div class="char-desc">Born and raised on the island, marrying Sky tomorrow, and determined to find out which of three men is her father.</div></div>
+      <div class="char"><div class="char-name">Donna Sheridan</div><div class="char-desc">Sophie's mother. Runs the taverna, holds the whole island together, and has said nothing about that summer for twenty years.</div></div>
+      <div class="char"><div class="char-name">Sam Carmichael</div><div class="char-desc">An architect who left the island and never quite left it behind. One of the three.</div></div>
+      <div class="char"><div class="char-name">Bill Austin</div><div class="char-desc">A travel writer and sailor who has kept moving ever since. One of the three.</div></div>
+      <div class="char"><div class="char-name">Harry Bright</div><div class="char-desc">A very respectable banker who was once, briefly and gloriously, Head Banger Harry. One of the three.</div></div>
+      <div class="char"><div class="char-name">Sky</div><div class="char-desc">Sophie's fiancé. Patient, in love, and slowly realising the wedding has a subplot.</div></div>
+      <div class="char"><div class="char-name">Tanya</div><div class="char-desc">Donna's old bandmate. Wealthy, three times divorced, and enjoying every minute of it.</div></div>
+      <div class="char"><div class="char-name">Rosie</div><div class="char-desc">The other Dynamo. Warm, very funny, and entirely without a filter.</div></div>
+      <div class="char"><div class="char-name">Lisa</div><div class="char-desc">Sophie's friend and bridesmaid, in on the secret from the start.</div></div>
+      <div class="char"><div class="char-name">Ali</div><div class="char-desc">Sophie's other bridesmaid, and the one asking the awkward questions.</div></div>
+      <div class="char"><div class="char-name">Pepper</div><div class="char-desc">Works the taverna bar. Utterly undeterred by Tanya's lack of interest.</div></div>
+      <div class="char"><div class="char-name">Eddie</div><div class="char-desc">Sky's friend, running the water sports and the stag night.</div></div>
+      <div class="char"><div class="char-name">Father Alexandrios</div><div class="char-desc">The island priest, booked to conduct a wedding that keeps changing shape.</div></div>
+      <div class="char"><div class="char-name">Ensemble</div><div class="char-desc">Islanders, guests and dancers — and the reason the taverna scenes fill the hall.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= PRACTICALS ======================= -->
+<section class="section">
+  <div class="container" style="max-width:820px">
+    <h2 class="section-title">The Details</h2>
+    <div class="card card-neon">
+      <div class="grid-2" id="detail-grid"></div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="act-head">Credits</div>
+      <p class="dim" style="font-size:0.93rem">
+        <em>Mamma Mia!</em> — music and lyrics by Benny Andersson and Björn Ulvaeus, and some songs with
+        Stig Anderson. Book by Catherine Johnson. Originally conceived by Judy Craymer.
+        Additional material and arrangements by Martin Koch.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container" style="max-width:820px">
+    <div class="cta-band">
+      <h2 class="section-title" style="margin-bottom:6px">Don't Miss It</h2>
+      <p class="dim mb-3" id="cta-line"></p>
+      <a href="booking.html" class="btn btn-primary">🎟️ Book Tickets</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-brand" id="footer-brand"></div>
+  <div id="footer-line"></div>
+  <div class="mt-1"><a href="index.html">Home</a> · <a href="booking.html">Book</a> · <a href="cast.html">Cast</a></div>
+  <p class="licence">
+    <em>Mamma Mia!</em> is presented through special arrangement with Music Theatre International (MTI).
+    All authorized performance materials are also supplied by MTI. 423 West 55th Street, New York, NY 10019.
+    <br>The videotaping or other video or audio recording of this production is strictly prohibited.
+  </p>
+</footer>
+
+<script src="config.js"></script>
+<script>
+(function () {
+    const S = CONFIG.show, T = CONFIG.ticket;
+
+    document.getElementById('detail-grid').innerHTML = [
+        ['📅', 'Performances', CONFIG.performances.map(p => p.label).join('<br>')],
+        ['🕖', 'Times', 'Doors ' + S.doorsTime + '<br>Curtain up ' + S.startTime],
+        ['📍', 'Venue', `<a href="${S.venueMapUrl}" target="_blank" rel="noopener">${S.venue}</a><br>${S.venueLine2}`],
+        ['🎟️', 'Tickets', CONFIG.money(T.price) + ' each<br><span class="faint" style="font-size:0.85rem">Booked online, card payment by SumUp</span>']
+    ].map(([icon, label, value]) => `
+        <div>
+          <div class="char-name">${icon} ${label}</div>
+          <div class="char-desc" style="margin-top:5px">${value}</div>
+        </div>`).join('');
+
+    document.getElementById('cta-line').textContent =
+        CONFIG.performances.map(p => p.short).join(' & ') + ' · ' + S.venue + ' · ' + CONFIG.money(T.price);
+
+    document.getElementById('footer-brand').textContent = S.title + ' · ' + S.year;
+    document.getElementById('footer-line').textContent = S.school;
+})();
+</script>
+</body>
+</html>

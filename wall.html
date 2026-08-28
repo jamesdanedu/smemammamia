@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Message Wall — Mamma Mia! | St Mary's Edenderry</title>
+<meta name="description" content="Leave a good-luck note for the cast and crew of Mamma Mia! at St Mary's Secondary School, Edenderry.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+.page-head { text-align: center; padding: 48px 20px 10px; position: relative; overflow: hidden; }
+
+/* whitewashed chapel arch behind the heading, as on the home page */
+.head-arch {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(420px, 76vw);
+    height: 210px;
+    border: 1px solid var(--border-strong);
+    border-bottom: none;
+    border-radius: 50% 50% 0 0 / 34% 34% 0 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.15));
+    z-index: 0;
+}
+
+.page-head > *:not(.head-arch) { position: relative; z-index: 1; }
+
+.page-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2rem, 6.5vw, 3.2rem);
+    letter-spacing: -0.025em;
+}
+
+.page-kicker {
+    font-family: var(--font-body);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-indent: 0.3em;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+}
+
+.wall-layout {
+    display: grid;
+    gap: 26px;
+    grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+    align-items: start;
+}
+
+@media (max-width: 820px) { .wall-layout { grid-template-columns: 1fr; } }
+
+.notes {
+    display: grid;
+    gap: 20px 18px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+/* postcards pinned to a whitewashed wall — paper stock, hairline edge */
+.note-card {
+    position: relative;
+    padding: 24px 18px 15px;
+    border-radius: 4px;
+    color: var(--text);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    transform: rotate(var(--tilt, 0deg));
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    min-height: 138px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* the pin */
+.note-card::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    width: 9px;
+    height: 9px;
+    margin-left: -4.5px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 30%, #ffffff 0%, #cadae4 55%, #9fb8c7 100%);
+    box-shadow: 0 1px 3px rgba(34, 51, 63, 0.25);
+}
+
+.note-card:hover {
+    transform: rotate(0deg) translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--border-strong);
+}
+
+.note-body {
+    font-size: 0.96rem;
+    line-height: 1.55;
+    font-weight: 400;
+    flex: 1;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.note-author {
+    margin-top: 14px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-style: italic;
+    font-size: 0.92rem;
+    color: var(--text);
+}
+
+.note-when {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-top: 2px;
+}
+
+.counter {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.74rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+    min-height: 1.2em;
+}
+
+textarea#wall-body { min-height: 110px; resize: vertical; line-height: 1.5; }
+
+.licence {
+    font-size: 0.76rem;
+    color: var(--text-faint);
+    max-width: 620px;
+    margin: 16px auto 0;
+    line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+    .head-arch { width: min(320px, 80vw); height: 168px; }
+    .notes { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px 14px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">
+      <img src="schoollogo.png" alt="St Mary's Edenderry" class="nav-logo-img" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Mamma Mia!</span>
+    </a>
+    <div class="nav-links">
+      <a href="about.html" class="nav-link">About</a>
+      <a href="cast.html" class="nav-link">Cast</a>
+      <a href="photos.html" class="nav-link">Photos</a>
+      <a href="games.html" class="nav-link">Games</a>
+      <a href="quiz.html" class="nav-link">Quiz</a>
+      <a href="wall.html" class="nav-link active">Wall</a>
+      <a href="booking.html" class="nav-link book-btn">Book Now</a>
+    </div>
+  </div>
+</nav>
+
+<header class="page-head">
+  <div class="head-arch" aria-hidden="true"></div>
+  <div class="page-kicker">Good Luck Messages</div>
+  <h1 class="page-title chrome">The Wall</h1>
+  <p class="dim mt-1">Leave a note for the cast and crew</p>
+</header>
+
+<section class="section" style="padding-top:30px">
+  <div class="container">
+    <div class="wall-layout">
+
+      <!-- form -->
+      <div class="card card-neon">
+        <h2 style="font-size:1.05rem;margin-bottom:5px">Add your message</h2>
+        <p class="dim mb-3" style="font-size:0.85rem">Messages are checked before they appear.</p>
+
+        <div id="post-alert" class="alert hidden"></div>
+
+        <div class="field">
+          <label for="wall-author">Your name</label>
+          <input type="text" id="wall-author" maxlength="60" placeholder="Aunty Marie">
+        </div>
+        <div class="field">
+          <label for="wall-body">Message</label>
+          <textarea id="wall-body" maxlength="500" placeholder="Break a leg! We can't wait to see Donna and the Dynamos back together."></textarea>
+          <div class="hint"><span id="chars">0</span>/500</div>
+        </div>
+        <button class="btn btn-primary btn-block" id="post-btn">Post message</button>
+      </div>
+
+      <!-- feed -->
+      <div>
+        <div class="counter" id="counter">Loading messages…</div>
+        <div class="notes" id="notes"></div>
+        <div class="card text-center hidden" id="empty">
+          <div style="font-size:2.4rem">💬</div>
+          <h2 style="font-size:1.05rem;margin:8px 0 6px">No messages yet</h2>
+          <p class="dim" style="font-size:0.9rem">Be the first to wish the cast luck.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-brand" id="footer-brand"></div>
+  <div id="footer-line"></div>
+  <div class="mt-1"><a href="index.html">Home</a> · <a href="photos.html">Photos</a> · <a href="booking.html">Book</a></div>
+  <p class="licence">
+    <em>Mamma Mia!</em> is presented through special arrangement with Music Theatre International (MTI).
+    All authorized performance materials are also supplied by MTI. 423 West 55th Street, New York, NY 10019.
+    <br>The videotaping or other video or audio recording of this production is strictly prohibited.
+  </p>
+</footer>
+
+<script src="config.js"></script>
+<script>
+(function () {
+    'use strict';
+    const $ = id => document.getElementById(id);
+
+    /* sun-faded postcard stocks — every one takes dark ink.
+       Literal hex values: CSS custom properties do not resolve inside JS strings. */
+    const COLOURS = ['#fffdf6', '#fdf5f8', '#f3f8fc', '#f5f9f0', '#fdf7f1', '#f8f5fa'];
+
+    const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function note(message, kind = 'error') {
+        const box = $('post-alert');
+        if (!message) { box.classList.add('hidden'); return; }
+        box.className = 'alert alert-' + kind;
+        box.textContent = message;
+    }
+
+    $('wall-body').addEventListener('input', e => { $('chars').textContent = e.target.value.length; });
+
+    /* ---------------- load ---------------- */
+    async function load() {
+        try {
+            const res = await fetch(CONFIG.api.wall, { cache: 'no-store' });
+            if (!res.ok) throw new Error('unavailable');
+            const { messages } = await res.json();
+            render(messages || []);
+        } catch (err) {
+            $('counter').textContent = '';
+            $('notes').innerHTML =
+                '<div class="alert alert-info" style="grid-column:1/-1">The message wall is not available just now.</div>';
+        }
+    }
+
+    function render(messages) {
+        if (!messages.length) {
+            $('counter').textContent = '';
+            $('empty').classList.remove('hidden');
+            $('notes').innerHTML = '';
+            return;
+        }
+
+        $('empty').classList.add('hidden');
+        $('counter').textContent = messages.length + (messages.length === 1 ? ' message' : ' messages');
+
+        $('notes').innerHTML = messages.map((m, i) => {
+            const colour = COLOURS[i % COLOURS.length];
+            const tilt = ((i % 5) - 2) * 0.7;
+            const when = new Date(m.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short' });
+            return `<article class="note-card" style="background:${colour}; --tilt:${tilt}deg">
+                      <div class="note-body">${escapeHtml(m.body)}</div>
+                      <div class="note-author">${escapeHtml(m.author)}</div>
+                      <div class="note-when">${when}</div>
+                    </article>`;
+        }).join('');
+    }
+
+    /* ---------------- post ---------------- */
+    $('post-btn').addEventListener('click', async function () {
+        const author = $('wall-author').value.trim();
+        const body = $('wall-body').value.trim();
+
+        if (author.length < 2) return note('Please add your name.');
+        if (body.length < 2)   return note('Please write a message.');
+
+        note('');
+        this.disabled = true;
+        this.textContent = 'Posting…';
+
+        try {
+            const res = await fetch(CONFIG.api.wall, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ author, body })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Could not post your message.');
+
+            note(data.approved
+                ? 'Posted — thanks!'
+                : 'Thanks! Your message will appear once it has been checked.', 'success');
+
+            $('wall-body').value = '';
+            $('chars').textContent = '0';
+            if (data.approved) load();
+
+        } catch (err) {
+            note(err.message);
+        } finally {
+            this.disabled = false;
+            this.textContent = 'Post message';
+        }
+    });
+
+    $('footer-brand').textContent = CONFIG.show.title + ' · ' + CONFIG.show.year;
+    $('footer-line').textContent = CONFIG.show.school;
+
+    load();
+})();
+</script>
+</body>
+</html>

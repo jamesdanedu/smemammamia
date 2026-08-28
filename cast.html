@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Cast &amp; Crew — Mamma Mia! | St Mary's Edenderry</title>
+<meta name="description" content="Meet the company of Mamma Mia! at St Mary's Secondary School, Edenderry: principals, ensemble and production team.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+.page-head { text-align: center; padding: 48px 20px 10px; position: relative; overflow: hidden; }
+
+/* whitewashed chapel arch behind the heading, as on the home page */
+.head-arch {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(420px, 76vw);
+    height: 210px;
+    border: 1px solid var(--border-strong);
+    border-bottom: none;
+    border-radius: 50% 50% 0 0 / 34% 34% 0 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.15));
+    z-index: 0;
+}
+
+.page-head > *:not(.head-arch) { position: relative; z-index: 1; }
+
+.page-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2rem, 6.5vw, 3.2rem);
+    letter-spacing: -0.025em;
+}
+
+.page-kicker {
+    font-family: var(--font-body);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-indent: 0.3em;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+}
+
+.people { display: grid; gap: 22px 18px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+
+.person { text-align: center; }
+
+/* Cycladic chapel doorway — arched top, square foot */
+.portrait {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    border-radius: var(--arch);
+    overflow: hidden;
+    background: linear-gradient(178deg, #ffffff 0%, var(--cyan-tint) 100%);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    display: grid;
+    place-items: center;
+    margin-bottom: 12px;
+    transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+}
+
+.person:hover .portrait {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--border-strong);
+}
+
+.portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.initials {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.7rem;
+    color: var(--cyan);
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+}
+
+.person-name {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.35;
+    color: var(--text);
+}
+
+.person-role {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-style: italic;
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+}
+
+.ensemble-list { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+
+.ensemble-list span {
+    padding: 9px 16px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.note {
+    max-width: 620px;
+    margin: 0 auto;
+    text-align: center;
+    font-size: 0.92rem;
+    color: var(--text-dim);
+}
+
+.note a { color: var(--cyan); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+.licence {
+    font-size: 0.76rem;
+    color: var(--text-faint);
+    max-width: 620px;
+    margin: 16px auto 0;
+    line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+    .people { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 18px 14px; }
+    .head-arch { width: min(320px, 80vw); height: 168px; }
+    .note a { display: inline-block; padding: 12px 4px; margin: -12px -4px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">
+      <img src="schoollogo.png" alt="St Mary's Edenderry" class="nav-logo-img" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Mamma Mia!</span>
+    </a>
+    <div class="nav-links">
+      <a href="about.html" class="nav-link">About</a>
+      <a href="cast.html" class="nav-link active">Cast</a>
+      <a href="photos.html" class="nav-link">Photos</a>
+      <a href="games.html" class="nav-link">Games</a>
+      <a href="quiz.html" class="nav-link">Quiz</a>
+      <a href="wall.html" class="nav-link">Wall</a>
+      <a href="booking.html" class="nav-link book-btn">Book Now</a>
+    </div>
+  </div>
+</nav>
+
+<header class="page-head">
+  <div class="head-arch" aria-hidden="true"></div>
+  <div class="page-kicker">The Company</div>
+  <h1 class="page-title chrome">Cast &amp; Crew</h1>
+  <p class="dim mt-1">Sophie and Sky, Donna and the Dynamos, three fathers — and everyone behind them</p>
+</header>
+
+<section class="section" style="padding-top:34px">
+  <div class="container">
+    <h2 class="section-title" style="font-size:1.3rem"><span class="neon-pink">Principals</span></h2>
+    <div class="people" id="principals"></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2 class="section-title" style="font-size:1.3rem"><span class="neon-cyan">Ensemble</span></h2>
+    <div class="ensemble-list" id="ensemble"></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2 class="section-title" style="font-size:1.3rem">Production Team</h2>
+    <div class="people" id="crew"></div>
+  </div>
+</section>
+
+<section class="section" style="padding-top:0">
+  <div class="container">
+    <p class="note">
+      Photos and full names go live closer to opening night.
+      <a href="booking.html">Book your tickets</a> to see the company on the island.
+    </p>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-brand" id="footer-brand"></div>
+  <div id="footer-line"></div>
+  <div class="mt-1"><a href="index.html">Home</a> · <a href="about.html">About</a> · <a href="booking.html">Book</a></div>
+  <p class="licence">
+    <em>Mamma Mia!</em> is presented through special arrangement with Music Theatre International (MTI).
+    All authorized performance materials are also supplied by MTI. 423 West 55th Street, New York, NY 10019.
+    <br>The videotaping or other video or audio recording of this production is strictly prohibited.
+  </p>
+</footer>
+
+<script src="config.js"></script>
+<script src="cast.js"></script>
+<script>
+(function () {
+    const $ = id => document.getElementById(id);
+
+    function initials(name) {
+        const n = String(name || '').trim();
+        /* Roles that haven't been cast yet get a star, not a wall of "T"s */
+        if (!n || /^(tbc|tba)$/i.test(n)) return '★';
+        return n.split(/\s+/).filter(Boolean).slice(0, 2)
+            .map(w => w[0].toUpperCase()).join('') || '★';
+    }
+
+    function escapeHtml(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function render(list, target) {
+        $(target).innerHTML = list.map(p => `
+            <div class="person">
+              <div class="portrait">
+                ${p.photo
+                    ? `<img src="images/${encodeURI(p.photo)}" alt="${escapeHtml(p.name)}" loading="lazy"
+                            onerror="this.outerHTML='<span class=\\'initials\\'>${initials(p.name)}</span>'">`
+                    : `<span class="initials">${initials(p.name)}</span>`}
+              </div>
+              <div class="person-name">${escapeHtml(p.name)}</div>
+              <div class="person-role">${escapeHtml(p.role)}</div>
+            </div>`).join('');
+    }
+
+    render(CAST.principals, 'principals');
+    render(CAST.crew, 'crew');
+
+    $('ensemble').innerHTML = CAST.ensemble.map(n => `<span>${escapeHtml(n)}</span>`).join('');
+
+    $('footer-brand').textContent = CONFIG.show.title + ' · ' + CONFIG.show.year;
+    $('footer-line').textContent = CONFIG.show.school;
+})();
+</script>
+</body>
+</html>

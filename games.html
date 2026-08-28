@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Arcade — Mamma Mia! | St Mary's Edenderry</title>
+<meta name="description" content="Three island games — Taverna Bells, Souvenir Match and Boat in the Bay — from Mamma Mia! at St Mary's Secondary School, Edenderry.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+.page-head { text-align: center; padding: 46px 20px 8px; position: relative; }
+
+/* whitewashed chapel arch behind the page title */
+.head-arch {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(380px, 76vw);
+    height: 215px;
+    border: 1px solid var(--border-strong);
+    border-bottom: none;
+    border-radius: 50% 50% 0 0 / 34% 34% 0 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0));
+    -webkit-mask-image: linear-gradient(180deg, #000 52%, transparent 96%);
+    mask-image: linear-gradient(180deg, #000 52%, transparent 96%);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.page-head > *:not(.head-arch) { position: relative; z-index: 1; }
+
+.page-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2rem, 6.5vw, 3.2rem);
+    letter-spacing: -0.03em;
+}
+
+.page-kicker {
+    font-family: var(--font-body);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-indent: 0.3em;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+}
+
+.arcade { max-width: 700px; margin: 0 auto; padding: 22px 20px 70px; }
+
+/* ---- Tabs ---- */
+.game-tabs { display: flex; gap: 9px; justify-content: center; flex-wrap: wrap; margin-bottom: 22px; }
+
+.game-tab {
+    min-height: 44px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #fff;
+    box-shadow: var(--shadow);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.16s, transform 0.16s, box-shadow 0.16s, color 0.16s, border-color 0.16s;
+    -webkit-appearance: none;
+}
+
+.game-tab:hover { border-color: var(--border-strong); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+.game-tab.active {
+    background: var(--cyan);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: var(--pop-blue);
+}
+
+.game { display: none; }
+.game.active { display: block; }
+
+/* ---- Scorebar ---- */
+.scorebar {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px; margin-bottom: 15px;
+    font-family: var(--font-body); font-weight: 700; font-size: 0.72rem;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--text-faint);
+}
+
+.scorebar strong {
+    font-family: var(--font-display);
+    color: var(--cyan);
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.game-intro {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.93rem;
+    margin-bottom: 18px;
+}
+
+/* ---- Taverna Bells (Simon) ---- */
+.simon {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    max-width: 340px;
+    margin: 0 auto 18px;
+}
+
+.pad {
+    aspect-ratio: 1;
+    border-radius: 20px;
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    font-size: clamp(1.5rem, 8vw, 2.2rem);
+    line-height: 1;
+    transition: background 0.12s, transform 0.12s, box-shadow 0.12s;
+    -webkit-appearance: none;
+}
+
+.pad[data-i="0"] { background: var(--cyan-tint); }
+.pad[data-i="1"] { background: var(--pink-tint); }
+.pad[data-i="2"] { background: var(--yellow-tint); }
+.pad[data-i="3"] { background: var(--lime-tint); }
+
+.pad.lit[data-i="0"] { background: var(--cyan); }
+.pad.lit[data-i="1"] { background: var(--pink); }
+.pad.lit[data-i="2"] { background: var(--yellow); }
+.pad.lit[data-i="3"] { background: var(--lime); }
+
+.pad.lit { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.pad:disabled { cursor: default; }
+
+/* ---- Souvenir Match ---- */
+.match-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 380px; margin: 0 auto 18px; }
+
+.tile {
+    aspect-ratio: 1;
+    border-radius: 14px;
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow);
+    background: linear-gradient(160deg, #2f93d4 0%, #1b6ca8 60%, #14527f 100%);
+    font-size: clamp(1.3rem, 6vw, 1.9rem);
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: transform 0.16s, background 0.16s, box-shadow 0.16s, border-color 0.16s;
+    color: transparent;
+    -webkit-appearance: none;
+}
+
+.tile.up   { background: #fff; color: inherit; border-color: var(--cyan); }
+.tile.done {
+    background: var(--lime-tint);
+    border-color: #a9c286;
+    color: inherit;
+    cursor: default;
+    box-shadow: none;
+}
+.tile:hover:not(.done):not(.up) { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+/* ---- Boat in the Bay (Snake) ---- */
+#snake-canvas {
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 1;
+    display: block;
+    margin: 0 auto 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow);
+    background: #e9f3fa;
+    touch-action: none;
+}
+
+.dpad { display: grid; grid-template-columns: repeat(3, 60px); gap: 9px; justify-content: center; margin-bottom: 14px; }
+
+.dpad button {
+    height: 54px;
+    min-width: 44px;
+    border-radius: 14px;
+    border: 1px solid var(--border-strong);
+    background: #fff;
+    box-shadow: var(--shadow);
+    color: var(--cyan);
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: background 0.14s, transform 0.14s, box-shadow 0.14s, border-color 0.14s;
+    -webkit-appearance: none;
+}
+
+.dpad button:hover { background: var(--cyan-tint); border-color: var(--cyan); }
+.dpad button:active { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.dpad .spacer { visibility: hidden; }
+
+.game-msg {
+    text-align: center;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-weight: 700;
+    font-size: 0.93rem;
+    margin-bottom: 14px;
+}
+
+.licence {
+    font-size: 0.76rem;
+    color: var(--text-faint);
+    max-width: 620px;
+    margin: 16px auto 0;
+    line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+    .head-arch { width: min(300px, 82vw); height: 185px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">
+      <img src="schoollogo.png" alt="St Mary's Edenderry" class="nav-logo-img" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Mamma Mia!</span>
+    </a>
+    <div class="nav-links">
+      <a href="about.html" class="nav-link">About</a>
+      <a href="cast.html" class="nav-link">Cast</a>
+      <a href="photos.html" class="nav-link">Photos</a>
+      <a href="games.html" class="nav-link active">Games</a>
+      <a href="quiz.html" class="nav-link">Quiz</a>
+      <a href="wall.html" class="nav-link">Wall</a>
+      <a href="booking.html" class="nav-link book-btn">Book Now</a>
+    </div>
+  </div>
+</nav>
+
+<header class="page-head">
+  <div class="head-arch" aria-hidden="true"></div>
+  <div class="page-kicker">Island Arcade</div>
+  <h1 class="page-title chrome">The Arcade</h1>
+  <p class="dim mt-1">Three ways to lose an afternoon in the sunshine</p>
+</header>
+
+<main class="arcade">
+
+  <div class="game-tabs">
+    <button class="game-tab active" data-game="simon">🔔 Taverna Bells</button>
+    <button class="game-tab" data-game="match">🏝️ Souvenir Match</button>
+    <button class="game-tab" data-game="snake">⛵ Boat in the Bay</button>
+  </div>
+
+  <!-- ================= TAVERNA BELLS ================= -->
+  <section class="game active" id="game-simon">
+    <div class="card">
+      <div class="scorebar">
+        <span>Round <strong id="simon-round">0</strong></span>
+        <span>Best <strong id="simon-best">0</strong></span>
+      </div>
+      <p class="game-intro">
+        Four bells hang over the taverna terrace, and the goats keep setting them off in
+        a pattern. Ring it straight back — one bell wrong and the whole bay hears about it.
+      </p>
+      <div class="simon" id="simon-pads">
+        <button class="pad" data-i="0" aria-label="Blue bell">🔔</button>
+        <button class="pad" data-i="1" aria-label="Pink bell">🌺</button>
+        <button class="pad" data-i="2" aria-label="Sun bell">☀️</button>
+        <button class="pad" data-i="3" aria-label="Olive bell">🫒</button>
+      </div>
+      <div class="game-msg" id="simon-msg">Watch the bells, then ring them back.</div>
+      <button class="btn btn-primary btn-block" id="simon-start">Start</button>
+    </div>
+  </section>
+
+  <!-- ================= SOUVENIR MATCH ================= -->
+  <section class="game" id="game-match">
+    <div class="card">
+      <div class="scorebar">
+        <span>Moves <strong id="match-moves">0</strong></span>
+        <span>Best <strong id="match-best">—</strong></span>
+      </div>
+      <p class="game-intro">
+        Somebody upended a whole summer's worth of souvenirs across the harbour wall.
+        Turn the tiles over and pair everything back up before the ferry goes.
+      </p>
+      <div class="match-grid" id="match-grid"></div>
+      <div class="game-msg" id="match-msg">Find all eight pairs.</div>
+      <button class="btn btn-primary btn-block" id="match-start">New game</button>
+    </div>
+  </section>
+
+  <!-- ================= BOAT IN THE BAY ================= -->
+  <section class="game" id="game-snake">
+    <div class="card">
+      <div class="scorebar">
+        <span>Score <strong id="snake-score">0</strong></span>
+        <span>Best <strong id="snake-best">0</strong></span>
+      </div>
+      <p class="game-intro">
+        Take the little boat out across the bay, gather up the floating lemons, and
+        keep an eye on your own wake — cross it and you're swimming home.
+      </p>
+      <canvas id="snake-canvas" width="400" height="400"></canvas>
+      <div class="dpad">
+        <span class="spacer"></span><button data-dir="up" aria-label="Up">▲</button><span class="spacer"></span>
+        <button data-dir="left" aria-label="Left">◀</button><button data-dir="down" aria-label="Down">▼</button><button data-dir="right" aria-label="Right">▶</button>
+      </div>
+      <div class="game-msg" id="snake-msg">Arrow keys, swipe, or the buttons.</div>
+      <button class="btn btn-primary btn-block" id="snake-start">Start</button>
+    </div>
+  </section>
+
+  <div class="card text-center mt-3">
+    <p class="dim" style="font-size:0.95rem">Had enough of the small screen?</p>
+    <a href="booking.html" class="btn btn-primary mt-2">🎟️ Book Tickets</a>
+  </div>
+
+</main>
+
+<footer class="footer">
+  <div class="footer-brand" id="footer-brand"></div>
+  <div id="footer-line"></div>
+  <div class="mt-1"><a href="index.html">Home</a> · <a href="quiz.html">Quiz</a> · <a href="booking.html">Book</a></div>
+  <p class="licence">
+    <em>Mamma Mia!</em> is presented through special arrangement with Music Theatre International (MTI).
+    All authorized performance materials are also supplied by MTI. 423 West 55th Street, New York, NY 10019.
+    <br>The videotaping or other video or audio recording of this production is strictly prohibited.
+  </p>
+</footer>
+
+<script src="config.js"></script>
+<script>
+(function () {
+    'use strict';
+    const $ = id => document.getElementById(id);
+
+    /* ---------- storage that never throws ---------- */
+    const store = {
+        get(k, fallback) { try { const v = localStorage.getItem(k); return v === null ? fallback : v; } catch { return fallback; } },
+        set(k, v) { try { localStorage.setItem(k, String(v)); } catch { /* ignore */ } }
+    };
+
+    /* ---------- tabs ---------- */
+    document.querySelectorAll('.game-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.game').forEach(g => g.classList.remove('active'));
+            tab.classList.add('active');
+            $('game-' + tab.dataset.game).classList.add('active');
+            snake.stop();
+        });
+    });
+
+    /* ================= sound ================= */
+    let audioCtx = null;
+    function beep(freq, ms = 220) {
+        try {
+            audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.07, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + ms / 1000);
+            osc.connect(gain).connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + ms / 1000);
+        } catch (_) { /* no audio, no problem */ }
+    }
+
+    /* ================= TAVERNA BELLS ================= */
+    const TONES = [329.63, 440.00, 554.37, 659.25];
+    const simon = { seq: [], step: 0, playing: false, accepting: false };
+
+    $('simon-best').textContent = store.get('mm_simon_best', '0');
+
+    function padFlash(i, ms = 340) {
+        const pad = document.querySelector(`.pad[data-i="${i}"]`);
+        pad.classList.add('lit');
+        beep(TONES[i], ms);
+        setTimeout(() => pad.classList.remove('lit'), ms - 60);
+    }
+
+    async function simonPlay() {
+        simon.accepting = false;
+        $('simon-msg').textContent = 'Listen…';
+        await new Promise(r => setTimeout(r, 600));
+        for (const i of simon.seq) {
+            padFlash(i);
+            await new Promise(r => setTimeout(r, 480));
+        }
+        simon.step = 0;
+        simon.accepting = true;
+        $('simon-msg').textContent = 'Your turn.';
+    }
+
+    function simonNext() {
+        simon.seq.push(Math.floor(Math.random() * 4));
+        $('simon-round').textContent = simon.seq.length;
+        simonPlay();
+    }
+
+    document.querySelectorAll('.pad').forEach(pad => {
+        pad.addEventListener('click', () => {
+            if (!simon.accepting) return;
+            const i = parseInt(pad.dataset.i, 10);
+            padFlash(i, 200);
+
+            if (i !== simon.seq[simon.step]) {
+                simon.accepting = false;
+                simon.playing = false;
+                beep(110, 500);
+                const reached = simon.seq.length - 1;
+                $('simon-msg').textContent = `Wrong bell — you reached round ${reached}.`;
+                if (reached > Number(store.get('mm_simon_best', '0'))) {
+                    store.set('mm_simon_best', reached);
+                    $('simon-best').textContent = reached;
+                    $('simon-msg').textContent = `New best — round ${reached}!`;
+                }
+                $('simon-start').textContent = 'Play again';
+                return;
+            }
+
+            simon.step++;
+            if (simon.step === simon.seq.length) {
+                simon.accepting = false;
+                $('simon-msg').textContent = 'Nice. Next round…';
+                setTimeout(simonNext, 900);
+            }
+        });
+    });
+
+    $('simon-start').addEventListener('click', () => {
+        simon.seq = [];
+        simon.playing = true;
+        $('simon-start').textContent = 'Restart';
+        simonNext();
+    });
+
+    /* ================= SOUVENIR MATCH ================= */
+    const ICONS = ['⛵', '🏝️', '🍋', '🫒', '🌊', '☀️', '🐬', '💍'];
+    const match = { first: null, lock: false, moves: 0, found: 0 };
+
+    $('match-best').textContent = store.get('mm_match_best', '—');
+
+    function matchStart() {
+        const deck = ICONS.concat(ICONS)
+            .map(v => ({ v, r: Math.random() }))
+            .sort((a, b) => a.r - b.r)
+            .map(o => o.v);
+
+        Object.assign(match, { first: null, lock: false, moves: 0, found: 0 });
+        $('match-moves').textContent = '0';
+        $('match-msg').textContent = 'Find all eight pairs.';
+
+        $('match-grid').innerHTML = deck
+            .map((v, i) => `<button class="tile" data-i="${i}" data-v="${v}">${v}</button>`)
+            .join('');
+
+        $('match-grid').querySelectorAll('.tile').forEach(t => {
+            t.addEventListener('click', () => flip(t));
+        });
+    }
+
+    function flip(tile) {
+        if (match.lock || tile.classList.contains('up') || tile.classList.contains('done')) return;
+
+        tile.classList.add('up');
+        beep(520, 90);
+
+        if (!match.first) { match.first = tile; return; }
+
+        match.moves++;
+        $('match-moves').textContent = match.moves;
+
+        if (match.first.dataset.v === tile.dataset.v) {
+            match.first.classList.add('done');
+            tile.classList.add('done');
+            match.first = null;
+            match.found++;
+            beep(760, 140);
+
+            if (match.found === ICONS.length) {
+                const best = store.get('mm_match_best', null);
+                if (!best || match.moves < Number(best)) {
+                    store.set('mm_match_best', match.moves);
+                    $('match-best').textContent = match.moves;
+                    $('match-msg').textContent = `All packed in ${match.moves} moves — a new best!`;
+                } else {
+                    $('match-msg').textContent = `All packed in ${match.moves} moves.`;
+                }
+                beep(880, 300);
+            }
+        } else {
+            match.lock = true;
+            beep(200, 140);
+            const first = match.first;
+            setTimeout(() => {
+                first.classList.remove('up');
+                tile.classList.remove('up');
+                match.first = null;
+                match.lock = false;
+            }, 700);
+        }
+    }
+
+    $('match-start').addEventListener('click', matchStart);
+    matchStart();
+
+    /* ================= BOAT IN THE BAY ================= */
+    const snake = (function () {
+        const canvas = $('snake-canvas');
+        const ctx = canvas.getContext('2d');
+        const CELLS = 20, SIZE = 400 / CELLS;
+
+        /* canvas cannot read CSS custom properties — literal palette values */
+        const SEA        = '#e9f3fa';   /* pale bay */
+        const SEA_LINE   = 'rgba(27, 108, 168, 0.09)';
+        const EDGE       = '#cbdae3';   /* hairline harbour wall */
+        const INK        = '#14527f';   /* deep Aegean outline */
+        const WAKE       = '#2f93d4';   /* the boat's trail */
+        const HULL       = '#c2663f';   /* terracotta prow */
+        const LEMON      = '#e0a020';
+        const LEMON_CORE = '#fdf2da';
+
+        let body, dir, nextDir, food, timer, score, running = false;
+
+        $('snake-best').textContent = store.get('mm_snake_best', '0');
+
+        function reset() {
+            body = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
+            dir = { x: 1, y: 0 };
+            nextDir = dir;
+            score = 0;
+            $('snake-score').textContent = '0';
+            placeFood();
+        }
+
+        function placeFood() {
+            do {
+                food = { x: Math.floor(Math.random() * CELLS), y: Math.floor(Math.random() * CELLS) };
+            } while (body.some(s => s.x === food.x && s.y === food.y));
+        }
+
+        /* a lemon bobbing in the water */
+        function drawLemon(cx, cy, r) {
+            ctx.fillStyle = LEMON;
+            ctx.strokeStyle = INK;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = LEMON_CORE;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r / 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        function draw() {
+            /* pale sunlit bay */
+            ctx.fillStyle = SEA;
+            ctx.fillRect(0, 0, 400, 400);
+
+            /* faint swell */
+            ctx.strokeStyle = SEA_LINE;
+            ctx.lineWidth = 1;
+            for (let i = 1; i < CELLS; i++) {
+                ctx.beginPath(); ctx.moveTo(i * SIZE + 0.5, 0); ctx.lineTo(i * SIZE + 0.5, 400); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i * SIZE + 0.5); ctx.lineTo(400, i * SIZE + 0.5); ctx.stroke();
+            }
+
+            /* hairline harbour wall */
+            ctx.strokeStyle = EDGE;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(1, 1, 398, 398);
+
+            drawLemon(food.x * SIZE + SIZE / 2, food.y * SIZE + SIZE / 2, SIZE / 2.3);
+
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = INK;
+            body.forEach((s, i) => {
+                ctx.fillStyle = i === 0 ? HULL : WAKE;
+                const x = s.x * SIZE + 2, y = s.y * SIZE + 2, w = SIZE - 4;
+                ctx.beginPath();
+                ctx.roundRect ? ctx.roundRect(x, y, w, w, 5) : ctx.rect(x, y, w, w);
+                ctx.fill();
+                ctx.stroke();
+            });
+        }
+
+        function tick() {
+            dir = nextDir;
+            const head = { x: body[0].x + dir.x, y: body[0].y + dir.y };
+
+            if (head.x < 0 || head.y < 0 || head.x >= CELLS || head.y >= CELLS ||
+                body.some(s => s.x === head.x && s.y === head.y)) {
+                return gameOver();
+            }
+
+            body.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                $('snake-score').textContent = score;
+                beep(660, 90);
+                placeFood();
+            } else {
+                body.pop();
+            }
+
+            draw();
+        }
+
+        function gameOver() {
+            stop();
+            beep(120, 480);
+            $('snake-msg').textContent = `Run aground — you scored ${score}.`;
+            if (score > Number(store.get('mm_snake_best', '0'))) {
+                store.set('mm_snake_best', score);
+                $('snake-best').textContent = score;
+                $('snake-msg').textContent = `New best — ${score}!`;
+            }
+            $('snake-start').textContent = 'Play again';
+        }
+
+        function start() {
+            reset();
+            draw();
+            running = true;
+            $('snake-msg').textContent = 'Cast off!';
+            $('snake-start').textContent = 'Restart';
+            clearInterval(timer);
+            timer = setInterval(tick, 130);
+        }
+
+        function stop() {
+            running = false;
+            clearInterval(timer);
+        }
+
+        function turn(name) {
+            const map = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } };
+            const d = map[name];
+            if (!d || !running) return;
+            if (d.x === -dir.x && d.y === -dir.y) return; // no instant reverse
+            nextDir = d;
+        }
+
+        document.addEventListener('keydown', e => {
+            if (!$('game-snake').classList.contains('active')) return;
+            const keys = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+                           w: 'up', s: 'down', a: 'left', d: 'right' };
+            if (keys[e.key]) { e.preventDefault(); turn(keys[e.key]); }
+        });
+
+        document.querySelectorAll('.dpad button').forEach(b =>
+            b.addEventListener('click', () => turn(b.dataset.dir)));
+
+        let touchStart = null;
+        canvas.addEventListener('touchstart', e => {
+            touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }, { passive: true });
+
+        canvas.addEventListener('touchend', e => {
+            if (!touchStart) return;
+            const dx = e.changedTouches[0].clientX - touchStart.x;
+            const dy = e.changedTouches[0].clientY - touchStart.y;
+            if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
+            turn(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+            touchStart = null;
+        }, { passive: true });
+
+        $('snake-start').addEventListener('click', start);
+
+        reset();
+        draw();
+
+        return { stop, start };
+    })();
+
+    $('footer-brand').textContent = CONFIG.show.title + ' · ' + CONFIG.show.year;
+    $('footer-line').textContent = CONFIG.show.school;
+})();
+</script>
+</body>
+</html>

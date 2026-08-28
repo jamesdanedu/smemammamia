@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Photos — Mamma Mia! | St Mary's Edenderry</title>
+<meta name="description" content="Rehearsal and behind-the-scenes photos from Mamma Mia! at St Mary's Secondary School, Edenderry.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+.page-head { text-align: center; padding: 48px 20px 10px; position: relative; overflow: hidden; }
+
+/* whitewashed chapel arch behind the heading, as on the home page */
+.head-arch {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(420px, 76vw);
+    height: 210px;
+    border: 1px solid var(--border-strong);
+    border-bottom: none;
+    border-radius: 50% 50% 0 0 / 34% 34% 0 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.15));
+    z-index: 0;
+}
+
+.page-head > *:not(.head-arch) { position: relative; z-index: 1; }
+
+.page-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2rem, 6.5vw, 3.2rem);
+    letter-spacing: -0.025em;
+}
+
+.page-kicker {
+    font-family: var(--font-body);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-indent: 0.3em;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+}
+
+/* ---- Gallery ---- */
+.gallery {
+    display: grid;
+    gap: 22px 20px;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+}
+
+/* every shot framed like a Cycladic chapel doorway: arched top, square foot */
+.shot {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    aspect-ratio: 4 / 5;
+    border-radius: 50% 50% var(--radius) var(--radius) / 28% 28% var(--radius) var(--radius);
+    overflow: hidden;
+    cursor: zoom-in;
+    background: linear-gradient(178deg, #ffffff 0%, var(--cyan-tint) 100%);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+}
+
+.shot:hover,
+.shot:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--border-strong);
+    outline: none;
+}
+
+.shot:focus-visible { box-shadow: var(--shadow-lg), 0 0 0 3px var(--cyan-tint); }
+
+.shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* limewashed caption strip along the foot of the arch */
+.shot figcaption {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: 10px 13px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: left;
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.94);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    border-top: 1px solid var(--border);
+}
+
+/* ---- Empty state ---- */
+.empty {
+    max-width: 560px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 40px 28px 34px;
+    border-radius: 50% 50% var(--radius-lg) var(--radius-lg) / 16% 16% var(--radius-lg) var(--radius-lg);
+    border: 1px dashed var(--border-strong);
+    background: linear-gradient(178deg, #ffffff 0%, var(--bg-2) 100%);
+    box-shadow: var(--shadow);
+}
+
+.empty .cam { font-size: 2.6rem; margin-bottom: 10px; }
+
+.empty h2 { font-size: 1.2rem; margin-bottom: 8px; }
+
+/* ---- No-recording notice ---- */
+.recording-note {
+    max-width: 620px;
+    margin: 34px auto 0;
+    text-align: center;
+    font-size: 0.86rem;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    padding-top: 18px;
+}
+
+/* ---- Lightbox ---- */
+#lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(19, 38, 51, 0.62);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 20px;
+}
+
+#lightbox.open { display: flex; }
+
+#lightbox img {
+    max-width: 100%;
+    max-height: 74vh;
+    border-radius: var(--radius);
+    background: #fff;
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-lg);
+}
+
+.lb-caption {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: min(560px, calc(100% - 40px));
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    background: #fff;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    border-radius: 999px;
+    padding: 8px 18px;
+}
+
+.lb-caption:empty { display: none; }
+
+.lb-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow);
+    color: var(--cyan);
+    font-family: var(--font-body);
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.16s, border-color 0.16s;
+}
+
+.lb-btn:hover { background: var(--cyan-tint); border-color: var(--cyan); }
+
+.lb-prev { left: 16px; }
+.lb-next { right: 16px; }
+.lb-close { top: 18px; right: 18px; transform: none; font-size: 1.05rem; }
+
+.licence {
+    font-size: 0.76rem;
+    color: var(--text-faint);
+    max-width: 620px;
+    margin: 16px auto 0;
+    line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+    .gallery { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px 14px; }
+    .head-arch { width: min(320px, 80vw); height: 168px; }
+    .lb-prev { left: 8px; }
+    .lb-next { right: 8px; }
+    .shot figcaption { padding: 8px 10px; font-size: 0.76rem; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">
+      <img src="schoollogo.png" alt="St Mary's Edenderry" class="nav-logo-img" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Mamma Mia!</span>
+    </a>
+    <div class="nav-links">
+      <a href="about.html" class="nav-link">About</a>
+      <a href="cast.html" class="nav-link">Cast</a>
+      <a href="photos.html" class="nav-link active">Photos</a>
+      <a href="games.html" class="nav-link">Games</a>
+      <a href="quiz.html" class="nav-link">Quiz</a>
+      <a href="wall.html" class="nav-link">Wall</a>
+      <a href="booking.html" class="nav-link book-btn">Book Now</a>
+    </div>
+  </div>
+</nav>
+
+<header class="page-head">
+  <div class="head-arch" aria-hidden="true"></div>
+  <div class="page-kicker">Gallery</div>
+  <h1 class="page-title chrome">Photos</h1>
+  <p class="dim mt-1">Rehearsals, whitewashed walls and the road to opening night</p>
+</header>
+
+<section class="section" style="padding-top:30px">
+  <div class="container">
+    <div class="gallery" id="gallery"></div>
+    <div class="empty hidden" id="empty">
+      <div class="cam">📸</div>
+      <h2>Photos coming soon</h2>
+      <p class="dim">Rehearsal shots go up here as we get closer to opening night — Donna and the Dynamos finding their harmonies again, the taverna courtyard taking shape, and the hen night that gets rather out of hand.</p>
+      <a href="booking.html" class="btn btn-primary mt-3">🎟️ Book Tickets</a>
+    </div>
+
+    <p class="recording-note">
+      Photographs on this page are taken by the production team during rehearsals.
+      The videotaping or other video or audio recording of this production is strictly prohibited.
+    </p>
+  </div>
+</section>
+
+<div id="lightbox" role="dialog" aria-modal="true">
+  <button class="lb-btn lb-close" aria-label="Close">✕</button>
+  <button class="lb-btn lb-prev" aria-label="Previous">‹</button>
+  <img id="lb-img" alt="">
+  <button class="lb-btn lb-next" aria-label="Next">›</button>
+  <div class="lb-caption" id="lb-caption"></div>
+</div>
+
+<footer class="footer">
+  <div class="footer-brand" id="footer-brand"></div>
+  <div id="footer-line"></div>
+  <div class="mt-1"><a href="index.html">Home</a> · <a href="wall.html">Wall</a> · <a href="booking.html">Book</a></div>
+  <p class="licence">
+    <em>Mamma Mia!</em> is presented through special arrangement with Music Theatre International (MTI).
+    All authorized performance materials are also supplied by MTI. 423 West 55th Street, New York, NY 10019.
+    <br>The videotaping or other video or audio recording of this production is strictly prohibited.
+  </p>
+</footer>
+
+<script src="config.js"></script>
+<script src="photos.js"></script>
+<script>
+(function () {
+    const $ = id => document.getElementById(id);
+    let index = 0;
+
+    const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    if (!PHOTOS.length) {
+        $('empty').classList.remove('hidden');
+    } else {
+        $('gallery').innerHTML = PHOTOS.map((p, i) => `
+            <figure class="shot" data-i="${i}" role="button" tabindex="0">
+              <img src="images/${encodeURI(p.file)}" alt="${escapeHtml(p.caption || '')}" loading="lazy">
+              ${p.caption ? `<figcaption>${escapeHtml(p.caption)}</figcaption>` : ''}
+            </figure>`).join('');
+
+        $('gallery').querySelectorAll('.shot').forEach(el => {
+            el.addEventListener('click', () => open(parseInt(el.dataset.i, 10)));
+            el.addEventListener('keypress', e => { if (e.key === 'Enter') open(parseInt(el.dataset.i, 10)); });
+        });
+    }
+
+    function open(i) {
+        index = i;
+        const p = PHOTOS[index];
+        $('lb-img').src = 'images/' + encodeURI(p.file);
+        $('lb-caption').textContent = p.caption || '';
+        $('lightbox').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function close() {
+        $('lightbox').classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    function step(n) {
+        if (!PHOTOS.length) return;
+        open((index + n + PHOTOS.length) % PHOTOS.length);
+    }
+
+    document.querySelector('.lb-close').addEventListener('click', close);
+    document.querySelector('.lb-prev').addEventListener('click', () => step(-1));
+    document.querySelector('.lb-next').addEventListener('click', () => step(1));
+    $('lightbox').addEventListener('click', e => { if (e.target.id === 'lightbox') close(); });
+    document.addEventListener('keydown', e => {
+        if (!$('lightbox').classList.contains('open')) return;
+        if (e.key === 'Escape') close();
+        if (e.key === 'ArrowLeft') step(-1);
+        if (e.key === 'ArrowRight') step(1);
+    });
+
+    $('footer-brand').textContent = CONFIG.show.title + ' · ' + CONFIG.show.year;
+    $('footer-line').textContent = CONFIG.show.school;
+})();
+</script>
+</body>
+</html>

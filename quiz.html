@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Quiz — Mamma Mia! | St Mary's Edenderry</title>
+<meta name="description" content="How well do you know Mamma Mia!? Ten quick questions on ABBA, the island, the wedding and the songs, from Mamma Mia! at St Mary's Secondary School, Edenderry.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+.page-head { text-align: center; padding: 46px 20px 8px; position: relative; }
+
+/* whitewashed chapel arch behind the page title */
+.head-arch {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(380px, 76vw);
+    height: 215px;
+    border: 1px solid var(--border-strong);
+    border-bottom: none;
+    border-radius: 50% 50% 0 0 / 34% 34% 0 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0));
+    -webkit-mask-image: linear-gradient(180deg, #000 52%, transparent 96%);
+    mask-image: linear-gradient(180deg, #000 52%, transparent 96%);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.page-head > *:not(.head-arch) { position: relative; z-index: 1; }
+
+.page-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2rem, 6.5vw, 3.2rem);
+    letter-spacing: -0.03em;
+}
+
+.page-kicker {
+    font-family: var(--font-body);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-indent: 0.3em;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+}
+
+.quiz-wrap { max-width: 620px; margin: 0 auto; padding: 24px 20px 70px; }
+
+/* ---- Progress ---- */
+.progress {
+    height: 10px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 22px;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, var(--cyan-soft), var(--cyan) 70%, var(--pink));
+    transition: width 0.35s;
+}
+
+.q-count {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 10px;
+}
+
+.q-text {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.24rem;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    margin-bottom: 20px;
+}
+
+/* ---- Answers ---- */
+.answers { display: grid; gap: 11px; }
+
+.answer {
+    text-align: left;
+    min-height: 52px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: #fff;
+    box-shadow: var(--shadow);
+    color: var(--text);
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.98rem;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s, box-shadow 0.15s, opacity 0.15s, border-color 0.15s;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    -webkit-appearance: none;
+}
+
+.answer:hover:not(:disabled) {
+    background: var(--cyan-tint);
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.answer:disabled { cursor: default; }
+
+.answer .key {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: #fff;
+    background: var(--cyan);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+
+.answer.right {
+    background: var(--lime-tint);
+    border-color: #a9c286;
+    color: #3f5427;
+}
+.answer.right .key { background: var(--lime); color: #fff; }
+
+.answer.wrong {
+    background: var(--pink-tint);
+    border-color: #efc2d3;
+    color: #8d1f48;
+}
+.answer.wrong .key { background: var(--pink); color: #fff; }
+
+.answer.dimmed { opacity: 0.5; box-shadow: none; }
+.answer.dimmed .key { background: var(--border-strong); color: var(--text-dim); }
+
+/* ---- Feedback ---- */
+.feedback {
+    margin-top: 16px;
+    padding: 13px 15px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    border-left-width: 4px;
+    font-size: 0.93rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.feedback.ok  { background: var(--lime-tint); border-color: #cadcb6; border-left-color: var(--lime); color: #465c30; }
+.feedback.bad { background: var(--pink-tint); border-color: #efc2d3; border-left-color: var(--pink); color: #8d1f48; }
+
+/* ---- Result ---- */
+.score-ring {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 3.4rem;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    color: var(--cyan);
+    font-variant-numeric: tabular-nums;
+}
+
+.streak {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.licence {
+    font-size: 0.76rem;
+    color: var(--text-faint);
+    max-width: 620px;
+    margin: 16px auto 0;
+    line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+    .head-arch { width: min(300px, 82vw); height: 185px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">
+      <img src="schoollogo.png" alt="St Mary's Edenderry" class="nav-logo-img" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Mamma Mia!</span>
+    </a>
+    <div class="nav-links">
+      <a href="about.html" class="nav-link">About</a>
+      <a href="cast.html" class="nav-link">Cast</a>
+      <a href="photos.html" class="nav-link">Photos</a>
+      <a href="games.html" class="nav-link">Games</a>
+      <a href="quiz.html" class="nav-link active">Quiz</a>
+      <a href="wall.html" class="nav-link">Wall</a>
+      <a href="booking.html" class="nav-link book-btn">Book Now</a>
+    </div>
+  </div>
+</nav>
+
+<header class="page-head">
+  <div class="head-arch" aria-hidden="true"></div>
+  <div class="page-kicker">Island Trivia</div>
+  <h1 class="page-title chrome">The Quiz</h1>
+  <p class="dim mt-1">Ten questions. No googling. Be honest.</p>
+</header>
+
+<main class="quiz-wrap">
+
+  <!-- start -->
+  <div id="start" class="card card-neon text-center">
+    <div style="font-size:2.6rem">💍</div>
+    <h2 style="font-size:1.2rem;margin:10px 0 8px">How well do you know Mamma Mia!?</h2>
+    <p class="dim mb-3" style="font-size:0.94rem">
+      Ten questions drawn at random from the island, the wedding, the four Swedes who
+      wrote the songs — and a little sunshine general knowledge. Beat eight and Donna
+      would let you behind the bar.
+    </p>
+    <button class="btn btn-primary btn-block" id="start-btn">Start the quiz</button>
+    <p class="faint mt-2" style="font-size:0.8rem" id="best-line"></p>
+  </div>
+
+  <!-- question -->
+  <div id="game" class="hidden">
+    <div class="progress"><div class="progress-fill" id="progress"></div></div>
+    <div class="card">
+      <div class="q-count" id="q-count"></div>
+      <div class="q-text" id="q-text"></div>
+      <div class="answers" id="answers"></div>
+      <div class="feedback hidden" id="feedback"></div>
+      <button class="btn btn-primary btn-block mt-3 hidden" id="next-btn">Next question</button>
+    </div>
+    <p class="text-center streak mt-2" id="running-score"></p>
+  </div>
+
+  <!-- result -->
+  <div id="result" class="hidden">
+    <div class="card card-neon text-center">
+      <div class="score-ring" id="final-score">0/10</div>
+      <h2 style="font-size:1.25rem;margin:6px 0 8px" id="verdict"></h2>
+      <p class="dim mb-3" id="verdict-sub"></p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+        <button class="btn btn-primary" id="again-btn">Play again</button>
+        <a class="btn btn-ghost" href="games.html">Try the arcade</a>
+      </div>
+    </div>
+    <div class="card text-center mt-3">
+      <p class="dim" style="font-size:0.95rem">Fancy the real thing? The whole island lands on our stage this winter.</p>
+      <a href="booking.html" class="btn btn-primary mt-2">🎟️ Book Tickets</a>
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  <div class="footer-brand" id="footer-brand"></div>
+  <div id="footer-line"></div>
+  <div class="mt-1"><a href="index.html">Home</a> · <a href="games.html">Arcade</a> · <a href="booking.html">Book</a></div>
+  <p class="licence">
+    <em>Mamma Mia!</em> is presented through special arrangement with Music Theatre International (MTI).
+    All authorized performance materials are also supplied by MTI. 423 West 55th Street, New York, NY 10019.
+    <br>The videotaping or other video or audio recording of this production is strictly prohibited.
+  </p>
+</footer>
+
+<script src="config.js"></script>
+<script>
+(function () {
+    'use strict';
+    const $ = id => document.getElementById(id);
+
+    const BANK = [
+        /* ---------- The story ---------- */
+        { q: 'In Mamma Mia!, who is Sophie about to marry?',
+          a: ['Sky', 'Sam', 'Bill', 'Harry'], c: 0,
+          note: 'Sky. The other three turn up because Sophie invited them, not because they proposed.' },
+
+        { q: 'What does Sophie find that makes her secretly invite three men to her wedding?',
+          a: ['A bundle of old love letters', 'Her mother’s old diary', 'A photograph in a locket', 'A guest list her mother tore up'], c: 1,
+          note: 'Donna’s diary from the summer of twenty years ago — three men, three entries.' },
+
+        { q: 'What was the name of Donna’s band back in the day?',
+          a: ['Donna and the Dreamers', 'The Super Troupers', 'Donna and the Dynamos', 'Donna and the Diamonds'], c: 2,
+          note: 'Donna and the Dynamos — Donna, Tanya and Rosie, back in the platform boots.' },
+
+        { q: 'Which two old bandmates arrive on the island for Sophie’s wedding?',
+          a: ['Tanya and Rosie', 'Ali and Lisa', 'Tanya and Lisa', 'Rosie and Ruby'], c: 0,
+          note: 'Tanya and Rosie, the other two thirds of the Dynamos.' },
+
+        { q: 'What is the name of the fictional Greek island where Mamma Mia! is set?',
+          a: ['Mykonos', 'Skopelos', 'Santorini', 'Kalokairi'], c: 3,
+          note: 'Kalokairi is invented — the other three are real Greek islands.' },
+
+        /* ---------- The songs ---------- */
+        { q: 'Which song does Donna sing to Sophie while helping her get ready for the wedding?',
+          a: ['Slipping Through My Fingers', 'Thank You for the Music', 'I Have a Dream', 'Chiquitita'], c: 0,
+          note: '"Slipping Through My Fingers" — the one that gets every parent in the hall.' },
+
+        { q: 'Which song does Donna sing alone to Sam, late in the show?',
+          a: ['Knowing Me, Knowing You', 'The Winner Takes It All', 'Money, Money, Money', 'One of Us'], c: 1,
+          note: '"The Winner Takes It All" — the big showstopper of Act Two.' },
+
+        { q: 'Which ABBA song contains the line "You can dance, you can jive, having the time of your life"?',
+          a: ['Voulez-Vous', 'Super Trouper', 'Dancing Queen', 'Gimme! Gimme! Gimme!'], c: 2,
+          note: '"Dancing Queen" — young and sweet, only seventeen.' },
+
+        { q: 'Which ABBA song title is French for "Do you want to?"',
+          a: ['Voulez-Vous', 'Chiquitita', 'Fernando', 'Waterloo'], c: 0,
+          note: '"Voulez-Vous" closes Act One with the whole island on stage.' },
+
+        { q: 'Which ABBA song in the show shares its name with the international distress signal?',
+          a: ['Mamma Mia', 'Honey, Honey', 'SOS', 'Ring Ring'], c: 2,
+          note: '"SOS" — sung in the show as a duet between Donna and Sam.' },
+
+        { q: 'Which song does Rosie sing to Bill?',
+          a: ['Does Your Mother Know', 'Take a Chance on Me', 'Our Last Summer', 'Lay All Your Love on Me'], c: 1,
+          note: '"Take a Chance on Me" — Rosie is not one for subtlety.' },
+
+        /* ---------- ABBA and Eurovision ---------- */
+        { q: 'ABBA won the 1974 Eurovision Song Contest with which song?',
+          a: ['Ring Ring', 'Waterloo', 'Mamma Mia', 'Honey, Honey'], c: 1,
+          note: '"Waterloo" won at Brighton in 1974 and made them famous overnight.' },
+
+        { q: 'Which country does ABBA come from?',
+          a: ['Norway', 'Denmark', 'The Netherlands', 'Sweden'], c: 3,
+          note: 'Sweden — all four members came together in Stockholm.' },
+
+        { q: 'Where does the name ABBA come from?',
+          a: ['A Swedish town', 'The first letters of the four members’ first names', 'Their record label', 'A Greek word for song'], c: 1,
+          note: 'Agnetha, Björn, Benny and Anni-Frid — A, B, B, A.' },
+
+        /* ---------- The musical and the films ---------- */
+        { q: 'Who wrote the book — the script — of the musical Mamma Mia!?',
+          a: ['Judy Craymer', 'Phyllida Lloyd', 'Catherine Johnson', 'Björn Ulvaeus'], c: 2,
+          note: 'Catherine Johnson wrote the book; Judy Craymer had the original idea.' },
+
+        { q: 'Whose original concept brought Mamma Mia! to the stage in the first place?',
+          a: ['Judy Craymer', 'Catherine Johnson', 'Meryl Streep', 'Benny Andersson'], c: 0,
+          note: 'Producer Judy Craymer spent years persuading Björn and Benny to say yes.' },
+
+        { q: 'In which city did Mamma Mia! first open in 1999?',
+          a: ['New York', 'Stockholm', 'Dublin', 'London'], c: 3,
+          note: 'It opened in London’s West End in April 1999 and never really stopped.' },
+
+        { q: 'Who played Donna in the 2008 film of Mamma Mia!?',
+          a: ['Julie Walters', 'Meryl Streep', 'Christine Baranski', 'Amanda Seyfried'], c: 1,
+          note: 'Meryl Streep. Amanda Seyfried played Sophie, Julie Walters was Rosie and Christine Baranski was Tanya.' },
+
+        /* ---------- A little Greek sunshine ---------- */
+        { q: 'The Greek islands of Santorini and Mykonos sit in which sea?',
+          a: ['The Adriatic Sea', 'The Baltic Sea', 'The Aegean Sea', 'The Black Sea'], c: 2,
+          note: 'The Aegean — whitewashed walls, blue domes and very bright sunshine.' },
+
+        { q: 'Which Greek dip is made from yoghurt, cucumber and garlic?',
+          a: ['Hummus', 'Taramasalata', 'Tzatziki', 'Feta'], c: 2,
+          note: 'Tzatziki. Feta is the cheese, not the dip.' }
+    ];
+
+    const ROUND = 10;
+    let questions = [], i = 0, score = 0, answered = false;
+
+    const best = Number(localStorage.getItem('mm_quiz_best') || 0);
+    if (best) $('best-line').textContent = 'Your best so far: ' + best + '/10';
+
+    function shuffle(arr) {
+        const a = arr.slice();
+        for (let j = a.length - 1; j > 0; j--) {
+            const k = Math.floor(Math.random() * (j + 1));
+            [a[j], a[k]] = [a[k], a[j]];
+        }
+        return a;
+    }
+
+    function start() {
+        questions = shuffle(BANK).slice(0, ROUND);
+        i = 0; score = 0;
+        $('start').classList.add('hidden');
+        $('result').classList.add('hidden');
+        $('game').classList.remove('hidden');
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        answered = false;
+        const q = questions[i];
+
+        $('progress').style.width = ((i) / ROUND * 100) + '%';
+        $('q-count').textContent = 'Question ' + (i + 1) + ' of ' + ROUND;
+        $('q-text').textContent = q.q;
+        $('feedback').classList.add('hidden');
+        $('next-btn').classList.add('hidden');
+        $('running-score').textContent = 'Score: ' + score;
+
+        const order = shuffle(q.a.map((text, idx) => ({ text, idx })));
+        const keys = ['A', 'B', 'C', 'D'];
+
+        $('answers').innerHTML = order.map((o, n) =>
+            `<button class="answer" data-idx="${o.idx}"><span class="key">${keys[n]}</span><span>${o.text}</span></button>`
+        ).join('');
+
+        $('answers').querySelectorAll('.answer').forEach(btn => {
+            btn.addEventListener('click', () => choose(parseInt(btn.dataset.idx, 10), btn));
+        });
+    }
+
+    function choose(idx, btn) {
+        if (answered) return;
+        answered = true;
+
+        const q = questions[i];
+        const correct = idx === q.c;
+        if (correct) score++;
+
+        $('answers').querySelectorAll('.answer').forEach(b => {
+            b.disabled = true;
+            const bIdx = parseInt(b.dataset.idx, 10);
+            if (bIdx === q.c) b.classList.add('right');
+            else if (b === btn) b.classList.add('wrong');
+            else b.classList.add('dimmed');
+        });
+
+        const fb = $('feedback');
+        fb.className = 'feedback ' + (correct ? 'ok' : 'bad');
+        fb.textContent = (correct ? '✓ Correct. ' : '✗ Not quite. ') + q.note;
+        fb.classList.remove('hidden');
+
+        $('next-btn').textContent = i === ROUND - 1 ? 'See your score' : 'Next question';
+        $('next-btn').classList.remove('hidden');
+        $('running-score').textContent = 'Score: ' + score;
+    }
+
+    $('next-btn').addEventListener('click', () => {
+        i++;
+        if (i >= ROUND) finish();
+        else renderQuestion();
+    });
+
+    function finish() {
+        $('game').classList.add('hidden');
+        $('result').classList.remove('hidden');
+        $('final-score').textContent = score + '/' + ROUND;
+
+        const verdicts = [
+            [10, 'Dancing Queen',        'Flawless. Somebody hand this one a silver jumpsuit.'],
+            [8,  'Head of the Dynamos',  'You know your island. Very nearly perfect.'],
+            [6,  'Solid wedding guest',  'A good effort — a couple of pages of the diary still missing.'],
+            [4,  'Still finding the ferry', 'You have at least heard the songs.'],
+            [0,  'Lost at sea',          'Come to the show and we will teach you properly.']
+        ];
+        const [, title, sub] = verdicts.find(v => score >= v[0]);
+        $('verdict').textContent = title;
+        $('verdict-sub').textContent = sub;
+
+        try {
+            if (score > Number(localStorage.getItem('mm_quiz_best') || 0)) {
+                localStorage.setItem('mm_quiz_best', String(score));
+            }
+        } catch (_) { /* private browsing */ }
+    }
+
+    $('start-btn').addEventListener('click', start);
+    $('again-btn').addEventListener('click', start);
+
+    $('footer-brand').textContent = CONFIG.show.title + ' · ' + CONFIG.show.year;
+    $('footer-line').textContent = CONFIG.show.school;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Mamma Mia! | St Mary's Secondary School, Edenderry</title>
+<meta name="description" content="Book your tickets for Mamma Mia!, presented by St Mary's Secondary School, Edenderry. A Greek island, a wedding, three possible fathers and the songs of ABBA.">
+<meta property="og:title" content="Mamma Mia! | St Mary's Edenderry">
+<meta property="og:description" content="A Greek island. A wedding. Three men from her mother's past. Book your tickets online.">
+<meta property="og:image" content="/logo.svg">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* ---- Hero ---- */
+.hero {
+    position: relative;
+    min-height: calc(100vh - var(--nav-h));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 54px 20px 150px;
+    overflow: hidden;
+}
+
+/* whitewashed chapel arch behind the title */
+.hero-arch {
+    position: absolute;
+    top: 8%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(560px, 84vw);
+    height: min(640px, 78vh);
+    border: 1px solid var(--border-strong);
+    border-bottom: none;
+    border-radius: 50% 50% 0 0 / 34% 34% 0 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.2));
+    z-index: 0;
+}
+
+.hero-sun {
+    position: absolute;
+    top: 9%;
+    right: 6%;
+    width: clamp(74px, 11vw, 130px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 32%, #f3c465, var(--yellow) 62%, #cf9014);
+    opacity: 0.85;
+    z-index: 0;
+}
+
+.hero-inner { position: relative; z-index: 2; max-width: 900px; }
+
+.hero-eyebrow {
+    font-size: clamp(0.68rem, 2.2vw, 0.8rem);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-indent: 0.3em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+}
+
+.hero-title {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(3rem, 13vw, 7.6rem);
+    line-height: 0.96;
+    letter-spacing: -0.035em;
+    margin: 0 0 14px;
+}
+
+.hero-tagline {
+    display: inline-block;
+    font-size: clamp(0.7rem, 2.4vw, 0.86rem);
+    font-weight: 700;
+    letter-spacing: 0.32em;
+    text-indent: 0.32em;
+    text-transform: uppercase;
+    color: var(--pink);
+    border-top: 1px solid var(--border-strong);
+    border-bottom: 1px solid var(--border-strong);
+    padding: 8px 22px;
+    margin-bottom: 26px;
+}
+
+.hero-strap {
+    font-family: var(--font-display);
+    font-size: clamp(1.05rem, 2.8vw, 1.4rem);
+    font-weight: 400;
+    font-style: italic;
+    color: var(--text);
+    max-width: 520px;
+    margin: 0 auto 12px;
+    line-height: 1.45;
+}
+
+.hero-school {
+    color: var(--text-dim);
+    font-size: clamp(0.9rem, 2.2vw, 1rem);
+    margin-bottom: 26px;
+}
+
+.hero-facts {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.fact {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.hero-cta { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+
+.scroll-hint {
+    position: absolute;
+    bottom: 132px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    color: var(--text-faint);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    animation: bob 2.6s ease-in-out infinite;
+}
+
+@keyframes bob { 0%,100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 7px); } }
+
+/* ---- Countdown ---- */
+.countdown { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+
+.cd-cell {
+    min-width: 96px;
+    padding: 18px 14px;
+    border-radius: var(--radius);
+    background: #fff;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.cd-num {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 2.3rem;
+    line-height: 1.05;
+    color: var(--cyan);
+    font-variant-numeric: tabular-nums;
+}
+
+.cd-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-top: 4px;
+}
+
+/* ---- Performance cards ---- */
+.perf-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    padding: 28px 26px;
+    border-radius: var(--radius-lg);
+    background: #fff;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    overflow: hidden;
+}
+
+.perf-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--cyan-soft), var(--cyan) 55%, var(--pink));
+}
+
+.perf-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-lg);
+}
+
+.perf-card.soldout { opacity: 0.58; pointer-events: none; filter: saturate(0.4); }
+
+.perf-day {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.55rem;
+    color: var(--text);
+    margin-bottom: 2px;
+}
+
+.perf-date { color: var(--text-dim); margin-bottom: 16px; }
+
+.perf-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-top: 16px;
+    margin-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.perf-price { font-family: var(--font-display); font-weight: 600; color: var(--text); }
+
+.perf-go {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--cyan);
+}
+
+/* ---- Three dads ---- */
+.dads { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+
+.dad {
+    text-align: center;
+    padding: 0 24px 28px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.dad-arch {
+    height: 96px;
+    margin: 0 -24px 20px;
+    background: linear-gradient(180deg, var(--cyan-tint), #fff);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+}
+
+.dad-arch::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -1px;
+    transform: translateX(-50%);
+    width: 74px;
+    height: 52px;
+    background: #fff;
+    border: 1px solid var(--border-strong);
+    border-bottom: none;
+    border-radius: 37px 37px 0 0;
+}
+
+.dad-name { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; color: var(--cyan); margin-bottom: 4px; }
+.dad-role { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 10px; }
+.dad-desc { font-size: 0.93rem; color: var(--text-dim); }
+
+/* ---- Info strip ---- */
+.info-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+
+.info-tile {
+    text-align: center;
+    padding: 26px 18px;
+    border-radius: var(--radius);
+    background: #fff;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.info-icon { font-size: 1.7rem; margin-bottom: 10px; }
+
+.info-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+}
+
+.info-value { font-weight: 600; font-size: 1.02rem; }
+.info-value a { color: var(--cyan); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---- Explore links ---- */
+.explore-link {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 18px 20px;
+    border-radius: var(--radius);
+    background: #fff;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    text-decoration: none;
+    color: var(--text);
+    transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+}
+
+.explore-link:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-lg);
+}
+
+.explore-emoji { font-size: 1.5rem; }
+.explore-title { font-family: var(--font-display); font-weight: 600; }
+.explore-desc { font-size: 0.86rem; color: var(--text-dim); }
+
+.admin-link {
+    display: inline-block;
+    margin-top: 18px;
+    color: var(--text-faint);
+    font-size: 0.8rem;
+    text-decoration: none;
+    font-weight: 600;
+}
+.admin-link:hover { color: var(--cyan); }
+
+.licence {
+    font-size: 0.76rem;
+    color: var(--text-faint);
+    max-width: 620px;
+    margin: 16px auto 0;
+    line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+    .hero { padding-bottom: 130px; }
+    .scroll-hint { display: none; }
+    .hero-arch { top: 6%; height: min(560px, 66vh); }
+    /* on a phone the title fills the width — the sun would sit on top of it */
+    .hero-sun { display: none; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">
+      <img src="schoollogo.png" alt="St Mary's Edenderry" class="nav-logo-img" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Mamma Mia!</span>
+    </a>
+    <div class="nav-links">
+      <a href="about.html" class="nav-link">About</a>
+      <a href="cast.html" class="nav-link">Cast</a>
+      <a href="photos.html" class="nav-link">Photos</a>
+      <a href="games.html" class="nav-link">Games</a>
+      <a href="quiz.html" class="nav-link">Quiz</a>
+      <a href="wall.html" class="nav-link">Wall</a>
+      <a href="#book" class="nav-link book-btn">Book Now</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============================ HERO ============================ -->
+<header class="hero">
+  <div class="hero-arch" aria-hidden="true"></div>
+  <div class="hero-sun" aria-hidden="true"></div>
+  <div class="grid-floor" aria-hidden="true"></div>
+
+  <div class="hero-inner">
+    <div class="hero-eyebrow">St Mary's Edenderry presents</div>
+    <h1 class="hero-title chrome">Mamma Mia!</h1>
+    <div class="hero-tagline">The Musical</div>
+    <p class="hero-strap">A Greek island. A wedding tomorrow. And three men who have no idea why they were invited.</p>
+    <p class="hero-school" id="hero-school"></p>
+
+    <div class="hero-facts" id="hero-facts"></div>
+
+    <div class="hero-cta">
+      <a href="#book" class="btn btn-primary">🎟️ Book Tickets</a>
+      <a href="about.html" class="btn btn-ghost">About the Show</a>
+    </div>
+  </div>
+
+  <div class="scroll-hint">Scroll ▾</div>
+</header>
+
+<!-- ========================= COUNTDOWN ========================== -->
+<section class="section" id="countdown-section">
+  <div class="container">
+    <h2 class="section-title"><span class="neon-cyan">Curtain Up In</span></h2>
+    <p class="section-sub" id="countdown-target"></p>
+    <div class="countdown" id="countdown"></div>
+  </div>
+</section>
+
+<!-- ======================= THREE DADS =========================== -->
+<section class="section">
+  <div class="container" style="max-width:940px">
+    <h2 class="section-title">Three Men, One Diary</h2>
+    <p class="section-sub">Sophie found her mother's diary from the summer of twenty years ago. Then she posted three wedding invitations.</p>
+
+    <div class="dads">
+      <div class="dad">
+        <div class="dad-arch"></div>
+        <div class="dad-name">Sam Carmichael</div>
+        <div class="dad-role">The architect</div>
+        <p class="dad-desc">Left the island and never stopped thinking about it. Came back the moment the invitation arrived.</p>
+      </div>
+      <div class="dad">
+        <div class="dad-arch"></div>
+        <div class="dad-name">Bill Austin</div>
+        <div class="dad-role">The traveller</div>
+        <p class="dad-desc">A writer and sailor who has spent two decades avoiding anything resembling a settled life.</p>
+      </div>
+      <div class="dad">
+        <div class="dad-arch"></div>
+        <div class="dad-name">Harry Bright</div>
+        <div class="dad-role">The banker</div>
+        <p class="dad-desc">Respectable now, buttoned up now — but he still remembers being Head Banger Harry.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================== BOOKING =========================== -->
+<section class="section" id="book">
+  <div class="container">
+    <h2 class="section-title"><span class="neon-pink">Book Your Tickets</span></h2>
+    <p class="section-sub" id="book-sub"></p>
+
+    <div id="booking-closed" class="alert alert-info hidden text-center">
+      Online booking isn't open yet — check back soon.
+    </div>
+
+    <div class="grid-2" id="performance-cards">
+      <div class="card text-center"><div class="spinner"></div><p class="faint mt-2">Loading performances…</p></div>
+    </div>
+
+    <p class="text-center dim mt-3" style="font-size:0.9rem;">
+      Pay securely by card with SumUp. We email your confirmation straight away — there's nothing to print,
+      your name is on the door list.
+    </p>
+  </div>
+</section>
+
+<!-- =========================== INFO ============================= -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">Need to Know</h2>
+    <p class="section-sub">Everything for the night itself</p>
+    <div class="info-grid" id="info-grid"></div>
+  </div>
+</section>
+
+<!-- ========================== EXPLORE =========================== -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title"><span class="neon-cyan">Explore</span></h2>
+    <p class="section-sub">While you wait for the big night</p>
+    <div class="grid-2">
+      <a href="about.html" class="explore-link">
+        <span class="explore-emoji">📖</span>
+        <span><span class="explore-title">About the Show</span><br><span class="explore-desc">Story, songs and characters</span></span>
+      </a>
+      <a href="cast.html" class="explore-link">
+        <span class="explore-emoji">🎭</span>
+        <span><span class="explore-title">Cast &amp; Crew</span><br><span class="explore-desc">Meet the company</span></span>
+      </a>
+      <a href="photos.html" class="explore-link">
+        <span class="explore-emoji">📸</span>
+        <span><span class="explore-title">Photos</span><br><span class="explore-desc">Rehearsals and behind the scenes</span></span>
+      </a>
+      <a href="games.html" class="explore-link">
+        <span class="explore-emoji">🕹️</span>
+        <span><span class="explore-title">Island Arcade</span><br><span class="explore-desc">Three games to pass the time</span></span>
+      </a>
+      <a href="quiz.html" class="explore-link">
+        <span class="explore-emoji">❓</span>
+        <span><span class="explore-title">Quiz</span><br><span class="explore-desc">How well do you know the songs?</span></span>
+      </a>
+      <a href="wall.html" class="explore-link">
+        <span class="explore-emoji">💬</span>
+        <span><span class="explore-title">Message Wall</span><br><span class="explore-desc">Leave a note for the cast</span></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-brand" id="footer-brand"></div>
+  <div id="footer-line"></div>
+  <div class="mt-1"><a href="about.html">About</a> · <a href="booking.html">Book</a> · <a href="wall.html">Wall</a></div>
+  <p class="licence">
+    <em>Mamma Mia!</em> is presented through special arrangement with Music Theatre International (MTI).
+    All authorized performance materials are also supplied by MTI. 423 West 55th Street, New York, NY 10019.
+    <br>The videotaping or other video or audio recording of this production is strictly prohibited.
+  </p>
+  <a href="admin.html" class="admin-link">🔒 Admin Access</a>
+</footer>
+
+<script src="config.js"></script>
+<script>
+(function () {
+    const S = CONFIG.show, T = CONFIG.ticket;
+
+    /* ---------- Static text driven by config ---------- */
+    document.getElementById('hero-school').textContent = S.school;
+    document.getElementById('footer-brand').textContent = S.title + ' · ' + S.year;
+    document.getElementById('footer-line').textContent = S.school;
+    document.getElementById('book-sub').textContent =
+        'All tickets ' + CONFIG.money(T.price) + ' · same price for everyone';
+
+    /* ---------- Hero facts ---------- */
+    const dates = CONFIG.performances.map(p => p.short).join(' & ');
+    document.getElementById('hero-facts').innerHTML = [
+        ['📅', dates],
+        ['🕢', S.startTime],
+        ['📍', S.venue],
+        ['🎟️', CONFIG.money(T.price)]
+    ].map(([icon, text]) => `<span class="fact">${icon} ${text}</span>`).join('');
+
+    /* ---------- Info tiles ---------- */
+    document.getElementById('info-grid').innerHTML = [
+        ['📍', 'Venue', `<a href="${S.venueMapUrl}" target="_blank" rel="noopener">${S.venue}</a><br><span class="dim" style="font-size:0.85rem">${S.venueLine2}</span>`],
+        ['🕖', 'Doors / Curtain', `${S.doorsTime} / ${S.startTime}`],
+        ['🎟️', 'Tickets', `${CONFIG.money(T.price)} each`],
+        ['✉️', 'Questions', `<a href="mailto:${S.contactEmail}">${S.contactEmail}</a>`]
+    ].map(([icon, label, value]) => `
+        <div class="info-tile">
+          <div class="info-icon">${icon}</div>
+          <div class="info-label">${label}</div>
+          <div class="info-value">${value}</div>
+        </div>`).join('');
+
+    /* ---------- Countdown ---------- */
+    function to24(t) {
+        const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(t.trim());
+        if (!m) return '19:30:00';
+        let h = parseInt(m[1], 10);
+        if (/pm/i.test(m[3]) && h !== 12) h += 12;
+        if (/am/i.test(m[3]) && h === 12) h = 0;
+        return String(h).padStart(2, '0') + ':' + m[2] + ':00';
+    }
+
+    const first = CONFIG.performances[0];
+    const target = first ? new Date(first.key + 'T' + to24(S.startTime)) : null;
+
+    function renderCountdown() {
+        const el = document.getElementById('countdown');
+        if (!target || isNaN(target)) {
+            document.getElementById('countdown-section').style.display = 'none';
+            return;
+        }
+        document.getElementById('countdown-target').textContent = first.label + ' · ' + S.startTime;
+
+        const diff = target - new Date();
+        if (diff <= 0) {
+            el.innerHTML = '<div class="cd-cell" style="min-width:auto;padding:18px 30px"><div class="cd-num">Showtime!</div></div>';
+            return;
+        }
+        const d = Math.floor(diff / 864e5),
+              h = Math.floor(diff / 36e5) % 24,
+              m = Math.floor(diff / 6e4) % 60,
+              s = Math.floor(diff / 1e3) % 60;
+
+        el.innerHTML = [[d, 'Days'], [h, 'Hours'], [m, 'Mins'], [s, 'Secs']]
+            .map(([n, l]) => `<div class="cd-cell"><div class="cd-num">${String(n).padStart(2, '0')}</div><div class="cd-label">${l}</div></div>`)
+            .join('');
+    }
+    renderCountdown();
+    setInterval(renderCountdown, 1000);
+
+    /* ---------- Performance cards with live availability ---------- */
+    function cardHtml(p, avail) {
+        let pill, cls = '', go = 'Choose tickets →';
+
+        if (!avail) {
+            pill = '<span class="pill pill-available">On sale</span>';
+        } else if (avail.remaining <= 0) {
+            pill = '<span class="pill pill-soldout">Sold out</span>';
+            cls = 'soldout';
+            go = 'Sold out';
+        } else if (avail.remaining <= Math.max(15, avail.capacity * 0.1)) {
+            pill = `<span class="pill pill-low">Only ${avail.remaining} left</span>`;
+        } else {
+            pill = '<span class="pill pill-available">Tickets available</span>';
+        }
+
+        const [day, ...rest] = p.label.split(' ');
+        return `
+        <a class="perf-card ${cls}" href="booking.html?date=${encodeURIComponent(p.key)}">
+          <div class="perf-day">${day}</div>
+          <div class="perf-date">${rest.join(' ')} · ${CONFIG.show.startTime}</div>
+          ${pill}
+          <div class="perf-meta">
+            <span class="perf-price">${CONFIG.money(CONFIG.ticket.price)} per ticket</span>
+            <span class="perf-go">${go}</span>
+          </div>
+        </a>`;
+    }
+
+    async function loadPerformances() {
+        const wrap = document.getElementById('performance-cards');
+
+        if (!CONFIG.features.bookingOpen) {
+            document.getElementById('booking-closed').classList.remove('hidden');
+            wrap.innerHTML = '';
+            return;
+        }
+
+        let availability = null;
+        try {
+            availability = await CONFIG.fetchAvailability();
+        } catch (e) {
+            console.warn('Availability unavailable, showing static cards.', e);
+        }
+
+        wrap.innerHTML = CONFIG.performances
+            .map(p => cardHtml(p, availability && availability[p.key]))
+            .join('');
+    }
+    loadPerformances();
+})();
+</script>
+</body>
+</html>
