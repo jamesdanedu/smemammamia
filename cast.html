@@ -241,13 +241,30 @@
             </div>`).join('');
     }
 
-    render(CAST.principals, 'principals');
-    render(CAST.crew, 'crew');
-
-    $('ensemble').innerHTML = CAST.ensemble.map(n => `<span>${escapeHtml(n)}</span>`).join('');
-
     $('footer-brand').textContent = CONFIG.show.title + ' · ' + CONFIG.show.year;
     $('footer-line').textContent = CONFIG.show.school;
+
+    /* If cast.js has a typo it never runs, CAST is never defined, and the three
+       sections below would just sit there empty with no clue why. Say so instead —
+       the usual cause is an apostrophe inside single quotes: 'James O'Sullivan'. */
+    const cast = window.CAST;
+
+    if (!cast) {
+        $('principals').innerHTML = `
+            <div class="alert alert-error" style="grid-column:1/-1;text-align:left">
+              <strong>The cast list couldn't be read.</strong><br>
+              There's a typo in <code>cast.js</code>. The usual cause is an apostrophe inside
+              single quotes — write <code>name: "James O'Sullivan"</code> with double quotes
+              instead. Open the browser console (F12) to see the exact line.
+            </div>`;
+        return;
+    }
+
+    render(cast.principals || [], 'principals');
+    render(cast.crew || [], 'crew');
+
+    $('ensemble').innerHTML = (cast.ensemble || [])
+        .map(n => `<span>${escapeHtml(n)}</span>`).join('');
 })();
 </script>
 </body>
