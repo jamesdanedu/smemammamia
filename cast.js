@@ -59,7 +59,7 @@ const CAST = {
         { name: "Robyn Duke", role: "Choreographer",       photo: "" },
         { name: "TBC", role: "Producer",            photo: "" },
         { name: "Emmanuelle Galisson", role: "Stage Manager",       photo: "" },
-        { name: "TBC", role: "Set Design",          photo: "" },
+        { name: "Ciaran Doyle", role: "Set Design & Construction",          photo: "" },
         { name: "James O'Sullivan", role: "IT, Lighting & Sound",    photo: "" },
         { name: "Leah Prendergast", role: "Costumes",            photo: "" },
         { name: "TBC", role: "Hair & Make-up",      photo: "" },
