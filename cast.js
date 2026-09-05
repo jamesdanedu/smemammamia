@@ -31,13 +31,12 @@ const CAST = {
 
     /* ---- Production team --------------------------------------------- */
     crew: [
-        { name: 'TBC', role: 'Director',            photo: '' },
-        { name: 'TBC', role: 'Musical Director',    photo: '' },
-        { name: 'TBC', role: 'Choreographer',       photo: '' },
+        { name: 'Collette McEntee', role: 'Musical Director',    photo: '' },
+        { name: 'Robyn Duke', role: 'Choreographer',       photo: '' },
         { name: 'TBC', role: 'Producer',            photo: '' },
-        { name: 'TBC', role: 'Stage Manager',       photo: '' },
+        { name: 'Emmanuelle Galisson', role: 'Stage Manager',       photo: '' },
         { name: 'TBC', role: 'Set Design',          photo: '' },
-        { name: 'TBC', role: 'Lighting & Sound',    photo: '' },
+        { name: 'James O'Sullivan', role: 'IT, Lighting & Sound',    photo: '' },
         { name: 'TBC', role: 'Costumes',            photo: '' },
         { name: 'TBC', role: 'Hair & Make-up',      photo: '' },
         { name: 'TBC', role: 'Front of House',      photo: '' }
