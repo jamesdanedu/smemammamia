@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ask a Question — Mamma Mia! | St Mary's Edenderry</title>
+<meta name="description" content="Ask the Mamma Mia! team a question about tickets, seating or the night itself. St Mary's Secondary School, Edenderry.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+.page-head { position: relative; padding: 56px 20px 40px; text-align: center; overflow: hidden; }
+
+.head-arch {
+    position: absolute;
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(420px, 84vw);
+    height: 250px;
+    border: 1px solid var(--border-strong);
+    border-bottom: none;
+    border-radius: 50% 50% 0 0 / 34% 34% 0 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0));
+    z-index: 0;
+    -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent);
+    mask-image: linear-gradient(180deg, #000 55%, transparent);
+}
+
+.page-kicker {
+    letter-spacing: 0.28em;
+    text-indent: 0.28em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+}
+
+.page-title {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(2rem, 7vw, 3.2rem);
+    letter-spacing: -0.03em;
+}
+
+.lede {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.08rem;
+    color: var(--text);
+    max-width: 520px;
+    margin: 18px auto 0;
+    line-height: 1.5;
+}
+
+.layout {
+    display: grid;
+    gap: 26px;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    align-items: start;
+}
+
+@media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+}
+
+/* the quick answers panel */
+.faq-item { padding: 14px 0; border-bottom: 1px solid var(--border); }
+.faq-item:last-child { border-bottom: none; }
+.faq-q { font-family: var(--font-display); font-weight: 600; font-size: 0.98rem; margin-bottom: 3px; }
+.faq-a { font-size: 0.92rem; color: var(--text-dim); }
+.faq-a a { color: var(--cyan); }
+
+.side-head {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+}
+
+/* honeypot — visible to bots, not to people or screen readers */
+.hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.counter { font-size: 0.8rem; color: var(--text-faint); text-align: right; margin-top: 5px; }
+.counter.over { color: var(--pink); font-weight: 700; }
+
+.required { color: var(--pink); }
+
+.sent-arch {
+    width: 74px;
+    height: 48px;
+    margin: 0 auto 18px;
+    border: 1px solid var(--border-strong);
+    border-bottom: none;
+    border-radius: 37px 37px 0 0;
+    background: linear-gradient(180deg, var(--cyan-tint), #fff);
+}
+
+.ref-box {
+    display: inline-block;
+    padding: 12px 22px;
+    border-radius: var(--radius);
+    background: var(--cyan-tint);
+    border: 1px solid var(--border-strong);
+    margin: 6px 0 18px;
+}
+
+.ref-label {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 2px;
+}
+
+.ref-value {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--cyan);
+    letter-spacing: 0.04em;
+}
+
+.licence {
+    font-size: 0.76rem;
+    color: var(--text-faint);
+    max-width: 620px;
+    margin: 16px auto 0;
+    line-height: 1.6;
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">
+      <img src="schoollogo.png" alt="St Mary's Edenderry" class="nav-logo-img" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Mamma Mia!</span>
+    </a>
+    <div class="nav-links">
+      <a href="about.html" class="nav-link">About</a>
+      <a href="cast.html" class="nav-link">Cast</a>
+      <a href="photos.html" class="nav-link">Photos</a>
+      <a href="games.html" class="nav-link">Games</a>
+      <a href="quiz.html" class="nav-link">Quiz</a>
+      <a href="wall.html" class="nav-link">Wall</a>
+      <a href="booking.html" class="nav-link book-btn">Book Now</a>
+    </div>
+  </div>
+</nav>
+
+<header class="page-head">
+  <div class="head-arch" aria-hidden="true"></div>
+  <div style="position:relative;z-index:2">
+    <div class="page-kicker">Get in touch</div>
+    <h1 class="page-title">Ask us a question</h1>
+    <p class="lede">Anything about tickets, seating or the night itself — send it here and one of the company will come back to you.</p>
+  </div>
+</header>
+
+<section class="section" style="padding-top:26px">
+  <div class="container" style="max-width:1000px">
+    <div class="layout">
+
+      <!-- ============ THE FORM ============ -->
+      <div class="card" id="form-card">
+        <div id="form-alert" class="alert alert-error hidden"></div>
+
+        <form id="enquiry-form" novalidate>
+          <div class="field">
+            <label for="q-name">Your name <span class="required">*</span></label>
+            <input type="text" id="q-name" name="name" autocomplete="name" maxlength="80" placeholder="Jane Murphy">
+          </div>
+
+          <div class="field">
+            <label for="q-email">Email <span class="required">*</span></label>
+            <input type="email" id="q-email" name="email" autocomplete="email" maxlength="160" placeholder="jane@example.ie">
+            <div class="hint">So we can reply. We use it for nothing else.</div>
+          </div>
+
+          <div class="field">
+            <label for="q-phone">Phone <span class="faint" style="text-transform:none;letter-spacing:0">(optional)</span></label>
+            <input type="tel" id="q-phone" name="phone" autocomplete="tel" maxlength="40" placeholder="087 123 4567">
+          </div>
+
+          <div class="field">
+            <label for="q-topic">What's it about?</label>
+            <select id="q-topic" name="topic">
+              <option value="general">General question</option>
+              <option value="booking">An existing booking</option>
+              <option value="access">Access, seating or mobility</option>
+              <option value="groups">A group or class booking</option>
+              <option value="press">Press, photos or programme</option>
+              <option value="other">Something else</option>
+            </select>
+          </div>
+
+          <div class="field hidden" id="ref-field">
+            <label for="q-ref">Booking reference <span class="faint" style="text-transform:none;letter-spacing:0">(optional)</span></label>
+            <input type="text" id="q-ref" name="bookingReference" maxlength="20" placeholder="MM-4F2K9A"
+                   autocapitalize="characters" spellcheck="false">
+            <div class="hint">On your confirmation email. It helps us find you faster.</div>
+          </div>
+
+          <div class="field">
+            <label for="q-message">Your question <span class="required">*</span></label>
+            <textarea id="q-message" name="message" rows="6" maxlength="1500"
+                      placeholder="Ask away — the more detail the better."></textarea>
+            <div class="counter" id="counter">0 / 1500</div>
+          </div>
+
+          <!-- bot trap; people never see this -->
+          <div class="hp" aria-hidden="true">
+            <label for="q-website">Leave this empty</label>
+            <input type="text" id="q-website" name="website" tabindex="-1" autocomplete="off">
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="send-btn">Send question</button>
+
+          <p class="faint mt-2" style="font-size:0.82rem;text-align:center">
+            Read by the students running front of house. Please keep it civil.
+          </p>
+        </form>
+      </div>
+
+      <!-- ============ SENT ============ -->
+      <div class="card hidden text-center" id="sent-card">
+        <div class="sent-arch" aria-hidden="true"></div>
+        <h2 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:8px">Question sent</h2>
+        <p class="dim mb-2">Thanks — it's with the team. Someone will reply to the address you gave us.</p>
+        <div class="ref-box">
+          <div class="ref-label">Your reference</div>
+          <div class="ref-value" id="sent-ref">—</div>
+        </div>
+        <p class="faint mb-3" style="font-size:0.86rem">
+          Worth keeping if you need to follow up. We aim to answer within a couple of days —
+          it may be longer around rehearsals.
+        </p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <a href="index.html" class="btn btn-ghost">Back to the site</a>
+          <button type="button" class="btn btn-primary" id="another-btn">Ask another</button>
+        </div>
+      </div>
+
+      <!-- ============ QUICK ANSWERS ============ -->
+      <aside>
+        <div class="card">
+          <div class="side-head">Before you ask</div>
+          <p class="faint mb-2" style="font-size:0.86rem">Most questions are one of these.</p>
+          <div id="faq"></div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-brand" id="footer-brand"></div>
+  <div id="footer-line"></div>
+  <div class="mt-1"><a href="index.html">Home</a> · <a href="about.html">About</a> · <a href="booking.html">Book</a></div>
+  <p class="licence">
+    <em>Mamma Mia!</em> is presented through special arrangement with Music Theatre International (MTI).
+    All authorized performance materials are also supplied by MTI. 423 West 55th Street, New York, NY 10019.
+    <br>The videotaping or other video or audio recording of this production is strictly prohibited.
+  </p>
+</footer>
+
+<script src="config.js"></script>
+<script>
+(function () {
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const S = CONFIG.show, T = CONFIG.ticket;
+    const openedAt = Date.now();
+
+    $('footer-brand').textContent = S.title + ' · ' + S.year;
+    $('footer-line').textContent = S.school;
+
+    /* ---------------- quick answers, straight from config ---------------- */
+    const nights = CONFIG.performances.map(p => p.label).join('<br>');
+    $('faq').innerHTML = [
+        ['When is it on?', nights + '<br>Doors ' + S.doorsTime + ', curtain up ' + S.startTime + '.'],
+        ['How much are tickets?', CONFIG.money(T.price) + ' each, same price for every seat and every night.'],
+        ['Where is it?', S.venue + ', ' + S.venueLine2 + '. <a href="' + S.venueMapUrl + '" target="_blank" rel="noopener">Map</a>.'],
+        ['Do I need to print anything?', 'No. Your name is on the door list — just give it at the door.'],
+        ['Are seats reserved?', 'No, seating is unreserved. Come early if you want a particular spot.'],
+        ['Can I buy on the night?', 'If the night has not sold out. Booking ahead is safer — <a href="booking.html">book online</a>.'],
+        ['Can I change or cancel?', 'Send us the question below with your booking reference and we will sort it out.']
+    ].map(([q, a]) => `<div class="faq-item"><div class="faq-q">${q}</div><div class="faq-a">${a}</div></div>`).join('');
+
+    /* ---------------- booking reference field ---------------- */
+    const topic = $('q-topic');
+    topic.addEventListener('change', () => {
+        $('ref-field').classList.toggle('hidden', topic.value !== 'booking');
+    });
+
+    /* ---------------- character counter ---------------- */
+    const message = $('q-message'), counter = $('counter');
+    message.addEventListener('input', () => {
+        const n = message.value.length;
+        counter.textContent = n + ' / 1500';
+        counter.classList.toggle('over', n >= 1500);
+    });
+
+    /* ---------------- submit ---------------- */
+    function alertBox(text, kind = 'error') {
+        const box = $('form-alert');
+        if (!text) { box.classList.add('hidden'); return; }
+        box.className = 'alert alert-' + kind;
+        box.textContent = text;
+        box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    const isEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v || '').trim());
+
+    $('enquiry-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        alertBox('');
+
+        const payload = {
+            name:             $('q-name').value.trim(),
+            email:            $('q-email').value.trim(),
+            phone:            $('q-phone').value.trim(),
+            topic:            topic.value,
+            bookingReference: topic.value === 'booking' ? $('q-ref').value.trim() : '',
+            message:          message.value.trim(),
+            website:          $('q-website').value,
+            elapsed:          Date.now() - openedAt
+        };
+
+        if (payload.name.length < 2)   { alertBox('Please enter your name.');            $('q-name').focus();    return; }
+        if (!isEmail(payload.email))   { alertBox('Please enter an email we can reply to.'); $('q-email').focus(); return; }
+        if (payload.message.length < 2){ alertBox('Please write your question.');        message.focus();        return; }
+
+        const btn = $('send-btn');
+        btn.disabled = true;
+        btn.textContent = 'Sending…';
+
+        try {
+            const res = await fetch(CONFIG.api.enquiries, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) throw new Error(data.error || 'Could not send that question.');
+
+            $('sent-ref').textContent = data.reference || '—';
+            $('form-card').classList.add('hidden');
+            $('sent-card').classList.remove('hidden');
+            $('sent-card').scrollIntoView({ block: 'center', behavior: 'smooth' });
+        } catch (err) {
+            alertBox(err.message || 'Could not send that question. Please try again.');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Send question';
+        }
+    });
+
+    $('another-btn').addEventListener('click', () => {
+        $('enquiry-form').reset();
+        counter.textContent = '0 / 1500';
+        $('ref-field').classList.add('hidden');
+        $('sent-card').classList.add('hidden');
+        $('form-card').classList.remove('hidden');
+        $('q-name').focus();
+    });
+})();
+</script>
+</body>
+</html>
