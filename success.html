@@ -234,7 +234,12 @@
         el.href = 'mailto:' + S.contactEmail + '?subject=' + encodeURIComponent('Mamma Mia! booking');
     });
 
-    const ref = new URLSearchParams(location.search).get('ref');
+    // SumUp returns to this page with ?ref=... — but if a redirect ever loses
+    // the query string, the booking page left the reference behind for us.
+    let ref = new URLSearchParams(location.search).get('ref');
+    if (!ref) {
+        try { ref = sessionStorage.getItem('mm-booking-ref'); } catch (_) { ref = null; }
+    }
     let attempts = 0;
 
     if (!ref) {
@@ -279,6 +284,7 @@
     }
 
     function renderConfirmed(b, email) {
+        try { sessionStorage.removeItem('mm-booking-ref'); } catch (_) { /* private mode */ }
         renderEmailStatus(email, b.customerEmail);
         const perf = CONFIG.getPerformance(b.performanceDate);
         $('ref-value').textContent = b.reference;

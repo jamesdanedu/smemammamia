@@ -119,6 +119,7 @@ export default async function handler(req, res) {
         });
 
         const text = await response.text();
+        console.log('SumUp checkout response', response.status, text);
 
         if (!response.ok) {
             console.error('SumUp checkout error', response.status, text);
@@ -129,7 +130,25 @@ export default async function handler(req, res) {
             return res.status(502).json({ error: 'Could not start the payment. Please try again.' });
         }
 
-        const checkout = JSON.parse(text);
+        let checkout;
+        try {
+            checkout = JSON.parse(text);
+        } catch {
+            checkout = null;
+        }
+
+        if (!checkout || !checkout.id) {
+            console.error('SumUp returned no checkout id', text);
+            await sbUpdate('bookings', `booking_reference=eq.${bookingRef}`, {
+                status: 'cancelled', held_until: null, notes: 'SumUp returned no checkout id'
+            }).catch(() => {});
+            return res.status(502).json({ error: 'Could not start the payment. Please try again.' });
+        }
+
+        // SumUp's own hosted payment page. It usually hands back the URL; when
+        // it doesn't, the URL is simply the checkout id on checkout.sumup.com.
+        const checkoutUrl = checkout.hosted_checkout_url || `https://checkout.sumup.com/pay/${checkout.id}`;
+        console.log('Sending customer to', checkoutUrl);
 
         await sbUpdate('bookings', `booking_reference=eq.${bookingRef}`, {
             sumup_checkout_id: checkout.id,
@@ -139,7 +158,7 @@ export default async function handler(req, res) {
         return res.status(200).json({
             bookingRef,
             checkoutId: checkout.id,
-            checkoutUrl: checkout.hosted_checkout_url || `https://checkout.sumup.com/pay/${checkout.id}`,
+            checkoutUrl,
             amount,
             quantity,
             performanceDate,

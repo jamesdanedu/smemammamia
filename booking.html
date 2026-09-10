@@ -10,7 +10,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="theme.css">
-<script src="https://gateway.sumup.com/gateway/ecom/card/v2/sdk.js"></script>
 <style>
 .page-head { text-align: center; padding: 44px 20px 6px; position: relative; overflow: hidden; }
 
@@ -202,11 +201,7 @@
 
 .hold-timer strong { color: var(--cyan); font-variant-numeric: tabular-nums; }
 
-#sumup-card { min-height: 60px; }
-
-.pay-ok, .pay-bad { text-align: center; padding: 26px 10px; }
-.pay-ok .mark  { font-size: 3rem; color: var(--lime); }
-.pay-bad .mark { font-size: 3rem; color: var(--pink); }
+.manual-link { color: var(--cyan); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 
 .trust-row {
     display: flex;
@@ -340,18 +335,22 @@
   </div>
 </main>
 
-<!-- ===================== PAYMENT MODAL ===================== -->
+<!-- ===================== HANDING OVER TO SUMUP ===================== -->
 <div class="modal" id="payment-modal" role="dialog" aria-modal="true" aria-labelledby="pay-title">
   <div class="modal-box">
-    <h2 id="pay-title" style="font-size:1.2rem;margin-bottom:4px">Card payment</h2>
+    <h2 id="pay-title" style="font-size:1.2rem;margin-bottom:4px">Taking you to SumUp</h2>
     <p class="faint mb-2" id="pay-summary" style="font-size:0.9rem"></p>
 
     <div id="payment-loading" class="text-center" style="padding:22px 0">
       <div class="spinner"></div>
-      <p class="faint mt-2" style="font-size:0.86rem">Opening secure payment…</p>
+      <p class="faint mt-2" style="font-size:0.86rem">Opening SumUp's secure payment page…</p>
     </div>
 
-    <div id="sumup-card"></div>
+    <div id="payment-error"></div>
+
+    <p class="text-center faint mt-2" id="manual-row" style="font-size:0.84rem;display:none">
+      Nothing happening? <a href="#" id="manual-continue" class="manual-link" rel="noopener">Continue to payment</a>
+    </p>
 
     <div class="hold-timer" id="hold-timer"></div>
 
@@ -575,78 +574,50 @@
         } catch (_) { /* leave as-is */ }
     }
 
-    /* ---------------- payment modal ---------------- */
+    /* ---------------- hand over to SumUp ----------------
+       Same flow the school's other booking site has used: the server opens
+       a SumUp checkout, we send the browser to SumUp's own hosted payment
+       page, and SumUp returns to success.html?ref=... when it is done.
+       Card details never touch this site.
+       ---------------------------------------------------- */
     function openPaymentModal(data) {
         const perf = CONFIG.getPerformance(state.date);
         $('pay-summary').textContent =
             `${perf ? perf.label : ''} · ${data.quantity} ticket${data.quantity === 1 ? '' : 's'} · ${CONFIG.money(data.amount)}`;
 
         $('payment-loading').style.display = 'block';
-        $('sumup-card').innerHTML = '';
-        $('cancel-payment').style.display = '';
+        $('payment-error').innerHTML = '';
+        $('manual-row').style.display = 'none';
         $('payment-modal').classList.add('visible');
         document.body.style.overflow = 'hidden';
 
         startHoldTimer();
 
-        if (typeof SumUpCard === 'undefined') {
+        if (!data.checkoutUrl) {
             $('payment-loading').style.display = 'none';
-            $('sumup-card').innerHTML =
-                `<div class="alert alert-error">The payment form could not load. ` +
-                `<a href="${data.checkoutUrl}" style="color:inherit;text-decoration:underline">Open the secure payment page instead</a>.</div>`;
+            stopHoldTimer();
+            $('payment-error').innerHTML =
+                '<div class="alert alert-error">We could not open the payment page. ' +
+                'Please try again, or contact us quoting <strong>' + (data.bookingRef || '') + '</strong>.</div>';
             return;
         }
 
-        try {
-            SumUpCard.mount({
-                id: 'sumup-card',
-                checkoutId: data.checkoutId,
-                locale: 'en-IE',
-                country: 'IE',
-                showSubmitButton: true,
-                onLoad: function () { $('payment-loading').style.display = 'none'; },
-                onResponse: async function (type, body) {
-                    if (type === 'success') {
-                        stopHoldTimer();
-                        $('sumup-card').innerHTML =
-                            '<div class="pay-ok"><div class="mark">✓</div>' +
-                            '<h3 style="margin:8px 0 4px">Payment received</h3>' +
-                            '<p class="faint" style="font-size:0.9rem">Confirming your booking…</p></div>';
-                        $('cancel-payment').style.display = 'none';
+        // Keep the reference to hand in case the trip back from SumUp goes astray.
+        try { sessionStorage.setItem('mm-booking-ref', data.bookingRef); } catch (_) { /* private mode */ }
 
-                        // server-side confirmation is the source of truth
-                        try {
-                            await fetch(CONFIG.api.verify, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ bookingRef: state.bookingRef })
-                            });
-                        } catch (_) { /* success.html will retry */ }
+        // A visible link, in case the redirect is blocked or takes its time.
+        const link = $('manual-continue');
+        link.href = data.checkoutUrl;
+        setTimeout(function () { $('manual-row').style.display = ''; }, 2500);
 
-                        location.href = 'success.html?ref=' + encodeURIComponent(state.bookingRef);
-
-                    } else if (type === 'error' || type === 'fail') {
-                        $('sumup-card').insertAdjacentHTML('beforeend',
-                            '<div class="alert alert-error mt-2">' +
-                            (body && body.message ? body.message : 'That payment did not go through. Please try again or use another card.') +
-                            '</div>');
-                    }
-                }
-            });
-        } catch (err) {
-            console.error('SumUp mount failed', err);
-            $('payment-loading').style.display = 'none';
-            $('sumup-card').innerHTML =
-                `<div class="alert alert-error">The payment form could not load. ` +
-                `<a href="${data.checkoutUrl}" style="color:inherit;text-decoration:underline">Open the secure payment page instead</a>.</div>`;
-        }
+        window.location.href = data.checkoutUrl;
     }
 
     $('cancel-payment').addEventListener('click', function () {
         $('payment-modal').classList.remove('visible');
         document.body.style.overflow = '';
         stopHoldTimer();
-        alertBox('Payment cancelled. Your tickets are released — you can start again any time.', 'info');
+        alertBox('Payment cancelled. Your reservation expires by itself in a few minutes — you can start again any time.', 'info');
         refreshAvailability();
     });
 
