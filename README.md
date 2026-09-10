@@ -257,14 +257,21 @@ Browser                     /api/create-checkout            Supabase        SumU
    │                                 │  (advisory lock, capacity checked)     │
    │                                 │  <── booking, held 15 min │             │
    │                                 ├────────────────────────────────────────>│
-   │  <── checkoutId ────────────────┤                          │  checkout    │
+   │  <── checkoutUrl ───────────────┤                          │  checkout    │
    │                                                                          │
-   │  card details straight to SumUp's iframe ────────────────────────────────>│
+   │  browser is redirected to SumUp's hosted payment page ──────────────────>│
+   │  <── SumUp redirects back to /success.html?ref=MM-XXXXXX ────────────────┤
    │                                                                          │
    │      /api/verify-payment                                                 │
    ├─────────────────────────────────> asks SumUp: was it actually paid? ────>│
-   │                                   if PAID → status = confirmed           │
+   │                                   if PAID → status = confirmed,          │
+   │                                             confirmation email sent      │
 ```
+
+**Card details never touch this site.** The browser leaves for SumUp's own hosted
+checkout page (`checkout.sumup.com`) and comes back to `success.html` when SumUp is
+finished with it. There is no card form and no payment iframe here — which is also
+the arrangement the school's other booking site has been running on.
 
 Things worth knowing:
 
@@ -274,9 +281,13 @@ Things worth knowing:
   line tag on the confirmation and what the customer quotes at the door.
 * **Holds expire by themselves.** An unpaid hold stops counting against capacity
   after 15 minutes.
-* **The confirmation email is claimed before it is sent.** `success.html` verifies up
-  to four times, the reconciler runs on a schedule and an admin can hit resend — a
-  database-level claim means the customer still gets exactly one email.
+* **The confirmation email goes the moment the payment is confirmed.**
+  `/api/verify-payment` waits for the email provider before it answers, so the
+  customer normally has the email in hand while `success.html` is still on screen.
+  It tries twice before giving up and leaving it to the reconciler.
+* **Exactly one email, however many times it is asked for.** `success.html` verifies
+  up to four times, the reconciler runs on a schedule and an admin can hit resend —
+  a database-level claim means the customer still gets exactly one email.
 * **A failed email never costs anyone their booking.** The booking is confirmed
   first; the email is attempted after, and retried until it goes.
 * **If SumUp took the money, the booking gets honoured** — even if the seats sold out

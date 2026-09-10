@@ -95,24 +95,54 @@ export default async function handler(req, res) {
 }
 
 /**
- * Send the confirmation, but never let it break the response.
+ * Send the confirmation right now, but never let it break the response.
  *
- * The booking is already paid and confirmed in the database by this point.
- * If the email fails, the reconciler picks it up within the hour and the
- * customer still has their booking — so we swallow the error and report it.
+ * Paid and confirmed means the email goes immediately — we wait for the
+ * provider here rather than handing it to the reconciler, so the customer
+ * usually has it before they have finished reading this page.
+ *
+ * Two attempts back to back: a failed send releases its own claim, and most
+ * failures are one provider having a bad second rather than anything
+ * permanent. If both go, the booking still stands and the reconciler retries.
  */
 async function confirmationAttempt(reference, booking, req) {
     if (booking?.confirmation_sent_at) return { status: 'already sent' };
 
-    try {
-        const result = await sendConfirmationFor(reference, { url: siteUrl(req) });
-        if (result.sent)    return { status: 'sent' };
-        if (result.skipped) return { status: 'skipped', detail: result.skipped };
-        return { status: 'queued', detail: 'will retry shortly' };
-    } catch (err) {
-        console.error('confirmation attempt threw:', err);
-        return { status: 'queued', detail: 'will retry shortly' };
+    const url = siteUrl(req);
+    let lastSkip = null;
+
+    // Only the first verify for a booking gets the second go. Repeat page
+    // loads take one attempt each, so a genuinely broken address cannot burn
+    // through the reconciler's retry budget in a couple of refreshes.
+    const tries = (booking?.confirmation_attempts || 0) === 0 ? 2 : 1;
+
+    for (let attempt = 1; attempt <= tries; attempt++) {
+        try {
+            const result = await sendConfirmationFor(reference, { url });
+
+            if (result.sent) return { status: 'sent' };
+
+            if (result.skipped) {
+                lastSkip = result.skipped;
+
+                // Someone else is mid-send, or the row has not caught up yet.
+                // Worth a second look; anything else is final.
+                if (result.skipped === 'already sent') return { status: 'already sent' };
+                if (result.skipped !== 'another send is already in flight' &&
+                    result.skipped !== 'booking not confirmed') {
+                    return { status: 'skipped', detail: result.skipped };
+                }
+                continue;
+            }
+
+            console.error('confirmation send failed for', reference, result.error);
+        } catch (err) {
+            console.error('confirmation attempt threw:', err);
+        }
     }
+
+    // Confirmed and paid either way — the reconciler keeps trying.
+    return { status: 'queued', detail: lastSkip || 'will retry shortly' };
 }
 
 /** Only the fields the ticket holder needs to see. */
