@@ -105,7 +105,12 @@ export default async function handler(req, res) {
             currency: 'EUR',
             merchant_code: SUMUP_MERCHANT_CODE,
             description: `Mamma Mia! — ${quantity} ticket${quantity === 1 ? '' : 's'} (${performanceDate})`,
+            // Where SumUp sends the customer once they are done paying.
             redirect_url: `${baseUrl}/success.html?ref=${bookingRef}`,
+            // Without this, SumUp builds an API-only checkout for its card
+            // widget and returns no payment page — there is no URL to send
+            // anyone to, and checkout.sumup.com answers 404.
+            hosted_checkout: { enabled: true },
             payment_type: 'ecom'
         };
 
@@ -145,9 +150,19 @@ export default async function handler(req, res) {
             return res.status(502).json({ error: 'Could not start the payment. Please try again.' });
         }
 
-        // SumUp's own hosted payment page. It usually hands back the URL; when
-        // it doesn't, the URL is simply the checkout id on checkout.sumup.com.
-        const checkoutUrl = checkout.hosted_checkout_url || `https://checkout.sumup.com/pay/${checkout.id}`;
+        // The payment page URL only ever comes from SumUp. There is no URL to
+        // guess at: a checkout created without hosted_checkout.enabled has no
+        // page behind it, so anything we made up here would 404.
+        const checkoutUrl = checkout.hosted_checkout_url;
+
+        if (!checkoutUrl) {
+            console.error('SumUp created a checkout with no hosted_checkout_url', text);
+            await sbUpdate('bookings', `booking_reference=eq.${bookingRef}`, {
+                status: 'cancelled', held_until: null, notes: 'SumUp returned no hosted checkout URL'
+            }).catch(() => {});
+            return res.status(502).json({ error: 'Could not open the payment page. Please try again.' });
+        }
+
         console.log('Sending customer to', checkoutUrl);
 
         await sbUpdate('bookings', `booking_reference=eq.${bookingRef}`, {
