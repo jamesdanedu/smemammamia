@@ -269,9 +269,14 @@ Browser                     /api/create-checkout            Supabase        SumU
 ```
 
 **Card details never touch this site.** The browser leaves for SumUp's own hosted
-checkout page (`checkout.sumup.com`) and comes back to `success.html` when SumUp is
-finished with it. There is no card form and no payment iframe here — which is also
-the arrangement the school's other booking site has been running on.
+checkout page and comes back to `success.html` when SumUp is finished with it. There
+is no card form and no payment iframe here.
+
+The checkout is created with `hosted_checkout: { enabled: true }`, which is what
+makes SumUp return a `hosted_checkout_url` to send the customer to. That URL is the
+only one that works — a checkout created without the flag has no payment page at
+all. The hosted session lasts 30 minutes, comfortably longer than the 15-minute
+ticket hold.
 
 Things worth knowing:
 
@@ -403,6 +408,12 @@ database.
   from config.js*.
 * **Changing capacity below what's already sold.** Allowed, but the night goes
   straight to sold out. The people who already booked keep their tickets.
+* **Dropping `hosted_checkout.enabled` from the SumUp payload.** Checkout creation
+  still succeeds and still returns an id, so nothing looks wrong from here — but
+  SumUp builds an API-only checkout with no payment page behind it, and the customer
+  lands on "There's nothing here" at `checkout.sumup.com`. The payment page URL
+  always comes back as `hosted_checkout_url`; never construct one from the checkout
+  id, because there is nothing at that address.
 * **`ADMIN_PASSWORD` is the whole security model for the admin page.** Anyone with it
   can see every customer's name, email and phone number. Treat it accordingly.
 * **Sending from an unverified domain.** Everything looks fine — the API accepts the
