@@ -23,24 +23,53 @@ import { siteUrl } from './_show.js';
 const MAX_RESCUE = 40;   // per run — keeps us inside the serverless time limit
 const MAX_EMAILS = 25;
 
-function authorised(req) {
+/**
+ * Who is allowed to run this.
+ *
+ * An unset CRON_SECRET is not an authentication failure, it is a deployment
+ * that never finished being configured — and it is worth saying so out loud,
+ * because the symptom is a scheduled run answering 401 forever while nothing
+ * gets rescued and no confirmation is ever retried.
+ */
+function authCheck(req) {
     const secret = process.env.CRON_SECRET;
-    if (!secret) return false;
+    if (!secret) return { ok: false, unconfigured: true };
 
     const header = req.headers.authorization || '';
-    if (header === `Bearer ${secret}`) return true;
+    if (header === `Bearer ${secret}`) return { ok: true };
 
-    // Vercel Cron signs its own requests
-    if (req.headers['x-vercel-cron']) return true;
+    // Vercel Cron signs its own requests with CRON_SECRET, and strips any
+    // x-vercel-* header arriving from outside, so this is a safe fallback.
+    if (req.headers['x-vercel-cron']) return { ok: true };
 
-    const url = new URL(req.url, 'http://localhost');
-    return url.searchParams.get('secret') === secret;
+    try {
+        const url = new URL(req.url, 'http://localhost');
+        if (url.searchParams.get('secret') === secret) return { ok: true };
+    } catch { /* malformed URL is simply not authorised */ }
+
+    return { ok: false };
 }
 
 export default async function handler(req, res) {
     if (applyCors(req, res)) return;
 
-    if (!authorised(req)) {
+    const auth = authCheck(req);
+
+    if (auth.unconfigured) {
+        console.error(
+            'reconcile refused: CRON_SECRET is not set, so every scheduled run is turned away. ' +
+            'Set it in the Vercel environment variables and redeploy.'
+        );
+        return res.status(503).json({
+            error: 'Reconciler is not configured',
+            detail: 'CRON_SECRET is not set. Add it to the Vercel environment variables and redeploy — ' +
+                    'Vercel Cron signs its requests with it, and until it is set no abandoned payment is ' +
+                    'rescued and no unsent confirmation is retried.'
+        });
+    }
+
+    if (!auth.ok) {
+        console.error('reconcile refused: CRON_SECRET did not match');
         return res.status(401).json({ error: 'Unauthorised' });
     }
     if (!supabaseConfigured()) {

@@ -419,6 +419,11 @@ database.
 * **Sending from an unverified domain.** Everything looks fine — the API accepts the
   send, the admin page says "Sent" — and the mail lands in spam or nowhere. Verify
   the domain and add all three DNS records before you announce ticket sales.
+* **Leaving `CRON_SECRET` unset.** `/api/reconcile` refuses every request without
+  it, so the hourly cron answers 503 forever: no abandoned payment is rescued and no
+  unsent confirmation is retried. The Vercel log shows the run finishing in under
+  100ms with no outgoing requests — that shape is the giveaway. Set it, redeploy,
+  then hit **Run checks now** on the admin Overview tab to clear the backlog.
 * **Leaving the reconciler on a daily schedule.** It still works, but someone whose
   payment needs rescuing waits up to 24 hours to find out they have a ticket. Use a
   10-minute trigger while sales are open.
