@@ -1,7 +1,7 @@
 // Show details the email templates need.
 //
 // ⚠️  KEEP IN SYNC WITH config.js — the browser reads config.js, the server
-//     reads this. Only these six values are duplicated. If you change the
+//     reads this. Only these five values are duplicated. If you change the
 //     venue or times, change them in both places.
 //
 // Anything set as a Vercel environment variable wins, so you can correct a
@@ -12,8 +12,7 @@ export const SHOW = {
     school:    process.env.SHOW_SCHOOL   || "St Mary's Secondary School, Edenderry",
     venue:     process.env.SHOW_VENUE    || "St Mary's Secondary School, Edenderry, Co. Offaly",
     doors:     process.env.SHOW_DOORS    || '7:00 PM',
-    curtain:   process.env.SHOW_CURTAIN  || '7:30 PM',
-    contact:   process.env.EMAIL_REPLY_TO || 'office@stmarysedenderry.ie'
+    curtain:   process.env.SHOW_CURTAIN  || '7:30 PM'
 };
 
 /** Public site URL, e.g. https://mammamiathemusical.ie — used for links in emails. */

@@ -47,7 +47,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c =>
 
 /* -------------------------------------------------------------- providers */
 
-async function sendViaResend({ to, subject, html, text, attachments }) {
+async function sendViaResend({ to, subject, html, text, attachments, replyTo, bcc }) {
     const body = {
         from: FROM,
         to: [to],
@@ -55,8 +55,9 @@ async function sendViaResend({ to, subject, html, text, attachments }) {
         html,
         text
     };
-    if (REPLY_TO) body.reply_to = REPLY_TO;
-    if (BCC) body.bcc = [BCC];
+    const rt = replyTo || REPLY_TO;
+    if (rt) body.reply_to = rt;
+    if (BCC && bcc !== false) body.bcc = [BCC];
     if (attachments?.length) {
         body.attachments = attachments.map(a => ({
             filename: a.filename,
@@ -78,7 +79,7 @@ async function sendViaResend({ to, subject, html, text, attachments }) {
     return { provider: 'resend', id };
 }
 
-async function sendViaBrevo({ to, subject, html, text, attachments }) {
+async function sendViaBrevo({ to, subject, html, text, attachments, replyTo, bcc }) {
     const sender = parseFrom(FROM);
     const body = {
         sender: { email: sender.email, name: sender.name || undefined },
@@ -87,8 +88,9 @@ async function sendViaBrevo({ to, subject, html, text, attachments }) {
         htmlContent: html,
         textContent: text
     };
-    if (REPLY_TO) body.replyTo = { email: REPLY_TO };
-    if (BCC) body.bcc = [{ email: BCC }];
+    const rt = replyTo || REPLY_TO;
+    if (rt) body.replyTo = { email: rt };
+    if (BCC && bcc !== false) body.bcc = [{ email: BCC }];
     if (attachments?.length) {
         body.attachment = attachments.map(a => ({ name: a.filename, content: a.contentBase64 }));
     }
@@ -109,6 +111,8 @@ async function sendViaBrevo({ to, subject, html, text, attachments }) {
 
 /**
  * Send one email. Tries every configured provider before giving up.
+ * Optional per-message `replyTo` overrides EMAIL_REPLY_TO; `bcc: false`
+ * skips the EMAIL_BCC office copy.
  * Throws with all provider errors joined if none succeed.
  */
 export async function sendEmail(message) {
@@ -203,8 +207,9 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
         '',
         url ? 'Booking details: ' + url + '/success.html?ref=' + encodeURIComponent(ref) : '',
         '',
-        'Questions, or need to change something? Reply to this email or contact',
-        SHOW.contact + '.',
+        'Questions, or need to change something? Reply to this email' +
+            (url ? ' or use the contact form: ' + url + '/contact.html?topic=booking&ref=' + encodeURIComponent(ref) : '') +
+            ', quoting ' + ref + '.',
         '',
         'See you there.',
         SHOW.school,
@@ -322,8 +327,8 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
 
   <tr><td style="padding:26px 32px 28px;">
     <p style="margin:0;font-size:13px;line-height:1.7;color:#5b6f7c;">
-      Need to change something, or did something look wrong? Reply to this email or contact
-      <a href="mailto:${esc(SHOW.contact)}" style="color:#c2356b;text-decoration:underline;">${esc(SHOW.contact)}</a>,
+      Need to change something, or did something look wrong? Reply to this email${url ? ` or use our
+      <a href="${esc(url)}/contact.html?topic=booking&amp;ref=${encodeURIComponent(ref)}" style="color:#c2356b;text-decoration:underline;">contact form</a>` : ''},
       quoting <span style="color:#22333f;">${esc(ref)}</span>.
     </p>
   </td></tr>
