@@ -20,7 +20,9 @@ const CONFIG = {
         venueMapUrl: 'https://www.google.com/maps/search/?api=1&query=St+Mary%27s+Secondary+School+Edenderry',
         doorsTime:  '7:00 PM',                               // TODO confirm
         startTime:  '7:30 PM',                               // TODO confirm
-        contactEmail: 'office@stmarysedenderry.ie'           // TODO confirm
+        // Questions go through the form on contact.html, which emails the
+        // show inbox (ENQUIRIES_TO in Vercel, default smehighschoolmusical@gmail.com).
+        contactPage: 'contact.html'
     },
 
     /* --- Tickets ------------------------------------------------------- */
@@ -76,6 +78,7 @@ const CONFIG = {
         checkout:     '/api/create-checkout',
         verify:       '/api/verify-payment',
         wall:         '/api/wall',
+        enquiries:    '/api/enquiries',
         admin:        '/api/admin'
     },
 

@@ -176,8 +176,8 @@
       <p class="dim" style="font-size:0.89rem">
         Either way <strong style="color:var(--text)">your booking is safe</strong>. You're on the door list under
         your name, and this page works as your record — bookmark it or print it.
-        If you'd like the email sent again, contact
-        <a id="contact-link" href="#" class="contact-link"></a> with your reference.
+        If you'd like the email sent again,
+        <a id="contact-link" href="contact.html" class="contact-link">send us a message</a> with your reference.
       </p>
     </div>
   </div>
@@ -201,7 +201,7 @@
         <a href="booking.html" class="btn btn-primary">Back to booking</a>
       </div>
       <p class="text-center faint mt-3" style="font-size:0.85rem">
-        Email <a id="contact-link-2" href="#" class="contact-link"></a>
+        <a id="contact-link-2" href="contact.html" class="contact-link">Contact us about this payment</a>
       </p>
     </div>
   </div>
@@ -211,7 +211,7 @@
 <footer class="footer">
   <div class="footer-brand" id="footer-brand"></div>
   <div id="footer-line"></div>
-  <div class="mt-1"><a href="index.html">Home</a> · <a href="about.html">About</a> · <a href="wall.html">Wall</a></div>
+  <div class="mt-1"><a href="index.html">Home</a> · <a href="about.html">About</a> · <a href="wall.html">Wall</a> · <a href="contact.html">Contact</a></div>
   <p class="licence">
     <em>Mamma Mia!</em> is presented through special arrangement with Music Theatre International (MTI).
     All authorized performance materials are also supplied by MTI. 423 West 55th Street, New York, NY 10019.
@@ -228,11 +228,6 @@
 
     $('footer-brand').textContent = S.title + ' · ' + S.year;
     $('footer-line').textContent = S.school;
-    ['contact-link', 'contact-link-2'].forEach(id => {
-        const el = $(id);
-        el.textContent = S.contactEmail;
-        el.href = 'mailto:' + S.contactEmail + '?subject=' + encodeURIComponent('Mamma Mia! booking');
-    });
 
     // SumUp returns to this page with ?ref=... — but if a redirect ever loses
     // the query string, the booking page left the reference behind for us.
@@ -241,6 +236,10 @@
         try { ref = sessionStorage.getItem('mm-booking-ref'); } catch (_) { ref = null; }
     }
     let attempts = 0;
+
+    // Contact links arrive with the reference filled in.
+    const contactHref = 'contact.html?topic=booking' + (ref ? '&ref=' + encodeURIComponent(ref) : '');
+    ['contact-link', 'contact-link-2'].forEach(id => { $(id).href = contactHref; });
 
     if (!ref) {
         show('problem');

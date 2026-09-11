@@ -308,6 +308,16 @@
         $('ref-field').classList.toggle('hidden', topic.value !== 'booking');
     });
 
+    // Links from the booking and confirmation pages pre-fill these:
+    // contact.html?topic=booking&ref=MM-4F2K9A
+    const params = new URLSearchParams(location.search);
+    if ([...topic.options].some(o => o.value === params.get('topic'))) {
+        topic.value = params.get('topic');
+        $('ref-field').classList.toggle('hidden', topic.value !== 'booking');
+    }
+    const preRef = (params.get('ref') || '').trim().toUpperCase();
+    if (/^[A-Z0-9-]{3,20}$/.test(preRef)) $('q-ref').value = preRef;
+
     /* ---------------- character counter ---------------- */
     const message = $('q-message'), counter = $('counter');
     message.addEventListener('input', () => {
