@@ -208,7 +208,7 @@ under **Settings → Environment Variables**:
 | `SUMUP_API_KEY` | secret |
 | `SUMUP_MERCHANT_CODE` | e.g. `MABCDEFG` |
 | `ADMIN_PASSWORD` | pick something long; this is the only lock on the admin page |
-| `EMAIL_FROM` | `"Mamma Mia! <tickets@yourdomain.ie>"` — verified domain only |
+| `EMAIL_FROM` | `"Mamma Mia! <tickets@smemammamia.com>"` — a domain verified with the provider, spelled exactly as it appears there |
 | `EMAIL_REPLY_TO` | where replies go |
 | `RESEND_API_KEY` | and/or `BREVO_API_KEY` — set both for failover |
 | `CRON_SECRET` | protects `/api/reconcile` |
