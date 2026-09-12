@@ -9,9 +9,12 @@ import {
     sbSelect, sbUpdate, sbRpc, sbInsert, newBookingRef, supabaseConfigured
 } from './_supabase.js';
 import { sendConfirmationFor } from './_confirmations.js';
-import { emailConfigured, configuredProviders } from './_email.js';
+import {
+    emailConfigured, configuredProviders, emailConfigProblem,
+    maskAddress, parseAddressList, sendEmail
+} from './_email.js';
 import { runReconcile } from './reconcile.js';
-import { siteUrl } from './_show.js';
+import { siteUrl, SHOW } from './_show.js';
 
 const TICKET_PRICE = Number(process.env.TICKET_PRICE || 15);
 
@@ -197,6 +200,45 @@ export default async function handler(req, res) {
                     ok: false,
                     reason: result.skipped || result.error || 'could not send'
                 });
+            }
+
+            /* Why the contact form or a confirmation would not send. Addresses
+               are masked and no key is ever returned, but it is behind the
+               password anyway. `to` sends a real test email and hands back
+               whatever the provider says about it. */
+            case 'email-check': {
+                const enquiriesTo = process.env.ENQUIRIES_TO || 'smehighschoolmusical@gmail.com';
+                const report = {
+                    configured: emailConfigured(),
+                    providers: configuredProviders(),
+                    problem: emailConfigProblem(),
+                    from: maskAddress(process.env.EMAIL_FROM),
+                    replyTo: maskAddress(process.env.EMAIL_REPLY_TO),
+                    bcc: maskAddress(process.env.EMAIL_BCC),
+                    enquiriesTo: parseAddressList(enquiriesTo).map(a => maskAddress(a.email))
+                };
+
+                if (!body.to) return res.status(200).json(report);
+
+                try {
+                    const sent = await sendEmail({
+                        to: String(body.to),
+                        subject: `${SHOW.name} — email test`,
+                        text: 'If you are reading this, the site can send email.',
+                        html: '<p>If you are reading this, the site can send email.</p>',
+                        bcc: false
+                    });
+                    return res.status(200).json({ ...report, test: { ok: true, provider: sent.provider } });
+                } catch (err) {
+                    return res.status(200).json({
+                        ...report,
+                        test: {
+                            ok: false,
+                            kind: err.kind || 'provider',
+                            detail: String(err.message || err).slice(0, 400)
+                        }
+                    });
+                }
             }
 
             case 'email-log': {

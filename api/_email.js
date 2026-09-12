@@ -9,12 +9,19 @@
 
 import { SHOW, formatPerformanceDate, to24 } from './_show.js';
 
-const RESEND_KEY = process.env.RESEND_API_KEY;
-const BREVO_KEY  = process.env.BREVO_API_KEY;
+/* Environment values arrive verbatim. A line copied out of .env.example keeps
+   its surrounding quotes, and `"Mamma Mia! <tickets@example.ie>"` is then not an
+   address any provider will accept — it comes back as an opaque 422. Strip one
+   layer of wrapping quotes from everything, including the keys. */
+const unquote = v => String(v ?? '').trim().replace(/^(['"])([\s\S]*)\1$/, '$2').trim();
+const env = name => unquote(process.env[name]);
 
-const FROM     = process.env.EMAIL_FROM      || '';   // "Mamma Mia! <tickets@yourdomain.ie>"
-const REPLY_TO = process.env.EMAIL_REPLY_TO  || '';
-const BCC      = process.env.EMAIL_BCC       || '';   // office copy, optional
+const RESEND_KEY = env('RESEND_API_KEY');
+const BREVO_KEY  = env('BREVO_API_KEY');
+
+const FROM     = env('EMAIL_FROM');       // "Mamma Mia! <tickets@yourdomain.ie>"
+const REPLY_TO = env('EMAIL_REPLY_TO');
+const BCC      = env('EMAIL_BCC');        // office copy, optional
 
 const TIMEOUT_MS = 12000;
 
@@ -26,13 +33,95 @@ export function configuredProviders() {
     return [RESEND_KEY && 'resend', BREVO_KEY && 'brevo'].filter(Boolean);
 }
 
-/* ---------------------------------------------------------------- helpers */
+/* -------------------------------------------------------------- addresses */
 
-function parseFrom(value) {
-    const m = /^\s*(.*?)\s*<\s*([^>]+)\s*>\s*$/.exec(value);
-    return m ? { name: m[1].replace(/^"|"$/g, ''), email: m[2] }
-             : { name: '', email: String(value).trim() };
+/* Deliberately stricter than the check on the form: this one has to match what
+   the providers accept, because everything they refuse arrives back as a 422
+   with no indication of which field was at fault. */
+const ADDRESS_RE =
+    /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}$/;
+
+/** 'Mamma Mia! <tickets@x.ie>' -> { name, email }. null if it is not usable. */
+export function parseAddress(value) {
+    const raw = unquote(value);
+    if (!raw) return null;
+    const m = /^([\s\S]*?)\s*<\s*([^<>]+?)\s*>$/.exec(raw);
+    const email = (m ? m[2] : raw).trim();
+    if (!ADDRESS_RE.test(email)) return null;
+    return { name: m ? unquote(m[1]) : '', email };
 }
+
+/** Back to a header value. The display name is quoted unless it is plain, so
+    'Mamma Mia!' cannot be mistaken for the start of a second address. */
+export function formatAddress(addr) {
+    if (!addr) return '';
+    if (!addr.name) return addr.email;
+    const name = /^[A-Za-z0-9 ]+$/.test(addr.name)
+        ? addr.name
+        : '"' + addr.name.replace(/["\\]/g, '') + '"';
+    return `${name} <${addr.email}>`;
+}
+
+/** One address, a comma-separated list, or an array. Unusable entries drop out. */
+export function parseAddressList(value) {
+    const items = Array.isArray(value) ? value : String(value ?? '').split(',');
+    return items.map(parseAddress).filter(Boolean);
+}
+
+/** 'tickets@yourdomain.ie' -> 't****s@yourdomain.ie', for diagnostics. */
+export function maskAddress(value) {
+    const addr = parseAddress(value);
+    if (!addr) return null;
+    const [user, domain] = addr.email.split('@');
+    const masked = user.length < 3
+        ? user[0] + '*'
+        : user[0] + '*'.repeat(Math.min(user.length - 2, 6)) + user.slice(-1);
+    return `${masked}@${domain}`;
+}
+
+/**
+ * What is wrong with the email settings, in words, or null if they look usable.
+ * Never includes a key or a full address — safe to show an administrator.
+ */
+export function emailConfigProblem() {
+    if (!FROM) {
+        return 'EMAIL_FROM is not set.';
+    }
+    if (!parseAddress(FROM)) {
+        return 'EMAIL_FROM is not a usable address. Expected  Mamma Mia! <tickets@yourdomain.ie>  ' +
+               'with no quotes around the whole value.';
+    }
+    if (!RESEND_KEY && !BREVO_KEY) {
+        return 'No provider key. Set RESEND_API_KEY and/or BREVO_API_KEY.';
+    }
+    if (REPLY_TO && !parseAddress(REPLY_TO)) {
+        return 'EMAIL_REPLY_TO is set but is not a usable address.';
+    }
+    if (BCC && !parseAddress(BCC)) {
+        return 'EMAIL_BCC is set but is not a usable address.';
+    }
+    return null;
+}
+
+/* ----------------------------------------------------------------- errors */
+
+/* kind 'config' means the settings are wrong and trying again will fail the
+   same way; 'provider' means the provider was unreachable or unhappy and a
+   retry is worth having. */
+function emailError(message, extra = {}) {
+    return Object.assign(new Error(message), { kind: 'provider', ...extra });
+}
+
+function providerError(label, status, raw) {
+    let detail = raw;
+    try {
+        const parsed = JSON.parse(raw);
+        detail = [parsed.name || parsed.code, parsed.message].filter(Boolean).join(': ') || raw;
+    } catch { /* not JSON — keep the raw body */ }
+    return emailError(`${label} ${status}: ${String(detail).trim().slice(0, 400)}`, { status });
+}
+
+/* ---------------------------------------------------------------- helpers */
 
 function withTimeout(promise, ms, label) {
     return Promise.race([
@@ -45,21 +134,52 @@ function withTimeout(promise, ms, label) {
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+/**
+ * Turn a message into parsed, provider-ready addresses, or throw saying exactly
+ * which setting is wrong. Everything the providers see has been through here,
+ * so a 422 back from them is now genuinely surprising rather than routine.
+ */
+function buildEnvelope(message) {
+    const problem = emailConfigProblem();
+    if (problem) throw emailError(problem, { kind: 'config' });
+
+    const to = parseAddressList(message.to);
+    if (!to.length) {
+        throw emailError('No usable recipient address: ' + JSON.stringify(message.to), { kind: 'config' });
+    }
+
+    /* A Reply-To we cannot use is dropped, never fatal: losing the address to
+       answer on is better than losing the message. */
+    const replyToSource = message.replyTo || REPLY_TO;
+    const replyTo = parseAddress(replyToSource);
+    if (replyToSource && !replyTo) console.warn('email: ignoring an unusable reply-to address');
+
+    return {
+        from: parseAddress(FROM),
+        to,
+        replyTo,
+        bcc: message.bcc === false ? [] : parseAddressList(BCC),
+        subject: String(message.subject ?? '').replace(/[\r\n]+/g, ' ').trim() || SHOW.name,
+        html: message.html,
+        text: message.text,
+        attachments: message.attachments || []
+    };
+}
+
 /* -------------------------------------------------------------- providers */
 
-async function sendViaResend({ to, subject, html, text, attachments, replyTo, bcc }) {
+async function sendViaResend(envelope) {
     const body = {
-        from: FROM,
-        to: [to],
-        subject,
-        html,
-        text
+        from: formatAddress(envelope.from),
+        to: envelope.to.map(a => a.email),
+        subject: envelope.subject,
+        html: envelope.html,
+        text: envelope.text
     };
-    const rt = replyTo || REPLY_TO;
-    if (rt) body.reply_to = rt;
-    if (BCC && bcc !== false) body.bcc = [BCC];
-    if (attachments?.length) {
-        body.attachments = attachments.map(a => ({
+    if (envelope.replyTo) body.reply_to = [envelope.replyTo.email];
+    if (envelope.bcc.length) body.bcc = envelope.bcc.map(a => a.email);
+    if (envelope.attachments.length) {
+        body.attachments = envelope.attachments.map(a => ({
             filename: a.filename,
             content: a.contentBase64
         }));
@@ -72,27 +192,27 @@ async function sendViaResend({ to, subject, html, text, attachments, replyTo, bc
     }), TIMEOUT_MS, 'Resend');
 
     const raw = await res.text();
-    if (!res.ok) throw new Error(`Resend ${res.status}: ${raw.slice(0, 300)}`);
+    if (!res.ok) throw providerError('Resend', res.status, raw);
 
     let id = null;
     try { id = JSON.parse(raw).id; } catch { /* fine */ }
     return { provider: 'resend', id };
 }
 
-async function sendViaBrevo({ to, subject, html, text, attachments, replyTo, bcc }) {
-    const sender = parseFrom(FROM);
+async function sendViaBrevo(envelope) {
     const body = {
-        sender: { email: sender.email, name: sender.name || undefined },
-        to: [{ email: to }],
-        subject,
-        htmlContent: html,
-        textContent: text
+        sender: envelope.from.name
+            ? { email: envelope.from.email, name: envelope.from.name }
+            : { email: envelope.from.email },
+        to: envelope.to.map(a => ({ email: a.email })),
+        subject: envelope.subject,
+        htmlContent: envelope.html,
+        textContent: envelope.text
     };
-    const rt = replyTo || REPLY_TO;
-    if (rt) body.replyTo = { email: rt };
-    if (BCC && bcc !== false) body.bcc = [{ email: BCC }];
-    if (attachments?.length) {
-        body.attachment = attachments.map(a => ({ name: a.filename, content: a.contentBase64 }));
+    if (envelope.replyTo) body.replyTo = { email: envelope.replyTo.email };
+    if (envelope.bcc.length) body.bcc = envelope.bcc.map(a => ({ email: a.email }));
+    if (envelope.attachments.length) {
+        body.attachment = envelope.attachments.map(a => ({ name: a.filename, content: a.contentBase64 }));
     }
 
     const res = await withTimeout(fetch('https://api.brevo.com/v3/smtp/email', {
@@ -102,7 +222,7 @@ async function sendViaBrevo({ to, subject, html, text, attachments, replyTo, bcc
     }), TIMEOUT_MS, 'Brevo');
 
     const raw = await res.text();
-    if (!res.ok) throw new Error(`Brevo ${res.status}: ${raw.slice(0, 300)}`);
+    if (!res.ok) throw providerError('Brevo', res.status, raw);
 
     let id = null;
     try { id = JSON.parse(raw).messageId; } catch { /* fine */ }
@@ -113,25 +233,36 @@ async function sendViaBrevo({ to, subject, html, text, attachments, replyTo, bcc
  * Send one email. Tries every configured provider before giving up.
  * Optional per-message `replyTo` overrides EMAIL_REPLY_TO; `bcc: false`
  * skips the EMAIL_BCC office copy.
- * Throws with all provider errors joined if none succeed.
+ *
+ * Throws with every provider's own words joined, and with `kind` set to
+ * 'config' when the settings are at fault, so a caller can tell a passing
+ * outage from something that will fail identically every time.
  */
 export async function sendEmail(message) {
-    if (!emailConfigured()) throw new Error('Email is not configured (need EMAIL_FROM and a provider key)');
-    if (!message.to || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(message.to)) {
-        throw new Error('No usable email address: ' + message.to);
-    }
+    const envelope = buildEnvelope(message);
 
     const attempts = [];
     for (const [name, fn] of [['resend', RESEND_KEY && sendViaResend], ['brevo', BREVO_KEY && sendViaBrevo]]) {
         if (!fn) continue;
         try {
-            return await fn(message);
+            return await fn(envelope);
         } catch (err) {
             console.error(`email via ${name} failed:`, err.message);
-            attempts.push(`${name}: ${err.message}`);
+            attempts.push({ provider: name, status: err.status ?? null, message: err.message });
         }
     }
-    throw new Error(attempts.join(' | ') || 'No email provider configured');
+
+    if (!attempts.length) {
+        throw emailError('No email provider configured (set RESEND_API_KEY and/or BREVO_API_KEY)', { kind: 'config' });
+    }
+
+    /* Every provider answering with a 4xx that is not a rate limit means the
+       request itself is wrong — the settings, not the weather. */
+    const config = attempts.every(a => a.status >= 400 && a.status < 500 && a.status !== 429);
+    throw emailError(attempts.map(a => a.message).join(' | '), {
+        kind: config ? 'config' : 'provider',
+        attempts
+    });
 }
 
 /* --------------------------------------------------------------- calendar */
