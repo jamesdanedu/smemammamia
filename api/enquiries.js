@@ -8,10 +8,18 @@
 // stored: if both providers fail the person is told, so nothing is silently lost.
 
 import { applyCors, readBody } from './_supabase.js';
-import { sendEmail, emailConfigured } from './_email.js';
+import { sendEmail, emailConfigured, emailConfigProblem, parseAddressList } from './_email.js';
 import { SHOW } from './_show.js';
 
-const TO = process.env.ENQUIRIES_TO || 'smehighschoolmusical@gmail.com';
+/* One address, or several separated by commas. Anything unusable is dropped
+   here rather than at the provider, where it would come back as a bare 422 —
+   and if that leaves nothing at all, the show inbox still gets the question. */
+const DEFAULT_TO = 'smehighschoolmusical@gmail.com';
+const configured = parseAddressList(process.env.ENQUIRIES_TO || DEFAULT_TO);
+const TO = (configured.length ? configured : parseAddressList(DEFAULT_TO)).map(a => a.email);
+
+/** The address to give somebody when the form itself cannot send. */
+const CONTACT_ADDRESS = TO[0];
 
 const TOPICS = {
     general: 'General question',
@@ -127,9 +135,15 @@ export default async function handler(req, res) {
         return res.status(429).json({ error: 'That is a lot of questions in a short time — please try again in a few minutes.' });
     }
 
-    if (!emailConfigured()) {
-        console.error('enquiry not sent: email is not configured');
-        return res.status(503).json({ error: 'The contact form is not switched on yet. Please try again later.' });
+    /* Settings that cannot work are worth saying out loud, and worth saying
+       before the person types anything else. */
+    const problem = emailConfigured() ? emailConfigProblem() : 'Email is not configured.';
+    if (problem) {
+        console.error('enquiry not sent —', problem);
+        return res.status(503).json({
+            error: `The contact form is not able to send email at the moment. Please email us at ${CONTACT_ADDRESS} instead.`,
+            detail: problem
+        });
     }
 
     const ref = newRef();
@@ -138,7 +152,14 @@ export default async function handler(req, res) {
         console.log(`enquiry ${ref} sent via ${sent.provider}`);
         return res.status(200).json({ ok: true, reference: ref });
     } catch (err) {
-        console.error(`enquiry ${ref} failed:`, err.message);
-        return res.status(502).json({ error: 'Sorry — your question could not be sent just now. Please try again in a minute.' });
+        console.error(`enquiry ${ref} failed (${err.kind || 'provider'}):`, err.message);
+
+        /* A settings fault fails the same way every time, so do not send the
+           person round the loop again — give them an address that works. */
+        const error = err.kind === 'config'
+            ? `Sorry — the contact form cannot send email at the moment. Please email us at ${CONTACT_ADDRESS} instead.`
+            : 'Sorry — your question could not be sent just now. Please try again in a minute.';
+
+        return res.status(502).json({ error, detail: String(err.message || '').slice(0, 300) });
     }
 }

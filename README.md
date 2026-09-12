@@ -208,7 +208,7 @@ under **Settings → Environment Variables**:
 | `SUMUP_API_KEY` | secret |
 | `SUMUP_MERCHANT_CODE` | e.g. `MABCDEFG` |
 | `ADMIN_PASSWORD` | pick something long; this is the only lock on the admin page |
-| `EMAIL_FROM` | `"Mamma Mia! <tickets@smemammamia.com>"` — a domain verified with the provider, spelled exactly as it appears there |
+| `EMAIL_FROM` | `Mamma Mia! <tickets@smemammamia.com>` — a domain verified with the provider, spelled exactly as it appears there, and no quotes around the value in the Vercel box |
 | `EMAIL_REPLY_TO` | where replies go |
 | `ENQUIRIES_TO` | optional, where contact-form questions go — defaults to `smehighschoolmusical@gmail.com` |
 | `RESEND_API_KEY` | and/or `BREVO_API_KEY` — set both for failover |
@@ -420,6 +420,13 @@ database.
 * **Sending from an unverified domain.** Everything looks fine — the API accepts the
   send, the admin page says "Sent" — and the mail lands in spam or nowhere. Verify
   the domain and add all three DNS records before you announce ticket sales.
+* **Pasting an environment variable with its quotes.** `.env.example` quotes
+  `EMAIL_FROM` so the file parses as a shell `.env`; the Vercel box stores whatever
+  you type, quotes included, and `"Mamma Mia! <tickets@…>"` is not an address. The
+  site now strips one layer of wrapping quotes, but check the value anyway. If the
+  contact form answers 502, post `{"password":"…","action":"email-check"}` to
+  `/api/admin` — it names the setting at fault and, with `"to":"you@example.ie"`
+  added, sends a test and hands back the provider's own words.
 * **Leaving `CRON_SECRET` unset.** `/api/reconcile` refuses every request without
   it, so the hourly cron answers 503 forever: no abandoned payment is rescued and no
   unsent confirmation is retried. The Vercel log shows the run finishing in under
