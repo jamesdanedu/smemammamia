@@ -15,6 +15,15 @@ export const SHOW = {
     curtain:   process.env.SHOW_CURTAIN  || '7:30 PM'
 };
 
+/**
+ * Where questions from the contact form land, and the address to give somebody
+ * when the form itself cannot send. ENQUIRIES_TO in Vercel wins over the
+ * default, so moving the inbox needs no redeploy — but the default is what the
+ * site falls back on, so keep it pointing somewhere that is actually read.
+ */
+export const DEFAULT_ENQUIRIES_TO = 'smemammamia@proton.me';
+export const ENQUIRIES_TO = process.env.ENQUIRIES_TO || DEFAULT_ENQUIRIES_TO;
+
 /** Public site URL, e.g. https://mammamiathemusical.ie — used for links in emails. */
 export function siteUrl(req) {
     if (process.env.SITE_URL) return process.env.SITE_URL.replace(/\/$/, '');
