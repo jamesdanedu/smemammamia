@@ -265,6 +265,7 @@
                 body: JSON.stringify({ bookingRef: ref })
             });
             const data = await res.json();
+            console.log('verify-payment:', data);
 
             if (data.paid && data.booking) return renderConfirmed(data.booking, data.email);
 
@@ -316,7 +317,12 @@
                                 ' — it may take a few minutes.';
                 break;
             case 'skipped':
-                box.classList.add('hidden');
+                // Email is switched off or the address is unusable. Say so
+                // rather than hiding the box — a silent nothing is what makes
+                // people think the whole booking failed.
+                box.className = 'alert alert-info';
+                box.innerHTML = '\u2709\ufe0f We could not send a confirmation email for this booking. ' +
+                                'Your tickets are safe and your name is on the door list.';
                 break;
             default:
                 box.className = 'alert alert-info';

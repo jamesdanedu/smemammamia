@@ -208,7 +208,7 @@ under **Settings → Environment Variables**:
 | `SUMUP_API_KEY` | secret |
 | `SUMUP_MERCHANT_CODE` | e.g. `MABCDEFG` |
 | `ADMIN_PASSWORD` | pick something long; this is the only lock on the admin page |
-| `EMAIL_FROM` | `Mamma Mia! <tickets@yourdomain.ie>` — verified domain only, and no quotes around the value in the Vercel box |
+| `EMAIL_FROM` | `Mamma Mia! <tickets@smemammamia.com>` — a domain verified with the provider, spelled exactly as it appears there, and no quotes around the value in the Vercel box |
 | `EMAIL_REPLY_TO` | where replies go |
 | `ENQUIRIES_TO` | optional, where contact-form questions go — defaults to `smehighschoolmusical@gmail.com` |
 | `RESEND_API_KEY` | and/or `BREVO_API_KEY` — set both for failover |
@@ -427,6 +427,11 @@ database.
   contact form answers 502, post `{"password":"…","action":"email-check"}` to
   `/api/admin` — it names the setting at fault and, with `"to":"you@example.ie"`
   added, sends a test and hands back the provider's own words.
+* **Leaving `CRON_SECRET` unset.** `/api/reconcile` refuses every request without
+  it, so the hourly cron answers 503 forever: no abandoned payment is rescued and no
+  unsent confirmation is retried. The Vercel log shows the run finishing in under
+  100ms with no outgoing requests — that shape is the giveaway. Set it, redeploy,
+  then hit **Run checks now** on the admin Overview tab to clear the backlog.
 * **Leaving the reconciler on a daily schedule.** It still works, but someone whose
   payment needs rescuing waits up to 24 hours to find out they have a ticket. Use a
   10-minute trigger while sales are open.

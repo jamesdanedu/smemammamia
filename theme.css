@@ -589,9 +589,16 @@ h1, h2, h3, h4 {
     .mini-btn { min-height: 40px; }
 
     /* the map and email links are the two a parent actually taps —
-       grow the hit area without moving the text */
+       grow the hit area without moving the text.
+       The footer row and the quick-answer links are navigation too, and at
+       body size they render about 16px tall, well under the 44px the nav
+       already sets and under the 24px WCAG 2.2 asks for. Same treatment:
+       negative margins cancel the padding, so nothing moves on screen. */
     .info-value a,
-    .char-desc a {
+    .char-desc a,
+    .faq-a a,
+    .footer a,
+    .admin-link {
         display: inline-block;
         padding: 13px 4px;
         margin: -13px -4px;
