@@ -1,22 +1,22 @@
 // POST /api/enquiries  { name, email, phone, topic, bookingReference, message, website, elapsed }
 //
 // The contact form on contact.html. Emails the question to the show inbox
-// (ENQUIRIES_TO, default smehighschoolmusical@gmail.com) with Reply-To set to
-// the person who asked, so answering is just pressing Reply in Gmail.
+// (ENQUIRIES_TO, default smemammamia@proton.me) with Reply-To set to the
+// person who asked, so answering is just pressing Reply.
 //
 // Uses the same Resend → Brevo failover as the confirmations. Nothing is
 // stored: if both providers fail the person is told, so nothing is silently lost.
 
 import { applyCors, readBody } from './_supabase.js';
 import { sendEmail, emailConfigured, emailConfigProblem, parseAddressList } from './_email.js';
-import { SHOW } from './_show.js';
+import { SHOW, ENQUIRIES_TO, DEFAULT_ENQUIRIES_TO } from './_show.js';
 
 /* One address, or several separated by commas. Anything unusable is dropped
    here rather than at the provider, where it would come back as a bare 422 —
-   and if that leaves nothing at all, the show inbox still gets the question. */
-const DEFAULT_TO = 'smehighschoolmusical@gmail.com';
-const configured = parseAddressList(process.env.ENQUIRIES_TO || DEFAULT_TO);
-const TO = (configured.length ? configured : parseAddressList(DEFAULT_TO)).map(a => a.email);
+   and if that leaves nothing at all, the default inbox still gets the question
+   rather than the question going nowhere. */
+const configured = parseAddressList(ENQUIRIES_TO);
+const TO = (configured.length ? configured : parseAddressList(DEFAULT_ENQUIRIES_TO)).map(a => a.email);
 
 /** The address to give somebody when the form itself cannot send. */
 const CONTACT_ADDRESS = TO[0];

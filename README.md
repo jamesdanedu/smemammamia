@@ -82,7 +82,7 @@ Everything marked `// TODO` needs your real values:
 
 * show dates, times and year
 * venue name
-* contact-form inbox (`ENQUIRIES_TO` in Vercel — defaults to smehighschoolmusical@gmail.com)
+* contact-form inbox (`ENQUIRIES_TO` in Vercel — defaults to smemammamia@proton.me)
 * ticket price (**must match `TICKET_PRICE` in Vercel** — the server decides the price)
 * capacity per night
 
@@ -210,7 +210,7 @@ under **Settings → Environment Variables**:
 | `ADMIN_PASSWORD` | pick something long; this is the only lock on the admin page |
 | `EMAIL_FROM` | `Mamma Mia! <tickets@smemammamia.com>` — a domain verified with the provider, spelled exactly as it appears there, and no quotes around the value in the Vercel box |
 | `EMAIL_REPLY_TO` | where replies go |
-| `ENQUIRIES_TO` | optional, where contact-form questions go — defaults to `smehighschoolmusical@gmail.com` |
+| `ENQUIRIES_TO` | optional, where contact-form questions go — defaults to `smemammamia@proton.me`. Set in Vercel it wins over the default, so check there before assuming the code decides |
 | `RESEND_API_KEY` | and/or `BREVO_API_KEY` — set both for failover |
 | `CRON_SECRET` | protects `/api/reconcile` |
 | `SITE_URL` | your live URL, for links inside emails — e.g. `https://mammamiathemusical.ie` (an example, not a registered domain) |
@@ -388,7 +388,7 @@ the code, so the site runs — but each one needs a real answer from the school.
 | 1 | **Doors and curtain times.** Currently 7:00 PM / 7:30 PM. | `config.js`, `api/_show.js` (and `SHOW_DOORS` / `SHOW_CURTAIN` if overridden) |
 | 2 | **500 capacity per night** — check it against the hall's fire cert before selling to it. | `config.js`, the seed block in `schema.sql`, admin *Settings* |
 | 3 | **SumUp merchant account** — reuse the school's existing one, or open a new one for this show? | `SUMUP_API_KEY`, `SUMUP_MERCHANT_CODE` in Vercel |
-| 4 | **Contact form.** Questions go through `contact.html` → `/api/enquiries`, emailed to `smehighschoolmusical@gmail.com`. Needs email set up (Step 3) to work; shares the provider's daily sending cap with confirmations. | `ENQUIRIES_TO`, `EMAIL_REPLY_TO` in Vercel |
+| 4 | **Contact form.** Questions go through `contact.html` → `/api/enquiries`, emailed to `smemammamia@proton.me`. Needs email set up (Step 3) to work; shares the provider's daily sending cap with confirmations. | `ENQUIRIES_TO`, `EMAIL_REPLY_TO` in Vercel |
 | 5 | **Artwork and logo treatments.** Confirm with MTI exactly which artwork and logo treatments the school may use — the "Bride" art and the ABBA name are out, so check what is in. | `logo.svg`, `favicon.svg`, `/images`, and anything going to print |
 
 Items 1 and 2 are marked `// TODO` in `config.js`. Capacity changes made in

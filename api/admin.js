@@ -14,7 +14,7 @@ import {
     maskAddress, parseAddressList, sendEmail
 } from './_email.js';
 import { runReconcile } from './reconcile.js';
-import { siteUrl, SHOW } from './_show.js';
+import { siteUrl, SHOW, ENQUIRIES_TO } from './_show.js';
 
 const TICKET_PRICE = Number(process.env.TICKET_PRICE || 15);
 
@@ -207,7 +207,6 @@ export default async function handler(req, res) {
                password anyway. `to` sends a real test email and hands back
                whatever the provider says about it. */
             case 'email-check': {
-                const enquiriesTo = process.env.ENQUIRIES_TO || 'smehighschoolmusical@gmail.com';
                 const report = {
                     configured: emailConfigured(),
                     providers: configuredProviders(),
@@ -215,7 +214,7 @@ export default async function handler(req, res) {
                     from: maskAddress(process.env.EMAIL_FROM),
                     replyTo: maskAddress(process.env.EMAIL_REPLY_TO),
                     bcc: maskAddress(process.env.EMAIL_BCC),
-                    enquiriesTo: parseAddressList(enquiriesTo).map(a => maskAddress(a.email))
+                    enquiriesTo: parseAddressList(ENQUIRIES_TO).map(a => maskAddress(a.email))
                 };
 
                 if (!body.to) return res.status(200).json(report);

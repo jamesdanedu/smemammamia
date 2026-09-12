@@ -21,7 +21,7 @@ const CONFIG = {
         doorsTime:  '7:00 PM',                               // TODO confirm
         startTime:  '7:30 PM',                               // TODO confirm
         // Questions go through the form on contact.html, which emails the
-        // show inbox (ENQUIRIES_TO in Vercel, default smehighschoolmusical@gmail.com).
+        // show inbox (ENQUIRIES_TO in Vercel, default smemammamia@proton.me).
         contactPage: 'contact.html'
     },
 
