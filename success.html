@@ -161,6 +161,7 @@
       <div class="detail-row"><span class="k">Venue</span><span class="v" id="d-venue">—</span></div>
       <div class="detail-row"><span class="k">Tickets</span><span class="v" id="d-qty">—</span></div>
       <div class="detail-row"><span class="k">Paid</span><span class="v" id="d-amount">—</span></div>
+      <div class="detail-row hidden" id="d-access-row"><span class="k">Access</span><span class="v" id="d-access">—</span></div>
     </div>
 
     <div class="actions">
@@ -294,6 +295,15 @@
         $('d-venue').textContent   = S.venue;
         $('d-qty').textContent     = b.quantity + (b.quantity === 1 ? ' ticket' : ' tickets');
         $('d-amount').textContent  = CONFIG.money(b.amount);
+
+        // Access requests are echoed back so a mistake can be spotted while
+        // there is still time to change the seating.
+        const access = CONFIG.accessLabels(b.accessNeeds || []);
+        if (b.accessNotes) access.push(b.accessNotes);
+        if (access.length) {
+            $('d-access').textContent = access.join(' · ');
+            $('d-access-row').classList.remove('hidden');
+        }
 
         $('cal-btn').href = calendarLink(b, perf);
         $('cal-btn').setAttribute('download', 'mamma-mia.ics');

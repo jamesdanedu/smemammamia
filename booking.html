@@ -159,6 +159,48 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* Access question */
+.check-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--text);
+    cursor: pointer;
+    min-height: 44px;
+    padding: 4px 0;
+}
+
+.check-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin: 2px 0 0;
+    accent-color: var(--cyan);
+    cursor: pointer;
+}
+
+.access-options {
+    margin: 16px 0 0;
+    padding: 16px 0 0;
+    border: none;
+    border-top: 1px solid var(--border);
+}
+
+.access-options legend {
+    padding: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+}
+
+.access-grid { display: grid; gap: 2px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+
 /* Summary */
 .summary-row {
     display: flex;
@@ -312,11 +354,39 @@
 
     <!-- STEP 4 -->
     <section class="step">
-      <div class="step-head"><div class="step-num">4</div><div class="step-title">Confirm and pay</div></div>
+      <div class="step-head"><div class="step-num">4</div><div class="step-title">Access and seating</div></div>
+      <div class="card">
+        <p class="dim mb-2" style="font-size:0.92rem">
+          The hall is level with the car park and we keep seats aside at every performance.
+          Tell us now and we will have them ready for you — it is no trouble at all.
+        </p>
+
+        <label class="check-label" for="access-needed">
+          <input type="checkbox" id="access-needed" aria-controls="access-options" aria-expanded="false">
+          <span>Someone in my party has access or seating requirements</span>
+        </label>
+
+        <fieldset class="access-options" id="access-options" hidden>
+          <legend>What would help?</legend>
+          <div class="access-grid" id="access-grid"></div>
+          <div class="field mt-2" style="margin-bottom:0">
+            <label for="access-notes">Anything we should know <span class="faint" style="text-transform:none">(optional)</span></label>
+            <textarea id="access-notes" rows="3" maxlength="300"
+                      placeholder="For example: two wheelchair users, or a seat beside the aisle for a guide dog."></textarea>
+            <div class="hint">We only share this with the front-of-house team on the night.</div>
+          </div>
+        </fieldset>
+      </div>
+    </section>
+
+    <!-- STEP 5 -->
+    <section class="step">
+      <div class="step-head"><div class="step-num">5</div><div class="step-title">Confirm and pay</div></div>
       <div class="card card-neon">
         <div class="summary-row"><span>Performance</span><strong id="sum-night" style="color:var(--text)">—</strong></div>
         <div class="summary-row"><span>Tickets</span><strong id="sum-qty" style="color:var(--text)">—</strong></div>
         <div class="summary-row"><span>Price each</span><strong id="sum-price" style="color:var(--text)">—</strong></div>
+        <div class="summary-row hidden" id="sum-access-row"><span>Access</span><strong id="sum-access" style="color:var(--text)">—</strong></div>
         <div class="summary-total"><span>Total</span><span class="amount" id="sum-total">—</span></div>
 
         <button type="submit" class="btn btn-primary btn-block mt-3" id="pay-btn">💳 Pay by card</button>
@@ -381,6 +451,8 @@
         qty: 1,
         max: T.maxPerBooking,
         availability: null,
+        access: [],
+        accessNotes: '',
         bookingRef: null,
         holdEndsAt: null,
         holdTimerId: null,
@@ -511,6 +583,61 @@
             : 'Choose a night to continue';
     }
 
+    /* ---------------- access and seating ----------------
+       Unticked means "nothing needed" — the commonest answer, and the one
+       that costs the fewest taps. Ticking it reveals the list; unticking it
+       clears whatever was chosen so nothing follows a change of mind
+       through to the booking.
+       ---------------------------------------------------- */
+    $('access-grid').innerHTML = CONFIG.accessOptions.map(o => `
+        <label class="check-label" for="access-${o.code}">
+          <input type="checkbox" id="access-${o.code}" value="${o.code}" data-access>
+          <span>${o.label}</span>
+        </label>`).join('');
+
+    const accessToggle = $('access-needed');
+    const accessBox = $('access-options');
+
+    accessToggle.addEventListener('change', function () {
+        accessBox.hidden = !accessToggle.checked;
+        accessToggle.setAttribute('aria-expanded', String(accessToggle.checked));
+
+        if (!accessToggle.checked) {
+            accessBox.querySelectorAll('[data-access]').forEach(cb => { cb.checked = false; });
+            $('access-notes').value = '';
+        } else {
+            // Send focus where the answer is, for anyone using a keyboard.
+            const first = accessBox.querySelector('[data-access]');
+            if (first) first.focus();
+        }
+        readAccess();
+    });
+
+    accessBox.addEventListener('input', readAccess);
+
+    function readAccess() {
+        state.access = accessToggle.checked
+            ? Array.from(accessBox.querySelectorAll('[data-access]:checked')).map(cb => cb.value)
+            : [];
+        state.accessNotes = accessToggle.checked ? $('access-notes').value.trim().slice(0, 300) : '';
+        updateAccessSummary();
+    }
+
+    function updateAccessSummary() {
+        const row = $('sum-access-row');
+        const labels = CONFIG.accessLabels(state.access);
+
+        if (!accessToggle.checked) { row.classList.add('hidden'); return; }
+
+        // Ticked but nothing chosen yet still deserves a line — it tells the
+        // office there is something to ask about.
+        const parts = labels.length ? labels : (state.accessNotes ? [] : ['Requirements to confirm']);
+        if (state.accessNotes) parts.push(state.accessNotes);
+
+        $('sum-access').textContent = parts.join(' · ');
+        row.classList.remove('hidden');
+    }
+
     /* ---------------- submit ---------------- */
     $('booking-form').addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -541,7 +668,9 @@
                     customerName: name,
                     customerEmail: email,
                     customerPhone: phone,
-                    bookedBy: via || 'WEB'
+                    bookedBy: via || 'WEB',
+                    accessNeeds: state.access,
+                    accessNotes: state.accessNotes
                 })
             });
 

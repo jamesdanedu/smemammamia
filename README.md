@@ -68,6 +68,9 @@ api/admin.js           POST — everything behind ADMIN_PASSWORD
 
 schema.sql         Run once in the Supabase SQL Editor
 schema-email.sql   Run second — email tracking and payment rescue
+schema-accessibility.sql
+                   Run third, only on a database created before the booking
+                   form started asking about access requirements
 vercel.json        Headers and routing
 .env.example       The environment variables you need to set
 ```
@@ -106,6 +109,9 @@ distinguishable from the school's other productions on a bank statement.
    match `config.js`.
 3. Paste the whole of `schema.sql` into **SQL Editor → New query** and run it.
 4. **Settings → API** — copy the *Project URL* and the *service_role* key.
+
+A database created from the current `schema.sql` already stores the accessibility
+answers. An older one needs `schema-accessibility.sql` run once — see step 3c.
 
 The schema turns row level security on and revokes the anon role's access to
 everything, so the anon key is useless on its own. That's intentional.
@@ -190,6 +196,25 @@ day**, which is too slow while tickets are selling. Either:
   `pg_cron` + `pg_net` doing the same.
 
 You can also hit **Run checks now** on the admin Overview tab any time.
+
+### Step 3c — Accessibility requests
+
+Step 4 of the booking form asks whether anyone in the party needs accessible
+seating or step-free access. The answers are stored on the booking, shown on the
+admin Overview, Bookings and Door list tabs, exported in the CSV, and echoed back
+in the confirmation email so a mistake can be corrected in good time.
+
+Nothing to configure. If the database was created before this existed, run
+**`schema-accessibility.sql`** once in the SQL editor — it adds the two columns and
+replaces `create_hold` with the version that stores them. Until it is run, every
+booking attempt fails with *Could not reserve your tickets*, because the site calls
+`create_hold` with the two new arguments.
+
+The wording of the options lives in two places that must agree: `config.js` for the
+browser and `api/_show.js` for the server. Only the short codes
+(`wheelchair`, `step-free`, `aisle`, `front`, `hearing`, `assistance-dog`, `other`)
+are stored, so the labels can be reworded at any time without touching bookings
+already taken. Anything the browser sends that is not on that list is dropped.
 
 ### Step 4 — Vercel
 
@@ -294,6 +319,10 @@ Things worth knowing:
 * **Exactly one email, however many times it is asked for.** `success.html` verifies
   up to four times, the reconciler runs on a schedule and an admin can hit resend —
   a database-level claim means the customer still gets exactly one email.
+* **Access requirements are asked for, not guessed at.** Step 4 of the form asks the
+  question, unticked by default. What comes back is on the booking from the moment
+  the hold is created — so it survives an abandoned payment being rescued — and it
+  is on the printed door list for front of house.
 * **A failed email never costs anyone their booking.** The booking is confirmed
   first; the email is attempted after, and retried until it goes.
 * **If SumUp took the money, the booking gets honoured** — even if the seats sold out
@@ -312,14 +341,18 @@ Things worth knowing:
 
 **While selling**
 
-* *Overview* — how many sold, how much taken, and who sold them.
+* *Overview* — how many sold, how much taken, and who sold them. A banner says how
+  many bookings each night have asked for access or seating help.
+* *Bookings → Access requests only* — the list to work from when planning seating:
+  wheelchair spaces, step-free routes and anything written in by the customer.
 * *Add booking* — for cash and door sales. Counts against capacity straight away, so
   online buyers can't take a seat you've already sold in person.
 * *Settings* — change capacity, or close a night.
 
 **On the night**
 
-* *Door list* — alphabetical by name, with a tick box. Print it.
+* *Door list* — alphabetical by name, with a tick box, and an ♿ note against anyone
+  who asked for help. Print it and give front of house a look before doors.
 * Make the no-recording announcement before curtain — it is a licence condition, not
   a courtesy.
 

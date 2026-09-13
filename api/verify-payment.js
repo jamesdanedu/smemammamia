@@ -155,7 +155,9 @@ function publicView(b) {
         customerName: b.customer_name,
         customerEmail: maskEmail(b.customer_email),
         status: b.status,
-        paymentStatus: b.payment_status
+        paymentStatus: b.payment_status,
+        accessNeeds: String(b.access_needs || '').split(',').filter(Boolean),
+        accessNotes: b.access_notes || ''
     };
 }
 

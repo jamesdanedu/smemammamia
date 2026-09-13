@@ -33,6 +33,24 @@ const CONFIG = {
         holdMinutes: 15               // how long tickets are reserved during checkout
     },
 
+    /* --- Accessibility --------------------------------------------------
+       The question asked at step 4 of booking.html. `code` is what gets
+       stored on the booking (never the label), so these labels can be
+       reworded without touching any data already taken.
+
+       >>> KEEP IN SYNC WITH api/_show.js — the browser reads this list,
+           the server validates against that one. <<<
+       ------------------------------------------------------------------- */
+    accessOptions: [
+        { code: 'wheelchair',     label: 'Wheelchair space' },
+        { code: 'step-free',      label: 'Step-free access' },
+        { code: 'aisle',          label: 'Aisle seat or extra legroom' },
+        { code: 'front',          label: 'Seat near the front' },
+        { code: 'hearing',        label: 'Hearing support' },
+        { code: 'assistance-dog', label: 'Assistance dog' },
+        { code: 'other',          label: 'Something else' }
+    ],
+
     /* --- Performances --------------------------------------------------
        key       : ISO date, used in URLs (booking.html?date=...)
        label     : shown to the public
@@ -101,6 +119,18 @@ CONFIG.getPerformance = function (key) {
 
 CONFIG.money = function (n) {
     return '€' + Number(n).toFixed(2).replace(/\.00$/, '');
+};
+
+/** Turn stored access codes ('wheelchair,aisle') into readable labels. */
+CONFIG.accessLabels = function (codes) {
+    const list = Array.isArray(codes) ? codes : String(codes || '').split(',');
+    return list
+        .map(c => String(c).trim())
+        .filter(Boolean)
+        .map(c => {
+            const opt = CONFIG.accessOptions.find(o => o.code === c);
+            return opt ? opt.label : c;
+        });
 };
 
 CONFIG.totalCapacity = function () {

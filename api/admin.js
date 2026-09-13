@@ -14,7 +14,7 @@ import {
     maskAddress, parseAddressList, sendEmail
 } from './_email.js';
 import { runReconcile } from './reconcile.js';
-import { siteUrl, SHOW, ENQUIRIES_TO } from './_show.js';
+import { siteUrl, SHOW, ENQUIRIES_TO, cleanAccessNeeds } from './_show.js';
 
 const TICKET_PRICE = Number(process.env.TICKET_PRICE || 15);
 
@@ -54,7 +54,8 @@ export default async function handler(req, res) {
                 const [availability, bookings] = await Promise.all([
                     sbSelect('performance_availability?select=*&order=key.asc'),
                     sbSelect('bookings?select=performance_date,quantity,amount,status,payment_status,' +
-                             'booked_by,confirmation_sent_at,last_email_error,over_capacity')
+                             'booked_by,confirmation_sent_at,last_email_error,over_capacity,' +
+                             'access_needs,access_notes')
                 ]);
 
                 const confirmed = bookings.filter(b => b.status === 'confirmed');
@@ -66,6 +67,16 @@ export default async function handler(req, res) {
                 for (const b of confirmed) {
                     const who = b.booked_by || 'WEB';
                     bySeller[who] = (bySeller[who] || 0) + b.quantity;
+                }
+
+                // Access requests, so the office can plan the seating before
+                // the night rather than discover it at the door.
+                const needsAccess = b => Boolean(b.access_needs || b.access_notes);
+                const accessByNight = {};
+                for (const b of confirmed.filter(needsAccess)) {
+                    const night = (accessByNight[b.performance_date] ||= { bookings: 0, tickets: 0 });
+                    night.bookings += 1;
+                    night.tickets  += b.quantity;
                 }
 
                 return res.status(200).json({
@@ -84,7 +95,12 @@ export default async function handler(req, res) {
                         pending: bookings.filter(b => b.status === 'confirmed' && !b.confirmation_sent_at).length,
                         failing: bookings.filter(b => b.status === 'confirmed' && !b.confirmation_sent_at && b.last_email_error).length
                     },
-                    overCapacity: bookings.filter(b => b.over_capacity).length
+                    overCapacity: bookings.filter(b => b.over_capacity).length,
+                    access: {
+                        bookings: confirmed.filter(needsAccess).length,
+                        tickets: confirmed.filter(needsAccess).reduce((t, b) => t + b.quantity, 0),
+                        byNight: accessByNight
+                    }
                 });
             }
 
@@ -101,7 +117,8 @@ export default async function handler(req, res) {
             case 'door-list': {
                 if (!body.performanceDate) return res.status(400).json({ error: 'performanceDate required' });
                 const rows = await sbSelect(
-                    'bookings?select=booking_reference,customer_name,quantity,booked_by,payment_status' +
+                    'bookings?select=booking_reference,customer_name,quantity,booked_by,payment_status,' +
+                    'access_needs,access_notes' +
                     `&performance_date=eq.${encodeURIComponent(body.performanceDate)}` +
                     '&status=eq.confirmed&order=customer_name.asc'
                 );
@@ -130,7 +147,9 @@ export default async function handler(req, res) {
                         p_email:        String(body.customerEmail || '').trim().toLowerCase() || 'door@stmarys.local',
                         p_phone:        String(body.customerPhone || '').trim(),
                         p_booked_by:    String(body.bookedBy || 'DOOR').trim(),
-                        p_hold_minutes: 5
+                        p_hold_minutes: 5,
+                        p_access_needs: cleanAccessNeeds(body.accessNeeds),
+                        p_access_notes: String(body.accessNotes || '').trim().slice(0, 300)
                     });
                 } catch (err) {
                     const msg = err.pgMessage || err.message || '';

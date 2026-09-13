@@ -7,7 +7,7 @@
 // Everything here throws on failure so the caller can log it and let the
 // reconciler retry. A booking is never lost because an email bounced.
 
-import { SHOW, formatPerformanceDate, to24 } from './_show.js';
+import { SHOW, formatPerformanceDate, to24, accessLabels } from './_show.js';
 
 /* Environment values arrive verbatim. A line copied out of .env.example keeps
    its surrounding quotes, and `"Mamma Mia! <tickets@example.ie>"` is then not an
@@ -314,6 +314,12 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
 
     const paidLine = isComp ? 'Complimentary' : isCash ? paid + ' (paid in cash)' : paid + ' (paid by card)';
 
+    // What they asked for at booking, echoed back so a mistake can be
+    // corrected while there is still time to arrange the seats.
+    const accessParts = accessLabels(booking.access_needs);
+    if (booking.access_notes) accessParts.push(String(booking.access_notes).trim());
+    const accessLine = accessParts.join(' · ');
+
     const subject = `Your tickets — ${SHOW.name}, ${dateLabel} [${ref}]`;
 
     const text = [
@@ -330,7 +336,13 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
         `  Tickets           : ${qty}`,
         `  Paid              : ${paidLine}`,
         `  Venue             : ${SHOW.venue}`,
+        ...(accessLine ? [`  Access            : ${accessLine}`] : []),
         '',
+        ...(accessLine ? [
+            'Seats will be kept for you. If any of that is wrong, reply to this',
+            'email and we will put it right.',
+            ''
+        ] : []),
         'ON THE NIGHT',
         'There is no ticket to print. Give your name at the door and we will',
         'find you on the list. Bring the reference above if you have it.',
@@ -428,9 +440,13 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
         <td style="padding:11px 0;border-bottom:1px solid #e2eaef;text-align:right;">${esc(paidLine)}</td>
       </tr>
       <tr>
-        <td style="padding:11px 0;color:#5b6f7c;vertical-align:top;">Venue</td>
-        <td style="padding:11px 0;text-align:right;">${esc(SHOW.venue)}</td>
+        <td style="padding:11px 0;${accessLine ? 'border-bottom:1px solid #e2eaef;' : ''}color:#5b6f7c;vertical-align:top;">Venue</td>
+        <td style="padding:11px 0;${accessLine ? 'border-bottom:1px solid #e2eaef;' : ''}text-align:right;">${esc(SHOW.venue)}</td>
       </tr>
+      ${accessLine ? `<tr>
+        <td style="padding:11px 0;color:#5b6f7c;vertical-align:top;">Access</td>
+        <td style="padding:11px 0;text-align:right;">${esc(accessLine)}</td>
+      </tr>` : ''}
     </table>
   </td></tr>
 
@@ -440,7 +456,9 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
       <tr><td style="padding:16px 18px;font-size:14px;line-height:1.65;color:#22333f;">
         <span style="color:#8a6414;text-transform:uppercase;letter-spacing:2px;font-size:11px;">On the night</span><br>
         There is nothing to print. Give your name at the door and we will find you on the list.
-        Doors open at ${esc(SHOW.doors)} — please be seated by ${esc(SHOW.curtain)}.
+        Doors open at ${esc(SHOW.doors)} — please be seated by ${esc(SHOW.curtain)}.${accessLine ? `
+        <br><br>We have your access request and your seats will be kept for you. If anything above
+        is wrong, reply to this email and we will put it right.` : ''}
       </td></tr>
     </table>
   </td></tr>
