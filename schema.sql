@@ -36,7 +36,7 @@ create table if not exists public.bookings (
     booked_by             text        not null default 'WEB',   -- 'WEB' or a TY student's name
 
     -- What the party needs on the night. Codes only ('wheelchair,aisle'):
-    -- wheelchair, step-free, aisle, front, hearing, assistance-dog, other.
+    -- wheelchair, aisle, hearing, other.
     -- The readable labels live in config.js and api/_show.js.
     access_needs          text,
     access_notes          text,

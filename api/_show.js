@@ -24,13 +24,10 @@ export const SHOW = {
  *     server validates against this one.
  */
 export const ACCESS_OPTIONS = [
-    { code: 'wheelchair',     label: 'Wheelchair space' },
-    { code: 'step-free',      label: 'Step-free access' },
-    { code: 'aisle',          label: 'Aisle seat or extra legroom' },
-    { code: 'front',          label: 'Seat near the front' },
-    { code: 'hearing',        label: 'Hearing support' },
-    { code: 'assistance-dog', label: 'Assistance dog' },
-    { code: 'other',          label: 'Something else' }
+    { code: 'wheelchair', label: 'Wheelchair space' },
+    { code: 'aisle',      label: 'Aisle seat or extra legroom' },
+    { code: 'hearing',    label: 'Hearing support' },
+    { code: 'other',      label: 'Something else' }
 ];
 
 /** ['wheelchair','aisle'] or 'wheelchair,aisle' -> ['Wheelchair space', ...] */

@@ -13,7 +13,7 @@
 --
 --    access_needs holds codes, never labels, so the wording on the booking
 --    form can change without touching bookings already taken:
---        wheelchair, step-free, aisle, front, hearing, assistance-dog, other
+--        wheelchair, aisle, hearing, other
 --    stored comma-separated, e.g. 'wheelchair,aisle'.
 --    The labels live in config.js (browser) and api/_show.js (server).
 --

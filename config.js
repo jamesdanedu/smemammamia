@@ -42,13 +42,10 @@ const CONFIG = {
            the server validates against that one. <<<
        ------------------------------------------------------------------- */
     accessOptions: [
-        { code: 'wheelchair',     label: 'Wheelchair space' },
-        { code: 'step-free',      label: 'Step-free access' },
-        { code: 'aisle',          label: 'Aisle seat or extra legroom' },
-        { code: 'front',          label: 'Seat near the front' },
-        { code: 'hearing',        label: 'Hearing support' },
-        { code: 'assistance-dog', label: 'Assistance dog' },
-        { code: 'other',          label: 'Something else' }
+        { code: 'wheelchair', label: 'Wheelchair space' },
+        { code: 'aisle',      label: 'Aisle seat or extra legroom' },
+        { code: 'hearing',    label: 'Hearing support' },
+        { code: 'other',      label: 'Something else' }
     ],
 
     /* --- Performances --------------------------------------------------

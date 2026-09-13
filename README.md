@@ -200,7 +200,7 @@ You can also hit **Run checks now** on the admin Overview tab any time.
 ### Step 3c — Accessibility requests
 
 Step 4 of the booking form asks whether anyone in the party needs accessible
-seating or step-free access. The answers are stored on the booking, shown on the
+seating. The answers are stored on the booking, shown on the
 admin Overview, Bookings and Door list tabs, exported in the CSV, and echoed back
 in the confirmation email so a mistake can be corrected in good time.
 
@@ -212,7 +212,7 @@ booking attempt fails with *Could not reserve your tickets*, because the site ca
 
 The wording of the options lives in two places that must agree: `config.js` for the
 browser and `api/_show.js` for the server. Only the short codes
-(`wheelchair`, `step-free`, `aisle`, `front`, `hearing`, `assistance-dog`, `other`)
+(`wheelchair`, `aisle`, `hearing`, `other`)
 are stored, so the labels can be reworded at any time without touching bookings
 already taken. Anything the browser sends that is not on that list is dropped.
 
@@ -344,7 +344,7 @@ Things worth knowing:
 * *Overview* — how many sold, how much taken, and who sold them. A banner says how
   many bookings each night have asked for access or seating help.
 * *Bookings → Access requests only* — the list to work from when planning seating:
-  wheelchair spaces, step-free routes and anything written in by the customer.
+  wheelchair spaces, aisle seats and anything written in by the customer.
 * *Add booking* — for cash and door sales. Counts against capacity straight away, so
   online buyers can't take a seat you've already sold in person.
 * *Settings* — change capacity, or close a night.
