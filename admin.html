@@ -251,6 +251,22 @@ tbody tr:hover td { background: var(--bg-2); }
 .tag-sent      { background: var(--cyan-tint);   color: #144f7c; border-color: #c5dcec; }
 .tag-pending   { background: #fdf6ea;            color: #8a6208; border-color: #f0e2c2; }
 .tag-failed    { background: var(--pink-tint);   color: #9c2555; border-color: #efc2d3; }
+/* Access requests read as words rather than a label — they are the one tag
+   an usher has to actually read, so no shouting and no clipped text. */
+.tag-access {
+    background: #eef6ee;
+    color: #2f6b3c;
+    border-color: #cfe3d2;
+    display: inline-block;
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.74rem;
+    font-weight: 600;
+}
 
 /* ---- Banners ---- */
 .banner {
@@ -435,6 +451,7 @@ input[type="checkbox"] {
   <section class="panel active" id="panel-overview">
     <div id="email-banner" class="hidden"></div>
     <div id="capacity-banner" class="hidden"></div>
+    <div id="access-banner" class="hidden"></div>
     <div class="stats" id="stat-tiles"></div>
 
     <h2 class="panel-title">By performance</h2>
@@ -460,14 +477,18 @@ input[type="checkbox"] {
         <option value="pending">Email not sent</option>
         <option value="sent">Email sent</option>
       </select></div>
+      <div class="field"><select id="filter-access">
+        <option value="">Access: everyone</option>
+        <option value="yes">Access requests only</option>
+      </select></div>
       <button class="btn btn-ghost" id="csv-btn" style="padding:11px 18px;font-size:0.82rem">⬇ CSV</button>
     </div>
     <div class="table-scroll">
       <table>
         <thead><tr>
-          <th>Ref</th><th>Name</th><th>Contact</th><th>Night</th><th>Qty</th><th>Amount</th><th>Status</th><th>Email</th><th>Sold by</th><th></th>
+          <th>Ref</th><th>Name</th><th>Contact</th><th>Night</th><th>Qty</th><th>Amount</th><th>Status</th><th>Access</th><th>Email</th><th>Sold by</th><th></th>
         </tr></thead>
-        <tbody id="bookings-body"><tr><td colspan="10" class="dim">Loading…</td></tr></tbody>
+        <tbody id="bookings-body"><tr><td colspan="11" class="dim">Loading…</td></tr></tbody>
       </table>
     </div>
     <p class="dim mt-2" style="font-size:0.82rem" id="bookings-count"></p>
@@ -482,8 +503,8 @@ input[type="checkbox"] {
     <h2 id="door-heading" style="font-size:1.05rem;margin-bottom:12px"></h2>
     <div class="table-scroll">
       <table>
-        <thead><tr><th style="width:34px">✓</th><th>Name</th><th>Qty</th><th>Ref</th><th>Paid</th><th>Sold by</th></tr></thead>
-        <tbody id="door-body"><tr><td colspan="6" class="dim">Choose a night.</td></tr></tbody>
+        <thead><tr><th style="width:34px">✓</th><th>Name</th><th>Qty</th><th>Ref</th><th>Paid</th><th>Access</th><th>Sold by</th></tr></thead>
+        <tbody id="door-body"><tr><td colspan="7" class="dim">Choose a night.</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -502,6 +523,11 @@ input[type="checkbox"] {
       <div class="field"><label for="add-phone">Phone <span class="faint" style="text-transform:none">(optional)</span></label><input type="tel" id="add-phone"></div>
       <div class="field"><label for="add-seller">Sold by</label><input type="text" id="add-seller" placeholder="Student or staff name"></div>
       <div class="field"><label for="add-notes">Notes <span class="faint" style="text-transform:none">(optional)</span></label><input type="text" id="add-notes"></div>
+      <div class="field">
+        <label for="add-access-notes">Access requirements <span class="faint" style="text-transform:none">(optional)</span></label>
+        <div id="add-access-grid" style="margin-bottom:8px"></div>
+        <input type="text" id="add-access-notes" placeholder="Anything front of house should know" maxlength="300">
+      </div>
       <label class="check-label" style="margin-bottom:16px">
         <input type="checkbox" id="add-free"> Complimentary (no money taken)
       </label>
@@ -715,6 +741,24 @@ input[type="checkbox"] {
             cap.classList.add('hidden');
         }
 
+        /* ---- access requests: something to plan, not a problem ---- */
+        const acc = $('access-banner');
+        const access = cache.summary.access || { bookings: 0 };
+        if (access.bookings > 0) {
+            const nights = Object.entries(access.byNight || {})
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([date, n]) => {
+                    const perf = CONFIG.getPerformance(date);
+                    return `${perf ? perf.short : date}: ${n.bookings} booking${n.bookings === 1 ? '' : 's'} (${n.tickets} seat${n.tickets === 1 ? '' : 's'})`;
+                }).join(' · ');
+            acc.className = 'banner';
+            acc.innerHTML = `<span><strong>${access.bookings} booking(s) asked for access or seating help</strong> — ${escapeHtml(nights)}. ` +
+                'The details are in the Access column and on each door list.</span>';
+            acc.classList.remove('hidden');
+        } else {
+            acc.classList.add('hidden');
+        }
+
         const sellers = Object.entries(cache.summary.bySeller || {}).sort((a, b) => b[1] - a[1]);
         $('seller-list').innerHTML = sellers.length
             ? sellers.map(([who, n]) =>
@@ -724,20 +768,41 @@ input[type="checkbox"] {
             : '<p class="dim">No confirmed bookings yet.</p>';
     }
 
+    /* ---------------- access requests ---------------- */
+    function accessSummary(b) {
+        const labels = CONFIG.accessLabels(b.access_needs);
+        const notes = (b.access_notes || '').trim();
+        if (!labels.length && !notes) return '';
+        // A booking can be flagged with notes only, or with neither if the
+        // customer ticked the question and changed their mind — say so rather
+        // than showing a blank where a requirement might be.
+        if (!labels.length) return notes;
+        return labels.join(', ') + (notes ? ' — ' + notes : '');
+    }
+
+    function accessCell(b) {
+        const text = accessSummary(b);
+        if (!text) return '<span class="faint">—</span>';
+        return `<span class="tag tag-access" title="${escapeHtml(text)}">♿ ${escapeHtml(text)}</span>`;
+    }
+
     /* ---------------- bookings table ---------------- */
     function filteredBookings() {
         const q = $('search').value.trim().toLowerCase();
         const night = $('filter-night').value;
         const status = $('filter-status').value;
         const emailState = $('filter-email').value;
+        const accessOnly = $('filter-access').value === 'yes';
 
         return cache.bookings.filter(b => {
             if (night && b.performance_date !== night) return false;
             if (status && b.status !== status) return false;
             if (emailState === 'pending' && b.confirmation_sent_at) return false;
             if (emailState === 'sent' && !b.confirmation_sent_at) return false;
+            if (accessOnly && !b.access_needs && !b.access_notes) return false;
             if (q) {
-                const hay = [b.booking_reference, b.customer_name, b.customer_email, b.customer_phone, b.booked_by]
+                const hay = [b.booking_reference, b.customer_name, b.customer_email, b.customer_phone,
+                             b.booked_by, accessSummary(b)]
                     .join(' ').toLowerCase();
                 if (!hay.includes(q)) return false;
             }
@@ -780,6 +845,7 @@ input[type="checkbox"] {
                 <td><strong>${b.quantity}</strong></td>
                 <td>${CONFIG.money(b.amount)}</td>
                 <td>${statusTag}${payTag}${overTag}</td>
+                <td>${accessCell(b)}</td>
                 <td>${emailTag}</td>
                 <td>${escapeHtml(b.booked_by || '')}</td>
                 <td style="white-space:nowrap">
@@ -787,7 +853,7 @@ input[type="checkbox"] {
                   ${b.status === 'cancelled' ? '' : `<button class="mini-btn" data-cancel="${b.booking_reference}">Cancel</button>`}
                 </td>
             </tr>`;
-        }).join('') : '<tr><td colspan="10" class="dim">No bookings match those filters.</td></tr>';
+        }).join('') : '<tr><td colspan="11" class="dim">No bookings match those filters.</td></tr>';
 
         $('bookings-body').querySelectorAll('[data-resend]').forEach(btn => {
             btn.addEventListener('click', async () => {
@@ -818,7 +884,7 @@ input[type="checkbox"] {
         });
     }
 
-    ['search', 'filter-night', 'filter-status', 'filter-email'].forEach(id =>
+    ['search', 'filter-night', 'filter-status', 'filter-email', 'filter-access'].forEach(id =>
         $(id).addEventListener('input', renderBookings));
 
     /* ---------------- reconciler ---------------- */
@@ -844,10 +910,12 @@ input[type="checkbox"] {
     $('csv-btn').addEventListener('click', () => {
         const rows = filteredBookings();
         const header = ['Reference', 'Name', 'Email', 'Phone', 'Performance', 'Tickets', 'Amount',
-                        'Status', 'Payment', 'Sold by', 'Booked at', 'Confirmation sent', 'Email error'];
+                        'Status', 'Payment', 'Access', 'Access notes', 'Sold by', 'Booked at',
+                        'Confirmation sent', 'Email error'];
         const body = rows.map(b => [
             b.booking_reference, b.customer_name, b.customer_email, b.customer_phone || '',
             b.performance_date, b.quantity, b.amount, b.status, b.payment_status,
+            CONFIG.accessLabels(b.access_needs).join(', '), b.access_notes || '',
             b.booked_by || '', new Date(b.created_at).toLocaleString('en-IE'),
             b.confirmation_sent_at ? new Date(b.confirmation_sent_at).toLocaleString('en-IE') : '',
             b.last_email_error || ''
@@ -872,7 +940,9 @@ input[type="checkbox"] {
         try {
             const { bookings } = await api('door-list', { performanceDate: date });
             const total = bookings.reduce((t, b) => t + b.quantity, 0);
-            $('door-heading').textContent = `${perf ? perf.label : date} — ${bookings.length} bookings, ${total} tickets`;
+            const withAccess = bookings.filter(b => accessSummary(b));
+            $('door-heading').textContent = `${perf ? perf.label : date} — ${bookings.length} bookings, ${total} tickets` +
+                (withAccess.length ? ` · ${withAccess.length} needing access support` : '');
             $('door-body').innerHTML = bookings.length ? bookings.map(b => `
                 <tr>
                   <td style="font-size:1.1rem">☐</td>
@@ -880,9 +950,10 @@ input[type="checkbox"] {
                   <td><strong>${b.quantity}</strong></td>
                   <td class="ref">${b.booking_reference}</td>
                   <td>${b.payment_status === 'cash' ? 'Cash' : b.payment_status === 'refunded' ? 'Comp' : 'Card'}</td>
+                  <td>${accessSummary(b) ? '♿ ' + escapeHtml(accessSummary(b)) : ''}</td>
                   <td>${escapeHtml(b.booked_by || '')}</td>
                 </tr>`).join('')
-                : '<tr><td colspan="6" class="dim">No confirmed bookings for this night yet.</td></tr>';
+                : '<tr><td colspan="7" class="dim">No confirmed bookings for this night yet.</td></tr>';
         } catch (err) {
             note('dash-alert', err.message);
         }
@@ -892,6 +963,11 @@ input[type="checkbox"] {
     $('print-door').addEventListener('click', () => window.print());
 
     /* ---------------- add booking ---------------- */
+    $('add-access-grid').innerHTML = CONFIG.accessOptions.map(o => `
+        <label class="check-label" style="margin-bottom:4px">
+          <input type="checkbox" id="add-access-${o.code}" value="${o.code}" data-add-access> ${o.label}
+        </label>`).join('');
+
     $('add-btn').addEventListener('click', async () => {
         const name = $('add-name').value.trim();
         const qty = parseInt($('add-qty').value, 10);
@@ -908,10 +984,14 @@ input[type="checkbox"] {
                 customerPhone: $('add-phone').value.trim(),
                 bookedBy: $('add-seller').value.trim() || 'DOOR',
                 notes: $('add-notes').value.trim(),
+                accessNeeds: Array.from(document.querySelectorAll('[data-add-access]:checked')).map(cb => cb.value),
+                accessNotes: $('add-access-notes').value.trim(),
                 free: $('add-free').checked
             });
             note('add-alert', `Added — reference ${booking.booking_reference}.`, 'success');
-            ['add-name', 'add-email', 'add-phone', 'add-notes'].forEach(id => { $(id).value = ''; });
+            ['add-name', 'add-email', 'add-phone', 'add-notes', 'add-access-notes']
+                .forEach(id => { $(id).value = ''; });
+            document.querySelectorAll('[data-add-access]').forEach(cb => { cb.checked = false; });
             await loadAll();
         } catch (err) {
             note('add-alert', err.message);

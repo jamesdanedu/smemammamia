@@ -34,6 +34,13 @@ create table if not exists public.bookings (
     customer_phone        text,
 
     booked_by             text        not null default 'WEB',   -- 'WEB' or a TY student's name
+
+    -- What the party needs on the night. Codes only ('wheelchair,aisle'):
+    -- wheelchair, step-free, aisle, front, hearing, assistance-dog, other.
+    -- The readable labels live in config.js and api/_show.js.
+    access_needs          text,
+    access_notes          text,
+
     status                text        not null default 'held'
                           check (status in ('held', 'confirmed', 'cancelled', 'expired')),
     payment_status        text        not null default 'unpaid'
@@ -53,6 +60,11 @@ create index if not exists bookings_perf_idx    on public.bookings (performance_
 create index if not exists bookings_ref_idx     on public.bookings (booking_reference);
 create index if not exists bookings_email_idx   on public.bookings (lower(customer_email));
 create index if not exists bookings_created_idx on public.bookings (created_at desc);
+
+-- Everyone who needs something on the night, per performance.
+create index if not exists bookings_access_idx
+    on public.bookings (performance_date)
+    where access_needs is not null or access_notes is not null;
 
 -- keep updated_at fresh
 create or replace function public.touch_updated_at()
@@ -109,6 +121,11 @@ group by p.key, p.label, p.capacity, p.on_sale;
 --    Serialises per performance with an advisory lock so two people cannot
 --    both take the last pair of tickets.
 -- ---------------------------------------------------------------------------
+-- Adding the accessibility arguments changed the signature, so the earlier
+-- nine-argument version has to go: leaving it in place would make every
+-- create_hold call ambiguous.
+drop function if exists public.create_hold(text, date, integer, numeric, text, text, text, text, integer);
+
 create or replace function public.create_hold(
     p_reference     text,
     p_date          date,
@@ -118,7 +135,9 @@ create or replace function public.create_hold(
     p_email         text,
     p_phone         text,
     p_booked_by     text default 'WEB',
-    p_hold_minutes  integer default 15
+    p_hold_minutes  integer default 15,
+    p_access_needs  text default null,
+    p_access_notes  text default null
 )
 returns public.bookings
 language plpgsql
@@ -161,12 +180,14 @@ begin
     insert into public.bookings (
         booking_reference, performance_date, quantity, amount,
         customer_name, customer_email, customer_phone,
-        booked_by, status, held_until
+        booked_by, status, held_until,
+        access_needs, access_notes
     ) values (
         p_reference, p_date, p_quantity, p_amount,
         p_name, p_email, nullif(p_phone, ''),
         coalesce(nullif(p_booked_by, ''), 'WEB'), 'held',
-        now() + make_interval(mins => p_hold_minutes)
+        now() + make_interval(mins => p_hold_minutes),
+        nullif(btrim(p_access_needs), ''), nullif(btrim(p_access_notes), '')
     )
     returning * into v_row;
 
@@ -188,7 +209,7 @@ revoke all on public.performances from anon, authenticated;
 revoke all on public.bookings     from anon, authenticated;
 revoke all on public.messages     from anon, authenticated;
 revoke all on public.performance_availability from anon, authenticated;
-revoke execute on function public.create_hold(text, date, integer, numeric, text, text, text, text, integer) from anon, authenticated;
+revoke execute on function public.create_hold(text, date, integer, numeric, text, text, text, text, integer, text, text) from anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 7. Seed the performances
@@ -213,6 +234,14 @@ on conflict (key) do update
 --     from public.bookings
 --     where performance_date = '2027-01-27' and status = 'confirmed'
 --     order by customer_name;
+--
+-- Who needs what on the night:
+--     select performance_date, booking_reference, customer_name, quantity,
+--            access_needs, access_notes
+--     from public.bookings
+--     where status = 'confirmed'
+--       and (access_needs is not null or access_notes is not null)
+--     order by performance_date, customer_name;
 --
 -- Total taken:
 --     select sum(amount) from public.bookings

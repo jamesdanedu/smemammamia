@@ -2,7 +2,8 @@
 //
 // ⚠️  KEEP IN SYNC WITH config.js — the browser reads config.js, the server
 //     reads this. Only these five values are duplicated. If you change the
-//     venue or times, change them in both places.
+//     venue or times, change them in both places. The accessibility options
+//     below are duplicated the same way.
 //
 // Anything set as a Vercel environment variable wins, so you can correct a
 // time without a redeploy.
@@ -14,6 +15,42 @@ export const SHOW = {
     doors:     process.env.SHOW_DOORS    || '7:00 PM',
     curtain:   process.env.SHOW_CURTAIN  || '7:30 PM'
 };
+
+/**
+ * The accessibility question asked at booking. Only these codes are ever
+ * stored on a booking; anything else the browser sends is dropped.
+ *
+ * ⚠️  KEEP IN SYNC WITH config.js — the browser renders that list, the
+ *     server validates against this one.
+ */
+export const ACCESS_OPTIONS = [
+    { code: 'wheelchair',     label: 'Wheelchair space' },
+    { code: 'step-free',      label: 'Step-free access' },
+    { code: 'aisle',          label: 'Aisle seat or extra legroom' },
+    { code: 'front',          label: 'Seat near the front' },
+    { code: 'hearing',        label: 'Hearing support' },
+    { code: 'assistance-dog', label: 'Assistance dog' },
+    { code: 'other',          label: 'Something else' }
+];
+
+/** ['wheelchair','aisle'] or 'wheelchair,aisle' -> ['Wheelchair space', ...] */
+export function accessLabels(codes) {
+    const list = Array.isArray(codes) ? codes : String(codes || '').split(',');
+    return list
+        .map(c => String(c).trim())
+        .filter(Boolean)
+        .map(c => ACCESS_OPTIONS.find(o => o.code === c)?.label || c);
+}
+
+/**
+ * Keep only codes we know about, in the order they are offered, with no
+ * duplicates. Returns a comma-separated string ready for the database.
+ */
+export function cleanAccessNeeds(codes) {
+    const list = Array.isArray(codes) ? codes : String(codes || '').split(',');
+    const wanted = new Set(list.map(c => String(c).trim()));
+    return ACCESS_OPTIONS.filter(o => wanted.has(o.code)).map(o => o.code).join(',');
+}
 
 /**
  * Where questions from the contact form land, and the address to give somebody

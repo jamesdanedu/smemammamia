@@ -8,6 +8,7 @@ import {
     applyCors, requireMethod, readBody,
     sbRpc, sbUpdate, newBookingRef, supabaseConfigured
 } from './_supabase.js';
+import { cleanAccessNeeds } from './_show.js';
 
 const TICKET_PRICE   = Number(process.env.TICKET_PRICE || 15);
 const HOLD_MINUTES   = Number(process.env.HOLD_MINUTES || 15);
@@ -31,6 +32,11 @@ export default async function handler(req, res) {
     const customerEmail   = clean(body.customerEmail, 160).toLowerCase();
     const customerPhone   = clean(body.customerPhone, 40);
     const bookedBy        = clean(body.bookedBy, 80) || 'WEB';
+
+    // Access requirements: only codes we recognise are kept, so nothing the
+    // browser invents reaches the door list.
+    const accessNeeds     = cleanAccessNeeds(body.accessNeeds);
+    const accessNotes     = clean(body.accessNotes, 300);
 
     /* ---------------- validation ---------------- */
     if (!/^\d{4}-\d{2}-\d{2}$/.test(performanceDate)) {
@@ -69,7 +75,9 @@ export default async function handler(req, res) {
             p_email:        customerEmail,
             p_phone:        customerPhone,
             p_booked_by:    bookedBy,
-            p_hold_minutes: HOLD_MINUTES
+            p_hold_minutes: HOLD_MINUTES,
+            p_access_needs: accessNeeds,
+            p_access_notes: accessNotes
         });
     } catch (err) {
         const msg = err.pgMessage || err.message || '';
