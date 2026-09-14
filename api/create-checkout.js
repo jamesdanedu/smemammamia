@@ -10,7 +10,7 @@ import {
 } from './_supabase.js';
 import { cleanAccessNeeds } from './_show.js';
 
-const TICKET_PRICE   = Number(process.env.TICKET_PRICE || 15);
+const TICKET_PRICE   = Number(process.env.TICKET_PRICE || 10);
 const HOLD_MINUTES   = Number(process.env.HOLD_MINUTES || 15);
 const MAX_PER_ORDER  = Number(process.env.MAX_PER_ORDER || 10);
 
