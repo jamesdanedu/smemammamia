@@ -5,7 +5,7 @@ serverless functions for anything that touches money or data, Supabase for stora
 SumUp for card payments.
 
 **The run:** Wednesday 27 – Friday 29 January 2027, three nights, doors 7:00 PM,
-curtain 7:30 PM. €15 flat, 500 seats a night, at St Mary's Secondary School,
+curtain 7:30 PM. €10 flat, 500 seats a night, at St Mary's Secondary School,
 Edenderry, Co. Offaly. Two acts, suitable for ages 13+ (PG-13). Tickets are
 unreserved — pick a night and a quantity, no seat map. Bookings are identified by a
 reference in the form `MM-XXXXXX`.
@@ -240,7 +240,7 @@ under **Settings → Environment Variables**:
 | `CRON_SECRET` | protects `/api/reconcile` |
 | `SITE_URL` | your live URL, for links inside emails — e.g. `https://mammamiathemusical.ie` (an example, not a registered domain) |
 | `EMAIL_BCC` | optional, office copy of every confirmation |
-| `TICKET_PRICE` | optional, defaults to 15 — must match `config.js` |
+| `TICKET_PRICE` | optional, defaults to 10 — must match `config.js` |
 | `HOLD_MINUTES` | optional, defaults to 15 |
 | `MAX_PER_ORDER` | optional, defaults to 10 |
 | `WALL_AUTO_APPROVE` | optional, `true` posts wall messages without moderation |
@@ -260,7 +260,7 @@ Redeploy after adding them — Vercel only picks up new variables on a fresh bui
 1. Open `/api/availability` in a browser. You should see the ticket counts as JSON.
 2. Open `/admin.html`, sign in, and confirm the dashboard loads. The Overview tab
    tells you straight away whether email is configured.
-3. Make a real €15 booking with your own card, then refund it in SumUp. This is the
+3. Make a real €10 booking with your own card, then refund it in SumUp. This is the
    only way to be sure the whole chain works before you tell people to buy tickets.
    Check that the confirmation lands in your **inbox**, not spam — and try a Gmail
    address, a Hotmail address and a school address, because they filter differently.

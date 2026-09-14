@@ -27,7 +27,7 @@ const CONFIG = {
 
     /* --- Tickets ------------------------------------------------------- */
     ticket: {
-        price: 15,                    // euro, flat rate for every ticket
+        price: 10,                    // euro, flat rate for every ticket
         currency: 'EUR',
         maxPerBooking: 10,            // most tickets one person can buy at once
         holdMinutes: 15               // how long tickets are reserved during checkout

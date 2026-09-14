@@ -16,7 +16,7 @@ import {
 import { runReconcile } from './reconcile.js';
 import { siteUrl, SHOW, ENQUIRIES_TO, cleanAccessNeeds } from './_show.js';
 
-const TICKET_PRICE = Number(process.env.TICKET_PRICE || 15);
+const TICKET_PRICE = Number(process.env.TICKET_PRICE || 10);
 
 function passwordOk(supplied) {
     const expected = process.env.ADMIN_PASSWORD;
