@@ -214,14 +214,20 @@ revoke execute on function public.create_hold(text, date, integer, numeric, text
 -- ---------------------------------------------------------------------------
 -- 7. Seed the performances
 --    >>> EDIT THESE to match config.js before running <<<
+--
+--    Wednesday 27th is closed to ticket sales: on_sale = false makes
+--    create_hold refuse it, and it is not listed in config.js, so no page
+--    offers it.  Leave the row in place — bookings.performance_date still
+--    references it, and it keeps the night off sale if anyone re-runs this.
 -- ---------------------------------------------------------------------------
-insert into public.performances (key, label, capacity) values
-    ('2027-01-27', 'Wednesday 27th January 2027', 500),
-    ('2027-01-28', 'Thursday 28th January 2027', 500),
-    ('2027-01-29', 'Friday 29th January 2027', 500)
+insert into public.performances (key, label, capacity, on_sale) values
+    ('2027-01-27', 'Wednesday 27th January 2027',   0, false),
+    ('2027-01-28', 'Thursday 28th January 2027',  500, true),
+    ('2027-01-29', 'Friday 29th January 2027',    500, true)
 on conflict (key) do update
     set label = excluded.label,
-        capacity = excluded.capacity;
+        capacity = excluded.capacity,
+        on_sale = excluded.on_sale;
 
 -- ---------------------------------------------------------------------------
 -- Handy queries for later
@@ -232,7 +238,7 @@ on conflict (key) do update
 -- Door list:
 --     select booking_reference, customer_name, quantity, booked_by
 --     from public.bookings
---     where performance_date = '2027-01-27' and status = 'confirmed'
+--     where performance_date = '2027-01-28' and status = 'confirmed'
 --     order by customer_name;
 --
 -- Who needs what on the night:

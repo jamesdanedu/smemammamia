@@ -4,11 +4,18 @@ Ticket booking website for the school musical. Static pages on Vercel, a handful
 serverless functions for anything that touches money or data, Supabase for storage,
 SumUp for card payments.
 
-**The run:** Wednesday 27 – Friday 29 January 2027, three nights, doors 7:00 PM,
-curtain 7:30 PM. €10 flat, 500 seats a night, at St Mary's Secondary School,
-Edenderry, Co. Offaly. Two acts, suitable for ages 13+ (PG-13). Tickets are
-unreserved — pick a night and a quantity, no seat map. Bookings are identified by a
-reference in the form `MM-XXXXXX`.
+**The run:** Thursday 28 and Friday 29 January 2027, doors 7:00 PM, curtain
+7:30 PM. €10 flat, 500 seats a night, at St Mary's Secondary School, Edenderry,
+Co. Offaly. Two acts, suitable for ages 13+ (PG-13). Tickets are unreserved —
+pick a night and a quantity, no seat map. Bookings are identified by a reference
+in the form `MM-XXXXXX`.
+
+The Wednesday 27 January performance is a free schools matinee and is **not sold
+through this site**. It is deliberately absent from `CONFIG.performances` in
+`config.js`, so no page lists it, and its row in `performances` is seeded with
+`on_sale = false`, so `create_hold` refuses it even if a date is posted by hand.
+The site says nothing about it — if that ever changes, it is two edits: add the
+night back to `config.js` and turn *On sale* on in admin *Settings*.
 
 *Mamma Mia!* — music and lyrics by Benny Andersson and Björn Ulvaeus, and some songs
 with Stig Anderson; book by Catherine Johnson; originally conceived by Judy Craymer;

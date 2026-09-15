@@ -66,7 +66,7 @@ export function siteUrl(req) {
     return (String(host).includes('localhost') ? 'http://' : 'https://') + host;
 }
 
-/** '2027-01-27' -> 'Wednesday 27th January 2027' */
+/** '2027-01-28' -> 'Thursday 28th January 2027' */
 export function formatPerformanceDate(iso, fallbackLabel) {
     if (fallbackLabel) return fallbackLabel;
     const d = new Date(iso + 'T12:00:00Z');

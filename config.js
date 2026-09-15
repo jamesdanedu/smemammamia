@@ -53,14 +53,11 @@ const CONFIG = {
        label     : shown to the public
        short     : shown on compact cards
        capacity  : total tickets on sale for that night
+
+       Only nights on public sale belong in this list — every page builds its
+       dates from it.  See README.md for the full run.
        ------------------------------------------------------------------- */
     performances: [
-        {
-            key: '2027-01-27',
-            label: 'Wednesday 27th January 2027',
-            short: 'Wed 27 Jan',
-            capacity: 500                                    // TODO confirm hall capacity
-        },
         {
             key: '2027-01-28',
             label: 'Thursday 28th January 2027',
@@ -148,7 +145,7 @@ CONFIG.newBookingRef = function () {
 CONFIG.fetchAvailability = async function () {
     const res = await fetch(CONFIG.api.availability, { cache: 'no-store' });
     if (!res.ok) throw new Error('availability lookup failed');
-    return res.json(); // { '2027-01-27': { capacity, sold, remaining }, ... }
+    return res.json(); // { '2027-01-28': { capacity, sold, remaining }, ... }
 };
 
 window.CONFIG = CONFIG;
