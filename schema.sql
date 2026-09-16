@@ -219,9 +219,12 @@ revoke execute on function public.create_hold(text, date, integer, numeric, text
 --    create_hold refuse it, and it is not listed in config.js, so no page
 --    offers it.  Leave the row in place — bookings.performance_date still
 --    references it, and it keeps the night off sale if anyone re-runs this.
+--    Its capacity stays at the real hall figure: on_sale is what closes the
+--    night, and zeroing capacity would only lose the seat count if the
+--    matinee is ever put on sale.
 -- ---------------------------------------------------------------------------
 insert into public.performances (key, label, capacity, on_sale) values
-    ('2027-01-27', 'Wednesday 27th January 2027',   0, false),
+    ('2027-01-27', 'Wednesday 27th January 2027', 500, false),
     ('2027-01-28', 'Thursday 28th January 2027',  500, true),
     ('2027-01-29', 'Friday 29th January 2027',    500, true)
 on conflict (key) do update
