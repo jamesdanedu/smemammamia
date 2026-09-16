@@ -8,6 +8,7 @@
 // reconciler retry. A booking is never lost because an email bounced.
 
 import { SHOW, formatPerformanceDate, to24, accessLabels } from './_show.js';
+import { describeSeats, cleanSeats } from '../seating.js';
 
 /* Environment values arrive verbatim. A line copied out of .env.example keeps
    its surrounding quotes, and `"Mamma Mia! <tickets@example.ie>"` is then not an
@@ -320,6 +321,11 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
     if (booking.access_notes) accessParts.push(String(booking.access_notes).trim());
     const accessLine = accessParts.join(' · ');
 
+    // The seats themselves, e.g. 'Row G, seats 12–14'. Bookings taken before
+    // the seating map existed have none, and simply lose the line.
+    const seatIds   = cleanSeats((booking.booking_seats || []).map(s => s.seat_id));
+    const seatsLine = describeSeats(seatIds);
+
     const subject = `Your tickets — ${SHOW.name}, ${dateLabel} [${ref}]`;
 
     const text = [
@@ -334,6 +340,7 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
         `  Performance       : ${dateLabel}`,
         `  Doors / curtain   : ${SHOW.doors} / ${SHOW.curtain}`,
         `  Tickets           : ${qty}`,
+        ...(seatsLine ? [`  Your seats        : ${seatsLine}`] : []),
         `  Paid              : ${paidLine}`,
         `  Venue             : ${SHOW.venue}`,
         ...(accessLine ? [`  Access            : ${accessLine}`] : []),
@@ -346,6 +353,11 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
         'ON THE NIGHT',
         'There is no ticket to print. Give your name at the door and we will',
         'find you on the list. Bring the reference above if you have it.',
+        ...(seatsLine
+            ? ['These seats are reserved in your name — nobody else can be sold them,',
+               'so there is no need to arrive early to get a good spot. The row',
+               'letter is on the end chair of every row.']
+            : []),
         'Doors open at ' + SHOW.doors + ' — please be seated by ' + SHOW.curtain + '.',
         '',
         url ? 'Booking details: ' + url + '/success.html?ref=' + encodeURIComponent(ref) : '',
@@ -435,6 +447,10 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
         <td style="padding:11px 0;border-bottom:1px solid #e2eaef;color:#5b6f7c;">Tickets</td>
         <td style="padding:11px 0;border-bottom:1px solid #e2eaef;text-align:right;">${esc(qty)}</td>
       </tr>
+      ${seatsLine ? `<tr>
+        <td style="padding:11px 0;border-bottom:1px solid #e2eaef;color:#5b6f7c;vertical-align:top;">Your seats</td>
+        <td style="padding:11px 0;border-bottom:1px solid #e2eaef;text-align:right;"><strong>${esc(seatsLine)}</strong></td>
+      </tr>` : ''}
       <tr>
         <td style="padding:11px 0;border-bottom:1px solid #e2eaef;color:#5b6f7c;">Paid</td>
         <td style="padding:11px 0;border-bottom:1px solid #e2eaef;text-align:right;">${esc(paidLine)}</td>
@@ -455,8 +471,10 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
            style="background:#fdfaf3;border:1px solid #ecdfc4;border-radius:3px;">
       <tr><td style="padding:16px 18px;font-size:14px;line-height:1.65;color:#22333f;">
         <span style="color:#8a6414;text-transform:uppercase;letter-spacing:2px;font-size:11px;">On the night</span><br>
-        There is nothing to print. Give your name at the door and we will find you on the list.
-        Doors open at ${esc(SHOW.doors)} — please be seated by ${esc(SHOW.curtain)}.${accessLine ? `
+        There is nothing to print. Give your name at the door and we will find you on the list.${seatsLine ? `
+        <br><br>Your seats are reserved in your name, so there is no need to arrive early for a good
+        spot — the row letter is on the end chair of every row.` : ''}
+        <br><br>Doors open at ${esc(SHOW.doors)} — please be seated by ${esc(SHOW.curtain)}.${accessLine ? `
         <br><br>We have your access request and your seats will be kept for you. If anything above
         is wrong, reply to this email and we will put it right.` : ''}
       </td></tr>

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Seating Plan — Mamma Mia! | St Mary's Edenderry</title>
+<meta name="description" content="The seating plan for Mamma Mia! at St Mary's Secondary School, Edenderry: 500 seats laid out across the gym floor, with the setting-out measurements.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+.page-head { text-align: center; padding: 44px 20px 6px; position: relative; overflow: hidden; }
+
+.head-arch {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    width: min(420px, 76vw); height: 200px;
+    border: 1px solid var(--border-strong); border-bottom: none;
+    border-radius: 50% 50% 0 0 / 34% 34% 0 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.15));
+    z-index: 0;
+}
+.page-head > *:not(.head-arch) { position: relative; z-index: 1; }
+
+.page-title {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(1.9rem, 6vw, 3rem); letter-spacing: -0.025em;
+}
+.page-kicker {
+    font-family: var(--font-body); font-weight: 700;
+    letter-spacing: 0.3em; text-indent: 0.3em; font-size: 0.74rem;
+    text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px;
+}
+
+.plan-wrap { max-width: 860px; margin: 0 auto; padding: 26px 20px 70px; }
+
+.section-title {
+    font-family: var(--font-display); font-weight: 600; font-size: 1.28rem;
+    margin: 34px 0 14px;
+}
+
+/* the numbers at a glance */
+.figures {
+    display: grid; gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    margin-bottom: 8px;
+}
+.figure {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; text-align: center;
+    box-shadow: var(--shadow);
+}
+.figure .n {
+    font-family: var(--font-display); font-weight: 700; font-size: 1.7rem;
+    color: var(--cyan); line-height: 1.1;
+}
+.figure .l {
+    font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--text-dim); margin-top: 6px;
+}
+
+.plan-figure {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 14px; box-shadow: var(--shadow);
+}
+.plan-figure svg { width: 100%; height: auto; display: block; }
+.plan-caption {
+    font-size: 0.82rem; color: var(--text-dim);
+    text-align: center; margin-top: 12px;
+}
+
+table.plan-table {
+    width: 100%; border-collapse: collapse; font-size: 0.9rem;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+}
+.plan-table th, .plan-table td {
+    text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border);
+}
+.plan-table th {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-dim); background: var(--cyan-tint);
+}
+.plan-table tr:last-child td { border-bottom: none; }
+.plan-table td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.note-list { padding-left: 20px; }
+.note-list li { margin-bottom: 10px; line-height: 1.6; color: var(--text-dim); }
+.note-list strong { color: var(--text); }
+
+.warn {
+    background: var(--yellow-tint); border: 1px solid #ecdfc4;
+    border-radius: var(--radius); padding: 14px 16px; margin-bottom: 18px;
+}
+
+@media print {
+    .navbar, .footer, .page-head .head-arch, .print-hide { display: none !important; }
+    .plan-wrap { max-width: none; padding: 0; }
+    .plan-figure, .figure, table.plan-table { box-shadow: none; break-inside: avoid; }
+    .section-title { break-after: avoid; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo">
+      <img src="schoollogo.png" alt="St Mary's Edenderry" class="nav-logo-img" onerror="this.style.display='none'">
+      <span class="nav-logo-text">Mamma Mia!</span>
+    </a>
+    <div class="nav-links">
+      <a href="about.html" class="nav-link">About</a>
+      <a href="cast.html" class="nav-link">Cast</a>
+      <a href="photos.html" class="nav-link">Photos</a>
+      <a href="games.html" class="nav-link">Games</a>
+      <a href="quiz.html" class="nav-link">Quiz</a>
+      <a href="wall.html" class="nav-link">Wall</a>
+      <a href="booking.html" class="nav-link book-btn">Book Now</a>
+    </div>
+  </div>
+</nav>
+
+<header class="page-head">
+  <div class="head-arch" aria-hidden="true"></div>
+  <div class="page-kicker">The Gym</div>
+  <h1 class="page-title chrome">Seating Plan</h1>
+  <p class="dim mt-1" id="head-sub"></p>
+</header>
+
+<main class="plan-wrap">
+
+  <div class="figures" id="figures"></div>
+
+  <h2 class="section-title">The floor</h2>
+  <div class="plan-figure">
+    <div id="plan-svg"></div>
+    <p class="plan-caption" id="plan-caption"></p>
+  </div>
+
+  <div id="fit-warning"></div>
+
+  <h2 class="section-title">Where you sit</h2>
+  <p class="dim" style="line-height:1.7">
+    Every ticket has a seat number on it, so there is no need to arrive early to
+    get a good spot. <strong style="color:var(--text)">Row A is nearest the stage</strong>
+    and the letters run back from there. Seat 1 is on your left as you face the stage,
+    and the numbers run straight across all three blocks to 25 on your right — the
+    row letter is on the end chair of every row, and stewards will be on each aisle.
+  </p>
+  <p class="dim mt-2" style="line-height:1.7">
+    The four seats marked on the plan are wheelchair spaces: the chair is taken away
+    so the wheelchair stands in its place, right off the middle gangway with a
+    companion seat beside it. Ask for one when you book —
+    <a href="booking.html">tick the access box</a> at step five — and we will keep
+    it for you.
+  </p>
+
+  <h2 class="section-title">Setting out</h2>
+  <p class="dim mb-2" style="line-height:1.7">
+    Measurements for whoever puts the chairs out. Every distance is from the wall
+    the stage is built against, to the <em>front legs</em> of that row.
+  </p>
+  <div style="overflow-x:auto">
+    <table class="plan-table">
+      <thead>
+        <tr><th>Row</th><th>Seats</th><th>From the stage wall</th><th>Notes</th></tr>
+      </thead>
+      <tbody id="rows-table"></tbody>
+    </table>
+  </div>
+
+  <h2 class="section-title">Before the chairs go out</h2>
+  <ul class="note-list" id="notes"></ul>
+
+  <p class="text-center mt-3 print-hide">
+    <button type="button" class="btn btn-ghost" id="print-btn">🖨️ Print this plan</button>
+    <a href="booking.html" class="btn btn-primary" style="margin-left:8px">Book tickets</a>
+  </p>
+
+</main>
+
+<footer class="footer">
+  <div class="footer-brand" id="footer-brand"></div>
+  <div id="footer-line"></div>
+  <div class="mt-1"><a href="index.html">Home</a> · <a href="about.html">About</a> · <a href="booking.html">Tickets</a> · <a href="contact.html">Contact</a></div>
+</footer>
+
+<script src="config.js"></script>
+<script type="module">
+import { SEAT_MAP, LAYOUT, checkFit, sightlines } from './seating.js';
+
+(function () {
+    'use strict';
+
+    const $ = id => document.getElementById(id);
+    const S = CONFIG.show;
+    const m = n => Number(n).toFixed(2).replace(/\.00$/, '') + ' m';
+
+    const fit = checkFit(SEAT_MAP);
+    const sl  = sightlines(SEAT_MAP);
+    const g   = SEAT_MAP.geometry;
+
+    $('head-sub').textContent =
+        SEAT_MAP.total + ' seats a night · ' + S.venue;
+    $('footer-brand').textContent = S.title + ' · ' + S.year;
+    $('footer-line').textContent = S.school;
+
+    /* ---------------- the numbers ---------------- */
+    $('figures').innerHTML = [
+        [SEAT_MAP.total,        'Seats a night'],
+        [SEAT_MAP.rows.length + ' × ' + SEAT_MAP.seatsPerRow, 'Rows × seats'],
+        [SEAT_MAP.blocks.map(b => b.seats).join(' + '), 'Blocks across'],
+        [m(LAYOUT.hall.lengthM) + ' × ' + m(LAYOUT.hall.widthM), 'Hall floor']
+    ].map(([n, l]) => `<div class="figure"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+
+    /* ---------------- the floor plan ----------------
+       Drawn from the same measurements the booking map uses, at 1 : 1 in
+       metres and then scaled by the viewBox, so anything measured off this
+       drawing is the real distance.
+       ------------------------------------------------ */
+    function drawPlan() {
+        const W = LAYOUT.hall.widthM, L = LAYOUT.hall.lengthM;
+        const pad = 1.6;                       // room for the dimension labels
+        const parts = [];
+
+        // the hall itself
+        parts.push(`<rect x="0" y="0" width="${W}" height="${L}" fill="#fbf9f5" stroke="#cbdae3" stroke-width="0.08"/>`);
+
+        // the stage
+        parts.push(`<rect x="0" y="0" width="${W}" height="${LAYOUT.stage.depthM}" fill="#1b6ca8" opacity="0.9"/>`);
+        parts.push(`<text x="${W / 2}" y="${LAYOUT.stage.depthM / 2 + 0.35}" text-anchor="middle"
+                          font-size="0.95" fill="#ffffff" letter-spacing="0.3">STAGE</text>`);
+
+        // every chair, at its real size
+        for (const seat of SEAT_MAP.seats) {
+            const x = seat.x - LAYOUT.seat.widthM / 2;
+            const y = seat.y - LAYOUT.seat.pitchM / 2;
+            const fill = seat.wheelchair ? '#c2356b' : '#22333f';
+            parts.push(`<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}"
+                              width="${(LAYOUT.seat.widthM - 0.06).toFixed(2)}"
+                              height="${(LAYOUT.seat.pitchM * 0.55).toFixed(2)}"
+                              rx="0.08" fill="${fill}" opacity="${seat.wheelchair ? 0.95 : 0.55}"/>`);
+        }
+
+        // row letters down both sides
+        for (const row of SEAT_MAP.rows) {
+            const y = row.y + LAYOUT.seat.pitchM * 0.42;
+            parts.push(`<text x="${(g.sideGangwayM / 2).toFixed(2)}" y="${y.toFixed(2)}" text-anchor="middle"
+                              font-size="0.55" fill="#8ba0ad">${row.letter}</text>`);
+            parts.push(`<text x="${(W - g.sideGangwayM / 2).toFixed(2)}" y="${y.toFixed(2)}" text-anchor="middle"
+                              font-size="0.55" fill="#8ba0ad">${row.letter}</text>`);
+        }
+
+        // gangways, called out
+        const label = (x, y, text, rotate) => parts.push(
+            `<text x="${x}" y="${y}" text-anchor="middle" font-size="0.5" fill="#6f8b4e"
+                   ${rotate ? `transform="rotate(-90 ${x} ${y})"` : ''}>${text}</text>`);
+
+        let aisleX = g.sideGangwayM;
+        SEAT_MAP.blocks.forEach((b, i) => {
+            aisleX += b.seats * LAYOUT.seat.widthM;
+            if (i < SEAT_MAP.blocks.length - 1) {
+                label(aisleX + LAYOUT.aisleM / 2, L * 0.55, m(LAYOUT.aisleM) + ' aisle', true);
+                aisleX += LAYOUT.aisleM;
+            }
+        });
+
+        if (g.crossAfter) {
+            const y = g.firstRowY + g.crossAfter * LAYOUT.seat.pitchM + g.crossWidthM / 2 + 0.18;
+            label(W / 2, y, m(g.crossWidthM) + ' cross gangway');
+        }
+        label(W / 2, L - LAYOUT.rearGangwayM / 2, m(LAYOUT.rearGangwayM) + ' to the exits');
+        label(W / 2, LAYOUT.stage.depthM + LAYOUT.stage.clearanceM / 2 + 0.2, m(LAYOUT.stage.clearanceM) + ' clear');
+
+        // overall dimensions, outside the hall
+        parts.push(`<text x="${W / 2}" y="${L + 1.1}" text-anchor="middle" font-size="0.62" fill="#5a6d7a">${m(W)} across</text>`);
+        parts.push(`<text x="${-0.9}" y="${L / 2}" text-anchor="middle" font-size="0.62" fill="#5a6d7a"
+                          transform="rotate(-90 ${-0.9} ${L / 2})">${m(L)} deep</text>`);
+
+        return `<svg viewBox="${-pad} ${-0.6} ${W + pad * 2} ${L + pad}" role="img"
+                     aria-label="Scale plan of the gym floor: a stage across one end, then ${SEAT_MAP.rows.length} rows of ${SEAT_MAP.seatsPerRow} seats in three blocks separated by two aisles, with a cross gangway part way back and a clear gangway to the exits behind the last row.">
+                  ${parts.join('\n')}
+                </svg>`;
+    }
+
+    $('plan-svg').innerHTML = drawPlan();
+    $('plan-caption').textContent =
+        `Drawn to scale. Seating occupies ${m(g.rowWidthM)} of the ${m(LAYOUT.hall.widthM)} width ` +
+        `and ${m(g.depthUsedM)} of the ${m(LAYOUT.hall.lengthM)} length, leaving ${m(g.sideGangwayM)} ` +
+        `at each side wall and ${m(g.spareDepthM)} spare at the back.`;
+
+    /* ---------------- anything that does not add up ---------------- */
+    if (!fit.ok) {
+        $('fit-warning').innerHTML =
+            '<div class="warn"><strong>This plan needs attention</strong><ul class="note-list" style="margin-top:8px">' +
+            fit.problems.map(p => `<li>${p}</li>`).join('') +
+            '</ul></div>';
+    }
+
+    /* ---------------- setting out ---------------- */
+    $('rows-table').innerHTML = SEAT_MAP.rows.map(row => {
+        const notes = [];
+        if (row.index === 0) notes.push('First row — measure off the stage');
+        if (g.crossAfter && row.index === g.crossAfter) notes.push('Straight after the cross gangway');
+        const chairsOut = row.seats.filter(s => s.wheelchair).map(s => s.number);
+        if (chairsOut.length) {
+            notes.push(`Wheelchair spaces — leave out seat${chairsOut.length === 1 ? '' : 's'} ` +
+                (chairsOut.length === 1
+                    ? chairsOut[0]
+                    : chairsOut.slice(0, -1).join(', ') + ' and ' + chairsOut[chairsOut.length - 1]));
+        }
+        if (row.index === SEAT_MAP.rows.length - 1) notes.push('Last row — ' + m(LAYOUT.rearGangwayM) + ' behind it to the exits');
+        return `<tr>
+            <td><strong>${row.letter}</strong></td>
+            <td class="num">${row.seats.length}</td>
+            <td class="num">${m(row.y)}</td>
+            <td>${notes.join('. ')}</td>
+        </tr>`;
+    }).join('');
+
+    /* ---------------- the things that go wrong ---------------- */
+    $('notes').innerHTML = [
+        `<strong>Stagger the rows.</strong> Offset every second row by half a chair ` +
+        `(${m(LAYOUT.seat.widthM / 2)}) so each person looks between the two heads in front ` +
+        `rather than straight at one. On a flat floor this is the single thing that ` +
+        `makes the back half watchable.`,
+
+        `<strong>Keep the stage at least ${m(sl.stageHeightM)} high.</strong> A seated ` +
+        `eye is about 1.20 m up, so anything lower and row ${SEAT_MAP.rows[3].letter} onward ` +
+        `loses the actors' feet. The back row is ${m(sl.rearRowDistanceM)} from the stage wall — ` +
+        `if you can borrow tiering for the last few rows, use it there.`,
+
+        `<strong>Tie the chairs together in rows.</strong> Loose chairs in a public ` +
+        `audience drift out of line and close the gangways; row clips or a cable tie ` +
+        `through the frames keeps the ${m(LAYOUT.seat.pitchM)} spacing honest all evening.`,
+
+        `<strong>Mark the floor first.</strong> Tape the front line of every row and the ` +
+        `edges of both aisles before a single chair goes out. Setting out ` +
+        `${SEAT_MAP.total} chairs by eye takes longer than measuring them.`,
+
+        `<strong>Nothing in the gangways.</strong> The two ${m(LAYOUT.aisleM)} aisles, the ` +
+        `${m(g.sideGangwayM)} at each wall and the ${m(LAYOUT.rearGangwayM)} at the back are ` +
+        `the way ${SEAT_MAP.total} people leave. No extra chairs squeezed in on the night, ` +
+        `however many people are asking.`,
+
+        `<strong>Have the fire officer look at it.</strong> The block sizes and gangway ` +
+        `widths here follow the usual guidance for temporary seating, but the person who ` +
+        `signs it off is the one whose opinion counts.`
+    ].map(li => `<li>${li}</li>`).join('');
+
+    $('print-btn').addEventListener('click', () => window.print());
+})();
+</script>
+</body>
+</html>

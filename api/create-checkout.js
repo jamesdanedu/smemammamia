@@ -6,9 +6,10 @@
 
 import {
     applyCors, requireMethod, readBody,
-    sbRpc, sbUpdate, newBookingRef, supabaseConfigured
+    sbRpc, sbSelect, sbUpdate, newBookingRef, supabaseConfigured
 } from './_supabase.js';
 import { cleanAccessNeeds } from './_show.js';
+import { cleanSeats, allocateSeats, describeSeats } from '../seating.js';
 
 const TICKET_PRICE   = Number(process.env.TICKET_PRICE || 10);
 const HOLD_MINUTES   = Number(process.env.HOLD_MINUTES || 15);
@@ -38,6 +39,10 @@ export default async function handler(req, res) {
     const accessNeeds     = cleanAccessNeeds(body.accessNeeds);
     const accessNotes     = clean(body.accessNotes, 300);
 
+    // Seats, same treatment: anything that is not a seat on the plan in
+    // seating.js falls out here, before it can reach the database.
+    let seats             = cleanSeats(body.seats);
+
     /* ---------------- validation ---------------- */
     if (!/^\d{4}-\d{2}-\d{2}$/.test(performanceDate)) {
         return res.status(400).json({ error: 'Please choose a performance.' });
@@ -51,6 +56,11 @@ export default async function handler(req, res) {
     if (!isEmail(customerEmail)) {
         return res.status(400).json({ error: 'Please enter a valid email address.' });
     }
+    if (seats.length && seats.length !== quantity) {
+        return res.status(400).json({
+            error: `Please choose ${quantity} seat${quantity === 1 ? '' : 's'} — you have chosen ${seats.length}.`
+        });
+    }
 
     const SUMUP_API_KEY       = process.env.SUMUP_API_KEY;
     const SUMUP_MERCHANT_CODE = process.env.SUMUP_MERCHANT_CODE;
@@ -63,7 +73,29 @@ export default async function handler(req, res) {
     const amount = Number((quantity * TICKET_PRICE).toFixed(2));
     const bookingRef = newBookingRef();
 
-    /* ---------------- 1. reserve the seats ---------------- */
+    /* ---------------- 1. seats, if the browser did not choose ----------------
+       Normally the booking page sends the seats the customer clicked. If it
+       could not — an old page left open, a map that failed to load — we pick
+       for them rather than sell a ticket with nowhere to sit. create_hold
+       checks them again under its lock, so a seat taken in the meantime is
+       still caught. */
+    if (!seats.length) {
+        try {
+            const takenRows = await sbSelect(
+                `taken_seats?select=seat_id&performance_date=eq.${encodeURIComponent(performanceDate)}`
+            );
+            seats = allocateSeats(quantity, takenRows.map(r => r.seat_id));
+        } catch (err) {
+            console.error('could not auto-allocate seats:', err.message);
+        }
+        if (seats.length !== quantity) {
+            return res.status(409).json({
+                error: 'We could not find that many seats together. Please choose your seats on the map.'
+            });
+        }
+    }
+
+    /* ---------------- 2. reserve the seats ---------------- */
     let booking;
     try {
         booking = await sbRpc('create_hold', {
@@ -77,7 +109,8 @@ export default async function handler(req, res) {
             p_booked_by:    bookedBy,
             p_hold_minutes: HOLD_MINUTES,
             p_access_needs: accessNeeds,
-            p_access_notes: accessNotes
+            p_access_notes: accessNotes,
+            p_seats:        seats
         });
     } catch (err) {
         const msg = err.pgMessage || err.message || '';
@@ -92,6 +125,18 @@ export default async function handler(req, res) {
                 remaining: Number.isFinite(left) ? left : 0
             });
         }
+        if (msg.includes('SEAT_TAKEN')) {
+            const gone = msg.split('SEAT_TAKEN:')[1].split(/[\s]/)[0].split(',').filter(Boolean);
+            return res.status(409).json({
+                error: gone.length === 1
+                    ? `Seat ${gone[0]} was taken a moment before you. Please pick another.`
+                    : `Seats ${gone.join(', ')} were taken a moment before you. Please pick others.`,
+                seatsTaken: gone
+            });
+        }
+        if (msg.includes('SEAT_COUNT_MISMATCH')) {
+            return res.status(400).json({ error: 'Please choose one seat per ticket.' });
+        }
         if (msg.includes('NOT_ON_SALE')) {
             return res.status(409).json({ error: 'Tickets for that night are not on sale.' });
         }
@@ -101,7 +146,7 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Could not reserve your tickets. Please try again.' });
     }
 
-    /* ---------------- 2. open the SumUp checkout ---------------- */
+    /* ---------------- 3. open the SumUp checkout ---------------- */
     const host     = req.headers['x-forwarded-host'] || req.headers.host;
     const protocol = String(host || '').includes('localhost') ? 'http' : 'https';
     const baseUrl  = `${protocol}://${host}`;
@@ -140,6 +185,7 @@ export default async function handler(req, res) {
             await sbUpdate('bookings', `booking_reference=eq.${bookingRef}`, {
                 status: 'cancelled', held_until: null, notes: 'SumUp checkout could not be created'
             }).catch(() => {});
+            await releaseSeats(bookingRef);
             return res.status(502).json({ error: 'Could not start the payment. Please try again.' });
         }
 
@@ -155,6 +201,7 @@ export default async function handler(req, res) {
             await sbUpdate('bookings', `booking_reference=eq.${bookingRef}`, {
                 status: 'cancelled', held_until: null, notes: 'SumUp returned no checkout id'
             }).catch(() => {});
+            await releaseSeats(bookingRef);
             return res.status(502).json({ error: 'Could not start the payment. Please try again.' });
         }
 
@@ -168,6 +215,7 @@ export default async function handler(req, res) {
             await sbUpdate('bookings', `booking_reference=eq.${bookingRef}`, {
                 status: 'cancelled', held_until: null, notes: 'SumUp returned no hosted checkout URL'
             }).catch(() => {});
+            await releaseSeats(bookingRef);
             return res.status(502).json({ error: 'Could not open the payment page. Please try again.' });
         }
 
@@ -184,6 +232,8 @@ export default async function handler(req, res) {
             checkoutUrl,
             amount,
             quantity,
+            seats,
+            seatsLabel: describeSeats(seats),
             performanceDate,
             holdMinutes: HOLD_MINUTES,
             expiresAt: booking?.held_until || null
@@ -194,6 +244,21 @@ export default async function handler(req, res) {
         await sbUpdate('bookings', `booking_reference=eq.${bookingRef}`, {
             status: 'cancelled', held_until: null, notes: 'Checkout creation threw'
         }).catch(() => {});
+        await releaseSeats(bookingRef);
         return res.status(500).json({ error: 'Something went wrong starting the payment.' });
+    }
+}
+
+/**
+ * Hand the seats straight back when a checkout never got off the ground.
+ * The hold would expire on its own within the quarter hour and release_stale_seats
+ * would sweep them, but a seat that nobody is paying for should not sit greyed
+ * out on the map while somebody is looking at it.
+ */
+async function releaseSeats(reference) {
+    try {
+        await sbRpc('release_booking_seats', { p_reference: reference });
+    } catch (err) {
+        console.error('could not release seats for', reference, err.message);
     }
 }
