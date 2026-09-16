@@ -116,7 +116,7 @@ revoke execute on function public.create_hold(text, date, integer, numeric, text
 -- Who needs what, one night at a time:
 --     select booking_reference, customer_name, quantity, access_needs, access_notes
 --     from public.bookings
---     where performance_date = '2027-01-27' and status = 'confirmed'
+--     where performance_date = '2027-01-28' and status = 'confirmed'
 --       and (access_needs is not null or access_notes is not null)
 --     order by customer_name;
 --

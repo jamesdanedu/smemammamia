@@ -58,7 +58,7 @@ export async function sendConfirmationFor(reference, { force = false, kind = 'co
         return { sent: false, skipped: 'another send is already in flight' };
     }
 
-    /* --- the night's proper label, e.g. "Wednesday 27th January 2027" --- */
+    /* --- the night's proper label, e.g. "Thursday 28th January 2027" --- */
     let performanceLabel = null;
     try {
         const [perf] = await sbSelect(
