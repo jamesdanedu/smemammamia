@@ -322,12 +322,12 @@
     color: var(--text-dim);
     margin-bottom: 4px;
 }
-@media (min-width: 761px) { .seatmap-hint { display: none; } }
+@media (min-width: 760px) { .step-seats.wide .seatmap-hint { display: none; } }
 
 .seatmap {
-    --seat-size: 22px;
-    --seat-gap: 3px;
-    --aisle-w: 34px;          /* 1.2 m aisle against a 0.5 m chair */
+    --seat-size: 20px;
+    --seat-gap: 2px;
+    --aisle-w: calc(var(--seat-size) * 1.6);   /* 1.2 m aisle against a 0.5 m chair */
     width: max-content;
     margin: 0 auto;
     padding: 0 4px;
@@ -351,7 +351,7 @@
 .cross-aisle { height: 18px; }
 
 .row-label {
-    width: 18px;
+    width: calc(var(--seat-size) * 0.9);
     flex: none;
     text-align: center;
     font-size: 0.64rem;
@@ -413,8 +413,27 @@
 }
 .seat-count strong { color: var(--text); }
 
-@media (max-width: 560px) {
-    .seatmap { --seat-size: 20px; --seat-gap: 2px; --aisle-w: 26px; }
+/* Twenty-five seats across want more room than the 720px booking column
+   has to give, so with the map open this one step steps outside the column
+   and the chairs grow with the window. The step only widens while the map
+   is open — closed, it lines up with the rest of the form.
+
+   The 34 is the row measured in chair-widths: 25 chairs, two aisles, the
+   gaps between them and a letter at each end come to roughly 34 chairs of
+   width, so dividing the window by it gives a chair size that fills the
+   space without spilling over. Below 760px none of this applies: the
+   chairs stay at a tappable 20px and the map scrolls sideways instead. */
+@media (min-width: 760px) {
+    .step-seats.wide {
+        --step-w: min(1280px, calc(100vw - 24px));
+        width: var(--step-w);
+        margin-left: calc(50% - var(--step-w) / 2);
+    }
+    .step-seats.wide .seatmap {
+        /* the 58px is the card padding either side of the map */
+        --seat-size: clamp(20px, calc((var(--step-w) - 58px) / 34), 36px);
+        --seat-gap: calc(var(--seat-size) * 0.13);
+    }
 }
 
 </style>
@@ -478,7 +497,7 @@
     </section>
 
     <!-- STEP 3 -->
-    <section class="step">
+    <section class="step step-seats" id="step-seats">
       <div class="step-head"><div class="step-num">3</div><div class="step-title">Your seats</div></div>
       <div class="card">
 
@@ -1023,11 +1042,20 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
         const open = panel.classList.toggle('hidden') === false;
         this.setAttribute('aria-expanded', String(open));
         this.textContent = open ? 'Done' : 'Pick your own';
+
+        // Only this step breaks out of the booking column, and only while
+        // the map is open — see the .step-seats.wide rules.
+        $('step-seats').classList.toggle('wide', open);
+
         if (open) {
             panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             showSelection();
         }
     });
+
+    // Resizing changes whether the map still overflows, so the faded edge
+    // has to be worked out again.
+    window.addEventListener('resize', markScrollEnd, { passive: true });
 
     /* ---------------- access and seating ----------------
        Unticked means "nothing needed" — the commonest answer, and the one
