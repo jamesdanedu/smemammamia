@@ -547,7 +547,7 @@
     <p class="section-sub" id="book-sub"></p>
 
     <div id="booking-closed" class="alert alert-info hidden text-center">
-      Online booking isn't open yet — check back soon.
+      Booking is paused just now — check back shortly.
     </div>
 
     <div class="grid-2" id="performance-cards">
@@ -721,7 +721,10 @@
         const wrap = document.getElementById('performance-cards');
 
         if (!CONFIG.features.bookingOpen) {
-            document.getElementById('booking-closed').classList.remove('hidden');
+            const notice = document.getElementById('booking-closed');
+            const n = CONFIG.closedNotice || {};
+            notice.textContent = [n.heading, n.body].filter(Boolean).join(' — ');
+            notice.classList.remove('hidden');
             wrap.innerHTML = '';
             return;
         }

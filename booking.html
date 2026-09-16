@@ -714,9 +714,23 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
     /* ---------------- 1. load availability ---------------- */
     async function init() {
         if (!CONFIG.features.bookingOpen) {
-            $('loading-state').innerHTML =
-                '<h2 style="font-size:1.2rem;margin-bottom:8px">Booking is not open yet</h2>' +
-                '<p class="dim">Tickets go on sale soon — check back shortly.</p>';
+            const n = CONFIG.closedNotice || {};
+            const box = $('loading-state');
+            box.textContent = '';
+
+            const h = document.createElement('h2');
+            h.style.cssText = 'font-size:1.2rem;margin-bottom:8px';
+            h.textContent = n.heading || 'Booking is closed';
+
+            const p = document.createElement('p');
+            p.className = 'dim';
+            p.textContent = n.body || 'Please check back shortly.';
+
+            box.append(h, p);
+
+            // the SumUp reassurances read oddly under a notice saying you
+            // cannot buy anything
+            document.querySelector('.trust-row')?.classList.add('hidden');
             return;
         }
 

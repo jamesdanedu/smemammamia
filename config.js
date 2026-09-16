@@ -72,6 +72,18 @@ const CONFIG = {
         }
     ],
 
+    /* --- What to say while booking is closed -----------------------------
+       Used by index.html and booking.html whenever features.bookingOpen is
+       false, so the wording lives in one place rather than being buried in
+       two pages. The old copy said "not open yet", which is wrong for a
+       pause — people had already been booking.
+       -------------------------------------------------------------------- */
+    closedNotice: {
+        heading: 'Booking is paused',
+        body: 'We are just confirming the seating plan for the hall. ' +
+              'Tickets will be back on sale very shortly — thank you for your patience.'
+    },
+
     /* --- Backend --------------------------------------------------------
        No database keys live in this file.  Every read and write goes
        through the serverless functions in /api, which hold the secrets as
@@ -97,7 +109,16 @@ const CONFIG = {
 
     /* --- Feature switches ---------------------------------------------- */
     features: {
-        bookingOpen: true,          // set false to close sales entirely
+        /* >>> BOOKING PAUSE — set back to true to reopen sales. <<<
+           There is a second switch that has to move with it: BOOKING_OPEN at
+           the top of api/create-checkout.js. This one closes the pages; that
+           one closes the door behind them, so a page somebody already had
+           open cannot still push a booking through.
+
+           Door and cash sales on the admin Add booking tab are deliberately
+           unaffected — staff can still take a booking while the public
+           cannot. */
+        bookingOpen: false,         // set false to close sales entirely
         showWall: true,             // the message wall
         showGames: true,
         showQuiz: true,

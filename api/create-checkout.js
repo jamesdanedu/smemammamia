@@ -11,6 +11,19 @@ import {
 import { cleanAccessNeeds } from './_show.js';
 import { cleanSeats, allocateSeats, describeSeats } from '../seating.js';
 
+/* >>> BOOKING PAUSE — set back to true to reopen sales. <<<
+   Moves together with CONFIG.features.bookingOpen in config.js. That one
+   closes the pages; this one closes the door behind them, so a page somebody
+   already had open — or anything posting straight at this endpoint — cannot
+   still push a booking through.
+
+   Deliberately NOT paused:
+     · /api/admin cash and door bookings — staff can still take a booking.
+     · /api/verify-payment and the reconciler — anyone who was mid-payment
+       when this went on must still be able to finish and be confirmed,
+       otherwise we would take the money and never issue the ticket. */
+const BOOKING_OPEN = false;
+
 const TICKET_PRICE   = Number(process.env.TICKET_PRICE || 10);
 const HOLD_MINUTES   = Number(process.env.HOLD_MINUTES || 15);
 const MAX_PER_ORDER  = Number(process.env.MAX_PER_ORDER || 10);
@@ -21,6 +34,13 @@ const clean   = (v, max = 120) => String(v ?? '').trim().slice(0, max);
 export default async function handler(req, res) {
     if (applyCors(req, res)) return;
     if (!requireMethod(req, res, 'POST')) return;
+
+    if (!BOOKING_OPEN) {
+        return res.status(503).json({
+            error: 'Booking is paused just now while we confirm the seating plan for the hall. ' +
+                   'Tickets will be back on sale very shortly — sorry for the inconvenience.'
+        });
+    }
 
     if (!supabaseConfigured()) {
         return res.status(503).json({ error: 'Booking system not configured' });
