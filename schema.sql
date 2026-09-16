@@ -407,12 +407,16 @@ revoke execute on function public.create_hold(text, date, integer, numeric, text
 --    offers it.  Leave the row in place — bookings.performance_date still
 --    references it, and it keeps the night off sale if anyone re-runs this.
 --
---    Capacity must match the plan in seating.js — 500 seats a night. Set it
---    higher and the last tickets cannot be seated; set it lower and the last
---    seats cannot be sold.
+--    Its capacity stays at the real hall figure: on_sale is what closes the
+--    night, and zeroing capacity would only lose the seat count if the
+--    matinee is ever put on sale.
+--
+--    That figure has to match the plan in seating.js — 500 seats a night.
+--    Set it higher and the last tickets cannot be seated; set it lower and
+--    the last seats cannot be sold.
 -- ---------------------------------------------------------------------------
 insert into public.performances (key, label, capacity, on_sale) values
-    ('2027-01-27', 'Wednesday 27th January 2027',   0, false),
+    ('2027-01-27', 'Wednesday 27th January 2027', 500, false),
     ('2027-01-28', 'Thursday 28th January 2027',  500, true),
     ('2027-01-29', 'Friday 29th January 2027',    500, true)
 on conflict (key) do update
