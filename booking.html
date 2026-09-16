@@ -267,6 +267,156 @@
 @media (max-width: 720px) {
     .head-arch { width: min(320px, 80vw); height: 168px; }
 }
+/* ---------------- Seat map ----------------
+   Sized in seat-widths so the drawing keeps the proportions of the real
+   floor: an aisle really is wider than a chair. It scrolls sideways on a
+   phone rather than shrinking the chairs below a tappable size.
+   ------------------------------------------ */
+.seat-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.seat-summary-seats {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--text);
+}
+
+.seat-pick-toggle {
+    background: none;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    padding: 8px 15px;
+    font: inherit;
+    font-size: 0.82rem;
+    color: var(--cyan);
+    cursor: pointer;
+}
+.seat-pick-toggle:hover { background: var(--cyan-tint); }
+
+.seatmap-panel { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
+
+.seatmap-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px 0 10px;
+    /* fades the cut edge on a narrow screen, so it is plain that the row
+       carries on past it; on a wide one the map fits and nothing fades */
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent 100%);
+            mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent 100%);
+}
+.seatmap-scroll.at-end {
+    -webkit-mask-image: none;
+            mask-image: none;
+}
+
+.seatmap-hint {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+}
+@media (min-width: 761px) { .seatmap-hint { display: none; } }
+
+.seatmap {
+    --seat-size: 22px;
+    --seat-gap: 3px;
+    --aisle-w: 34px;          /* 1.2 m aisle against a 0.5 m chair */
+    width: max-content;
+    margin: 0 auto;
+    padding: 0 4px;
+}
+
+.stage-bar {
+    background: linear-gradient(180deg, var(--cyan), var(--cyan-soft));
+    color: #fff;
+    text-align: center;
+    border-radius: 3px 3px 40% 40% / 3px 3px 22px 22px;
+    padding: 9px 0 13px;
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+}
+
+.seat-row { display: flex; align-items: center; gap: var(--seat-gap); margin-bottom: var(--seat-gap); }
+.seat-block { display: flex; gap: var(--seat-gap); }
+.aisle { width: var(--aisle-w); flex: none; }
+.cross-aisle { height: 18px; }
+
+.row-label {
+    width: 18px;
+    flex: none;
+    text-align: center;
+    font-size: 0.64rem;
+    font-weight: 700;
+    color: var(--text-faint);
+    line-height: 1;
+}
+
+.seat {
+    width: var(--seat-size);
+    height: var(--seat-size);
+    flex: none;
+    padding: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: 5px 5px 3px 3px;
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 0;
+    transition: transform 0.08s ease, background 0.12s ease;
+}
+.seat:hover:not([disabled]) { transform: translateY(-1px); background: var(--cyan-tint); }
+.seat:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+.seat[data-state="taken"] {
+    background: #dde4e8;
+    border-color: #ccd6db;
+    cursor: not-allowed;
+}
+.seat[data-state="selected"] {
+    background: var(--pink);
+    border-color: var(--pink);
+    box-shadow: 0 2px 6px rgba(194, 53, 107, 0.35);
+}
+.seat[data-wheelchair="1"] { border-color: var(--cyan); border-width: 2px; }
+
+.seat-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    justify-content: center;
+    margin-top: 12px;
+    font-size: 0.76rem;
+    color: var(--text-dim);
+}
+.seat-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend-chip {
+    width: 14px; height: 14px; border-radius: 4px 4px 2px 2px;
+    border: 1px solid var(--border-strong); background: var(--surface);
+}
+.legend-chip.taken    { background: #dde4e8; border-color: #ccd6db; }
+.legend-chip.selected { background: var(--pink); border-color: var(--pink); }
+.legend-chip.wheel    { border: 2px solid var(--cyan); }
+
+.seat-count {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-top: 10px;
+}
+.seat-count strong { color: var(--text); }
+
+@media (max-width: 560px) {
+    .seatmap { --seat-size: 20px; --seat-gap: 2px; --aisle-w: 26px; }
+}
+
 </style>
 </head>
 <body>
@@ -329,7 +479,64 @@
 
     <!-- STEP 3 -->
     <section class="step">
-      <div class="step-head"><div class="step-num">3</div><div class="step-title">Your details</div></div>
+      <div class="step-head"><div class="step-num">3</div><div class="step-title">Your seats</div></div>
+      <div class="card">
+
+        <div id="seat-loading" class="text-center hidden" style="padding:10px 0">
+          <div class="spinner"></div>
+          <p class="faint mt-2" style="font-size:0.86rem">Looking at what is free…</p>
+        </div>
+
+        <div id="seat-chosen">
+          <div class="seat-summary">
+            <div>
+              <div class="faint" style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em">Reserved for you</div>
+              <div class="seat-summary-seats" id="seat-words">—</div>
+            </div>
+            <button type="button" class="seat-pick-toggle" id="seat-toggle" aria-expanded="false" aria-controls="seatmap-panel">
+              Pick your own
+            </button>
+          </div>
+          <p class="faint mt-2" style="font-size:0.84rem" id="seat-note">
+            We have picked the best seats left together. Change them if you would rather sit somewhere else.
+          </p>
+        </div>
+
+        <div class="seatmap-panel hidden" id="seatmap-panel">
+          <p class="seatmap-hint">Swipe the map sideways to see the whole row.</p>
+          <div class="seatmap-scroll" id="seatmap-scroll">
+            <div class="seatmap" id="seatmap">
+              <div class="stage-bar">Stage</div>
+              <div id="seat-rows"></div>
+            </div>
+          </div>
+
+          <div class="seat-legend">
+            <span><i class="legend-chip" aria-hidden="true"></i> Free</span>
+            <span><i class="legend-chip selected" aria-hidden="true"></i> Yours</span>
+            <span><i class="legend-chip taken" aria-hidden="true"></i> Taken</span>
+            <span><i class="legend-chip wheel" aria-hidden="true"></i> Wheelchair space</span>
+          </div>
+
+          <p class="seat-count" id="seat-count" role="status"></p>
+
+          <div class="text-center mt-2">
+            <button type="button" class="btn btn-ghost" id="seat-best" style="padding:10px 18px;font-size:0.84rem">
+              ✨ Choose the best available for me
+            </button>
+          </div>
+
+          <p class="faint text-center mt-2" style="font-size:0.8rem">
+            Row A is nearest the stage. <a href="seating.html" target="_blank" rel="noopener">See the full plan</a>.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- STEP 4 -->
+    <section class="step">
+      <div class="step-head"><div class="step-num">4</div><div class="step-title">Your details</div></div>
       <div class="card">
         <div class="field">
           <label for="customer-name">Full name</label>
@@ -352,9 +559,9 @@
       </div>
     </section>
 
-    <!-- STEP 4 -->
+    <!-- STEP 5 -->
     <section class="step">
-      <div class="step-head"><div class="step-num">4</div><div class="step-title">Access and seating</div></div>
+      <div class="step-head"><div class="step-num">5</div><div class="step-title">Access requirements</div></div>
       <div class="card">
         <p class="dim mb-2" style="font-size:0.92rem">
           We keep seats aside at every performance. Tell us now and we will have them
@@ -379,12 +586,13 @@
       </div>
     </section>
 
-    <!-- STEP 5 -->
+    <!-- STEP 6 -->
     <section class="step">
-      <div class="step-head"><div class="step-num">5</div><div class="step-title">Confirm and pay</div></div>
+      <div class="step-head"><div class="step-num">6</div><div class="step-title">Confirm and pay</div></div>
       <div class="card card-neon">
         <div class="summary-row"><span>Performance</span><strong id="sum-night" style="color:var(--text)">—</strong></div>
         <div class="summary-row"><span>Tickets</span><strong id="sum-qty" style="color:var(--text)">—</strong></div>
+        <div class="summary-row"><span>Seats</span><strong id="sum-seats" style="color:var(--text)">—</strong></div>
         <div class="summary-row"><span>Price each</span><strong id="sum-price" style="color:var(--text)">—</strong></div>
         <div class="summary-row hidden" id="sum-access-row"><span>Access</span><strong id="sum-access" style="color:var(--text)">—</strong></div>
         <div class="summary-total"><span>Total</span><span class="amount" id="sum-total">—</span></div>
@@ -401,7 +609,7 @@
   <div class="trust-row">
     <span>🔒 Secure checkout</span>
     <span>💳 Powered by SumUp</span>
-    <span>🎟️ Your name on the door list</span>
+    <span>🎟️ Seats reserved in your name</span>
   </div>
 </main>
 
@@ -440,7 +648,12 @@
 </footer>
 
 <script src="config.js"></script>
-<script>
+<script type="module">
+// The gym floor is described once, in seating.js. The booking page and the
+// API both build the same 500 seats from it, so the map you click on and the
+// seats the database hands out can never drift apart.
+import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js';
+
 (function () {
     'use strict';
 
@@ -451,6 +664,10 @@
         qty: 1,
         max: T.maxPerBooking,
         availability: null,
+        taken: new Set(),
+        seats: [],
+        seatsByHand: false,
+        seatsLoading: false,
         access: [],
         accessNotes: '',
         bookingRef: null,
@@ -494,6 +711,7 @@
         $('loading-state').classList.add('hidden');
         $('booking-form').classList.remove('hidden');
 
+        buildSeatMap();
         renderNights();
 
         // pre-select from ?date=, else the first night with tickets
@@ -553,11 +771,12 @@
 
         alertBox('');
         updateSummary();
+        loadSeats(key);
     }
 
     /* ---------------- quantity ---------------- */
-    $('qty-minus').addEventListener('click', () => { if (state.qty > 1) { state.qty--; updateSummary(); } });
-    $('qty-plus').addEventListener('click',  () => { if (state.qty < state.max) { state.qty++; updateSummary(); } });
+    $('qty-minus').addEventListener('click', () => { if (state.qty > 1) { state.qty--; reconcileSeats(); updateSummary(); } });
+    $('qty-plus').addEventListener('click',  () => { if (state.qty < state.max) { state.qty++; reconcileSeats(); updateSummary(); } });
 
     function updateSummary() {
         $('qty-value').textContent = state.qty;
@@ -577,11 +796,238 @@
         $('sum-price').textContent = CONFIG.money(T.price);
         $('sum-total').textContent = CONFIG.money(state.qty * T.price);
 
-        $('pay-btn').disabled = !state.date || state.submitting;
-        $('pay-btn').innerHTML = state.date
-            ? `💳 Pay ${CONFIG.money(state.qty * T.price)} by card`
-            : 'Choose a night to continue';
+        const seatsNeeded = state.qty - state.seats.length;
+        $('sum-seats').textContent = state.seats.length ? describeSeats(state.seats) : '—';
+        $('seat-words').textContent = state.seats.length
+            ? describeSeats(state.seats)
+            : (state.date ? 'No seats chosen yet' : 'Choose a night first');
+        $('seat-count').innerHTML =
+            `<strong>${state.seats.length}</strong> of ${state.qty} seat${state.qty === 1 ? '' : 's'} chosen`;
+
+        const ready = state.date && state.seats.length === state.qty;
+        $('pay-btn').disabled = !ready || state.submitting || state.seatsLoading;
+        $('pay-btn').innerHTML = !state.date
+            ? 'Choose a night to continue'
+            : seatsNeeded > 0
+                ? `Choose ${seatsNeeded} more seat${seatsNeeded === 1 ? '' : 's'}`
+                : `💳 Pay ${CONFIG.money(state.qty * T.price)} by card`;
     }
+
+    /* ---------------- seats ----------------
+       The plan is drawn once and then only repainted, because 500 buttons is
+       enough that rebuilding them on every tap is felt on a phone.
+
+       Most people never open the map: we suggest the best run of seats still
+       free together and they carry on. Opening it is for the people who care
+       where they sit — and it is the reason the toggle is a button rather
+       than the map simply being there, since a 25-wide grid of small targets
+       is a poor thing to meet first on a phone.
+       ---------------------------------------- */
+    const seatEls = new Map();
+
+    function buildSeatMap() {
+        const cross = SEAT_MAP.geometry.crossAfter;
+
+        $('seat-rows').innerHTML = SEAT_MAP.rows.map(row => {
+            const before = cross && row.index === cross
+                ? '<div class="cross-aisle" aria-hidden="true"></div>' : '';
+
+            const blocks = SEAT_MAP.blocks.map(b =>
+                '<div class="seat-block">' +
+                row.seats.filter(s => s.blockId === b.id).map(seatButton).join('') +
+                '</div>'
+            ).join('<div class="aisle" aria-hidden="true"></div>');
+
+            return before +
+                '<div class="seat-row">' +
+                `<div class="row-label" aria-hidden="true">${row.letter}</div>` +
+                blocks +
+                `<div class="row-label" aria-hidden="true">${row.letter}</div>` +
+                '</div>';
+        }).join('');
+
+        seatEls.clear();
+        $('seat-rows').querySelectorAll('.seat').forEach(el => seatEls.set(el.dataset.seat, el));
+    }
+
+    function seatButton(seat) {
+        return '<button type="button" class="seat" data-state="free"' +
+               ` data-seat="${seat.id}"` +
+               (seat.wheelchair ? ' data-wheelchair="1"' : '') +
+               ' aria-pressed="false"' +
+               ` aria-label="Row ${seat.row}, seat ${seat.number}"></button>`;
+    }
+
+    function paintSeats() {
+        const mine = new Set(state.seats);
+
+        seatEls.forEach((el, id) => {
+            const seat  = SEAT_MAP.byId.get(id);
+            const taken = state.taken.has(id);
+            const held  = mine.has(id);
+
+            el.dataset.state = held ? 'selected' : taken ? 'taken' : 'free';
+            el.disabled = taken && !held;
+            el.setAttribute('aria-pressed', String(held));
+            el.setAttribute('aria-label',
+                `Row ${seat.row}, seat ${seat.number}` +
+                (seat.wheelchair ? ', wheelchair space' : '') + ', ' +
+                (held ? 'chosen' : taken ? 'already taken' : 'free'));
+        });
+    }
+
+    async function loadSeats(date) {
+        state.seatsLoading = true;
+        state.seats = [];
+        state.seatsByHand = false;
+        $('seat-loading').classList.remove('hidden');
+        $('seat-chosen').classList.add('hidden');
+        updateSummary();
+
+        try {
+            const res = await fetch(CONFIG.api.seats + '?date=' + encodeURIComponent(date), { cache: 'no-store' });
+            if (!res.ok) throw new Error('seat lookup failed');
+            const data = await res.json();
+
+            // Only accept what this night actually says; a stale reply for the
+            // night they just switched away from would grey out the wrong seats.
+            if (state.date !== date) return;
+            state.taken = new Set(cleanSeats(data.taken || []));
+
+        } catch (err) {
+            console.warn('seat map failed', err);
+            if (state.date !== date) return;
+            state.taken = new Set();
+            $('seat-note').textContent =
+                'We could not check the map just now. Carry on — we will seat your party ' +
+                'together and put the seat numbers in your confirmation email.';
+        } finally {
+            if (state.date === date) {
+                state.seatsLoading = false;
+                $('seat-loading').classList.add('hidden');
+                $('seat-chosen').classList.remove('hidden');
+                suggestSeats();
+            }
+        }
+    }
+
+    /** The best run still free together, which is what most people want. */
+    function suggestSeats() {
+        state.seats = allocateSeats(state.qty, state.taken);
+        state.seatsByHand = false;
+        paintSeats();
+        updateSummary();
+        if (!$('seatmap-panel').classList.contains('hidden')) showSelection();
+    }
+
+    function toggleSeat(id) {
+        const chosen = state.seats.indexOf(id);
+
+        if (chosen >= 0) {
+            state.seats.splice(chosen, 1);
+        } else {
+            if (state.taken.has(id)) return;
+            // Already holding one per ticket: the seat chosen longest ago makes
+            // way, so a tap always does something instead of being refused.
+            if (state.seats.length >= state.qty) state.seats.shift();
+            state.seats.push(id);
+        }
+
+        state.seatsByHand = true;
+        paintSeats();
+        updateSummary();
+    }
+
+    /**
+     * Ticket count changed. Somebody who picked their own seats keeps them:
+     * we trim from the end, or grow the run they chose along its own row.
+     * Only when neither works do we move them, and say so.
+     */
+    function reconcileSeats() {
+        if (!state.date || state.seatsLoading) return;
+        if (!state.seatsByHand) { suggestSeats(); return; }
+
+        if (state.seats.length > state.qty) {
+            state.seats = cleanSeats(state.seats).slice(0, state.qty);
+        } else if (state.seats.length < state.qty) {
+            const grown = growSelection();
+            if (grown.length === state.qty) {
+                state.seats = grown;
+            } else {
+                suggestSeats();
+                $('seat-note').textContent =
+                    'Your seats could not stretch that far, so we have found the party a new spot together.';
+                return;
+            }
+        }
+
+        paintSeats();
+        updateSummary();
+    }
+
+    /** Extend the chosen run sideways within its own block, if it can. */
+    function growSelection() {
+        const chosen = cleanSeats(state.seats);
+        if (!chosen.length) return [];
+
+        const first = SEAT_MAP.byId.get(chosen[0]);
+        const sameBlock = chosen.every(id => {
+            const s = SEAT_MAP.byId.get(id);
+            return s.rowIndex === first.rowIndex && s.blockId === first.blockId;
+        });
+        if (!sameBlock) return [];
+
+        const block = SEAT_MAP.rows[first.rowIndex].seats.filter(s => s.blockId === first.blockId);
+        const held = new Set(chosen);
+        let lo = block.findIndex(s => s.id === chosen[0]);
+        let hi = block.findIndex(s => s.id === chosen[chosen.length - 1]);
+
+        while (held.size < state.qty) {
+            const right = block[hi + 1];
+            const left  = block[lo - 1];
+            if (right && !state.taken.has(right.id)) { held.add(right.id); hi++; continue; }
+            if (left  && !state.taken.has(left.id))  { held.add(left.id);  lo--; continue; }
+            return [];
+        }
+        return cleanSeats([...held]);
+    }
+
+    $('seat-rows').addEventListener('click', function (e) {
+        const btn = e.target.closest('.seat');
+        if (btn && !btn.disabled) toggleSeat(btn.dataset.seat);
+    });
+
+    /* On a phone the map is wider than the screen, so bring the seats we are
+       holding into view rather than opening on row A's left-hand corner. */
+    function showSelection() {
+        const first = state.seats.length && seatEls.get(state.seats[0]);
+        if (first) first.scrollIntoView({ block: 'nearest', inline: 'center' });
+        markScrollEnd();
+    }
+
+    function markScrollEnd() {
+        const box = $('seatmap-scroll');
+        const atEnd = box.scrollLeft + box.clientWidth >= box.scrollWidth - 2;
+        box.classList.toggle('at-end', atEnd);
+    }
+
+    $('seatmap-scroll').addEventListener('scroll', markScrollEnd, { passive: true });
+
+    $('seat-best').addEventListener('click', function () {
+        suggestSeats();
+        $('seat-note').textContent = 'We have picked the best seats left together.';
+    });
+
+    $('seat-toggle').addEventListener('click', function () {
+        const panel = $('seatmap-panel');
+        const open = panel.classList.toggle('hidden') === false;
+        this.setAttribute('aria-expanded', String(open));
+        this.textContent = open ? 'Done' : 'Pick your own';
+        if (open) {
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            showSelection();
+        }
+    });
 
     /* ---------------- access and seating ----------------
        Unticked means "nothing needed" — the commonest answer, and the one
@@ -649,6 +1095,7 @@
         const via   = $('booked-by').value.trim();
 
         if (!state.date)                       return alertBox('Please choose a performance.');
+        if (state.seats.length !== state.qty)  return alertBox('Please choose one seat for each ticket.');
         if (name.length < 2)                   return alertBox('Please enter your full name.');
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return alertBox('Please enter a valid email address.');
 
@@ -665,6 +1112,7 @@
                 body: JSON.stringify({
                     performanceDate: state.date,
                     quantity: state.qty,
+                    seats: state.seats,
                     customerName: name,
                     customerEmail: email,
                     customerPhone: phone,
@@ -677,6 +1125,13 @@
             const data = await res.json();
 
             if (!res.ok) {
+                // Somebody paid for one of these seats while this page was
+                // open. Grey them out and find the party somewhere else, so
+                // the next tap is on a seat that is genuinely free.
+                if (Array.isArray(data.seatsTaken) && data.seatsTaken.length) {
+                    cleanSeats(data.seatsTaken).forEach(id => state.taken.add(id));
+                    suggestSeats();
+                }
                 if (res.status === 409) await refreshAvailability();
                 throw new Error(data.error || 'Could not start the payment.');
             }
@@ -712,7 +1167,8 @@
     function openPaymentModal(data) {
         const perf = CONFIG.getPerformance(state.date);
         $('pay-summary').textContent =
-            `${perf ? perf.label : ''} · ${data.quantity} ticket${data.quantity === 1 ? '' : 's'} · ${CONFIG.money(data.amount)}`;
+            `${perf ? perf.label : ''} · ${data.quantity} ticket${data.quantity === 1 ? '' : 's'} · ` +
+            `${data.seatsLabel ? data.seatsLabel + ' · ' : ''}${CONFIG.money(data.amount)}`;
 
         $('payment-loading').style.display = 'block';
         $('payment-error').innerHTML = '';

@@ -9,6 +9,8 @@ import {
 } from './_supabase.js';
 import { sendConfirmationFor } from './_confirmations.js';
 import { siteUrl } from './_show.js';
+import { cleanSeats, describeSeats } from '../seating.js';
+import { ensureSeats } from './_seats.js';
 
 export default async function handler(req, res) {
     if (applyCors(req, res)) return;
@@ -32,7 +34,7 @@ export default async function handler(req, res) {
     try {
         /* ---- what do we have on file? ---- */
         const [booking] = await sbSelect(
-            `bookings?select=*&booking_reference=eq.${encodeURIComponent(bookingRef)}&limit=1`
+            `bookings?select=*,booking_seats(seat_id)&booking_reference=eq.${encodeURIComponent(bookingRef)}&limit=1`
         );
 
         if (!booking) {
@@ -83,7 +85,23 @@ export default async function handler(req, res) {
             }
         );
 
-        const confirmed = updated || booking;
+        // The PATCH comes back without the embedded seats, so carry them over
+        // from the row we already have.
+        const confirmed = updated ? { ...updated, booking_seats: booking.booking_seats } : booking;
+
+        // Paid, but the hold had already run out and the seats went back on
+        // sale. Seat them again before the confirmation email goes, so it
+        // leaves with seat numbers on it rather than none.
+        if (!seatIds(confirmed).length) {
+            const again = await ensureSeats(bookingRef, confirmed.performance_date, confirmed.quantity);
+            if (again.seats.length) {
+                confirmed.booking_seats = again.seats.map(seat_id => ({ seat_id }));
+                console.log('reseated', bookingRef, 'as', again.label);
+            } else {
+                console.error('could not reseat', bookingRef, again.error);
+            }
+        }
+
         const email = await confirmationAttempt(bookingRef, confirmed, req);
 
         return res.status(200).json({ paid: true, booking: publicView(confirmed), email });
@@ -157,8 +175,15 @@ function publicView(b) {
         status: b.status,
         paymentStatus: b.payment_status,
         accessNeeds: String(b.access_needs || '').split(',').filter(Boolean),
-        accessNotes: b.access_notes || ''
+        accessNotes: b.access_notes || '',
+        seats: seatIds(b),
+        seatsLabel: describeSeats(seatIds(b))
     };
+}
+
+/** The seat ids on a booking row, however PostgREST embedded them. */
+function seatIds(b) {
+    return cleanSeats((b?.booking_seats || []).map(s => s.seat_id));
 }
 
 /** j***e@gmail.com — enough to spot a typo, not enough to harvest. */

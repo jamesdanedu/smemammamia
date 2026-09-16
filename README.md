@@ -46,16 +46,18 @@ Two things this site deliberately does differently from older school booking sit
 ```
 index.html         Home — hero, countdown, live availability per night
 about.html         Story, song list, characters, credits
-booking.html       The booking flow (night → quantity → details → SumUp)
+booking.html       The booking flow (night → quantity → seats → details → SumUp)
 success.html       Payment confirmation, booking reference, add-to-calendar
 cast.html          Cast & crew          (content in cast.js)
 photos.html        Gallery + lightbox   (content in photos.js)
 games.html         Arcade games
 quiz.html          Trivia bank, 10 questions per round
 wall.html          Public good-luck message wall (moderated)
+seating.html       The seating plan: the map, and the setting-out measurements
 admin.html         Password-protected dashboard
 
 config.js          >>> Show dates, times, venue, price, capacity — edit this first
+seating.js         >>> The gym floor: hall size, rows, blocks, aisles — the 500 seats
 theme.css          Shared "Aegean whitewash" design system
 cast.js            Cast and crew list
 photos.js          Gallery image list
@@ -66,7 +68,9 @@ api/_supabase.js       Shared PostgREST helper (no npm dependencies)
 api/_email.js          Resend + Brevo senders, and the confirmation template
 api/_confirmations.js  The "has this already been sent?" rule, in one place
 api/_show.js           Show details the emails need (keep in sync with config.js)
+api/_seats.js          Re-seats a booking whose hold died before the money landed
 api/availability.js    GET  — aggregate ticket counts only, no customer data
+api/seats.js           GET  — which seats are gone for a night, and nothing else
 api/create-checkout.js POST — reserves tickets atomically, opens SumUp checkout
 api/verify-payment.js  POST — asks SumUp if it was paid, confirms, sends the email
 api/reconcile.js       CRON — rescues abandoned payments, retries unsent emails
@@ -78,6 +82,8 @@ schema-email.sql   Run second — email tracking and payment rescue
 schema-accessibility.sql
                    Run third, only on a database created before the booking
                    form started asking about access requirements
+schema-seating.sql Run fourth, only on a database created before seats were
+                   chosen at booking
 vercel.json        Headers and routing
 .env.example       The environment variables you need to set
 ```
@@ -206,7 +212,7 @@ You can also hit **Run checks now** on the admin Overview tab any time.
 
 ### Step 3c — Accessibility requests
 
-Step 4 of the booking form asks whether anyone in the party needs accessible
+Step 5 of the booking form asks whether anyone in the party needs accessible
 seating. The answers are stored on the booking, shown on the
 admin Overview, Bookings and Door list tabs, exported in the CSV, and echoed back
 in the confirmation email so a mistake can be corrected in good time.
@@ -222,6 +228,59 @@ browser and `api/_show.js` for the server. Only the short codes
 (`wheelchair`, `aisle`, `hearing`, `other`)
 are stored, so the labels can be reworded at any time without touching bookings
 already taken. Anything the browser sends that is not on that list is dropped.
+
+### Step 3d — The seating plan
+
+The gym floor is described once, in **`seating.js`**, and everything else is built
+from it: the map people click on, the seats the database hands out, the numbers on
+the confirmation email, the admin seat map, and the setting-out plan on
+`seating.html`. There is no second copy to keep in step.
+
+The plan as it stands — **20 rows of 25 seats, 500 a night**:
+
+| | |
+|---|---|
+| Hall floor | 30.00 m × 18.00 m *(measure this and correct it)* |
+| Stage | 6.00 m deep across one end, 2.00 m clear in front of row A |
+| Rows | 20, at 0.85 m — lettered A to V, skipping I and O |
+| Seats across | 7 + 11 + 7, with two 1.20 m aisles |
+| Side gangways | 1.55 m at each wall |
+| Cross gangway | 1.20 m, after row K |
+| Behind the last row | 3.00 m to the exits |
+| Spare depth | 0.80 m |
+
+The block sizes are not arbitrary: nobody is more than 7 seats from an aisle where
+there is only one to reach, or 14 where there are aisles at both ends, and every
+gangway is at least 1.05 m. Four seats on the cross gangway (L1, L2, L24, L25) are
+wheelchair spaces — the chair is taken away rather than the seat deleted, so the
+count stays at 500 and the space can still be sold if nobody needs it.
+
+A seat is held the moment the tickets are — `create_hold` takes the ticket count and
+the seats in one transaction, under the same per-performance lock — so two people
+cannot be sold the same chair, and a booking can never end up with tickets but no
+seats. When a hold expires the seats go back on sale by themselves. The one case that
+needs care is a payment that lands after its hold died: the reconciler confirms the
+booking (the money is real) and `assign_seats` finds it new seats before the
+confirmation email goes out.
+
+**To change the plan**, edit `LAYOUT` at the top of `seating.js` and reload. Row
+count, block sizes, chair width, row pitch, aisle widths and the hall size are all
+variables. `seating.html` re-draws itself, prints the new setting-out table, and
+tells you in red if the result no longer fits or breaks a gangway rule.
+
+Two things to do after changing it:
+
+1. **Keep capacity in step.** `seating.js` and the `capacity` in `config.js` must
+   agree, or the last tickets cannot be seated (capacity too high) or the last seats
+   cannot be sold (too low). Change `config.js` too, then *Sync from config.js* on
+   the admin Settings tab.
+2. **Do not re-draw it once seats are sold.** Seat ids already on bookings
+   (`booking_seats`) are not moved by a change to the plan. Dropping a row or
+   narrowing a block would leave people holding seats that no longer exist on the map.
+
+If the database was created before this existed, run **`schema-seating.sql`** once in
+the SQL editor. Until it is run, every booking attempt fails with *Could not reserve
+your tickets*, because the site calls `create_hold` with the new `p_seats` argument.
 
 ### Step 4 — Vercel
 
@@ -283,11 +342,12 @@ Redeploy after adding them — Vercel only picks up new variables on a fresh bui
 
 ```
 Browser                     /api/create-checkout            Supabase        SumUp
-   │  night + qty + details          │                          │             │
+   │  GET /api/seats?date=…  ── which seats are already gone ──>│             │
+   │  night + qty + seats + details  │                          │             │
    ├────────────────────────────────>│                          │             │
    │                                 │  create_hold()           │             │
    │                                 ├─────────────────────────>│             │
-   │                                 │  (advisory lock, capacity checked)     │
+   │                                 │  (advisory lock, capacity AND seats)   │
    │                                 │  <── booking, held 15 min │             │
    │                                 ├────────────────────────────────────────>│
    │  <── checkoutUrl ───────────────┤                          │  checkout    │
@@ -426,7 +486,9 @@ the code, so the site runs — but each one needs a real answer from the school.
 | # | Item | Where it lives |
 |---|---|---|
 | 1 | **Doors and curtain times.** Currently 7:00 PM / 7:30 PM. | `config.js`, `api/_show.js` (and `SHOW_DOORS` / `SHOW_CURTAIN` if overridden) |
-| 2 | **500 capacity per night** — check it against the hall's fire cert before selling to it. | `config.js`, the seed block in `schema.sql`, admin *Settings* |
+| 2 | **500 capacity per night** — check it against the hall's fire cert before selling to it. | `config.js`, `seating.js`, the seed block in `schema.sql`, admin *Settings* |
+| 2a | **The gym's real measurements.** The plan assumes a 30.00 m × 18.00 m clear floor. Measure it, correct `LAYOUT.hall` in `seating.js`, and check `seating.html` still reports no problems. | `seating.js` |
+| 2b | **Fire officer sign-off on the seating plan.** Block sizes and gangway widths follow the usual guidance for temporary seating, but the sign-off is somebody else's. | `seating.html` (print it and bring it) |
 | 3 | **SumUp merchant account** — reuse the school's existing one, or open a new one for this show? | `SUMUP_API_KEY`, `SUMUP_MERCHANT_CODE` in Vercel |
 | 4 | **Contact form.** Questions go through `contact.html` → `/api/enquiries`, emailed to `smemammamia@proton.me`. Needs email set up (Step 3) to work; shares the provider's daily sending cap with confirmations. | `ENQUIRIES_TO`, `EMAIL_REPLY_TO` in Vercel |
 | 5 | **Artwork and logo treatments.** Confirm with MTI exactly which artwork and logo treatments the school may use — the "Bride" art and the ABBA name are out, so check what is in. | `logo.svg`, `favicon.svg`, `/images`, and anything going to print |
@@ -444,6 +506,11 @@ database.
   clean way back. Separate repo, separate Vercel project, separate database.
 * **`TICKET_PRICE` and `config.js` disagreeing.** The page shows one price, the
   server charges another. Set both.
+* **Re-drawing the seating plan after tickets have sold.** Seat ids already on
+  bookings are not moved. Take out a row and somebody is holding a seat that is no
+  longer on the map, and will not find it on the night.
+* **Capacity and `seating.js` disagreeing.** Capacity above 500 sells tickets there
+  is nowhere to seat; below 500 leaves seats that cannot be sold.
 * **Adding a performance date in `config.js` but not the database.** The night shows
   on the site, then booking fails with "that performance does not exist". Run *Sync
   from config.js*.

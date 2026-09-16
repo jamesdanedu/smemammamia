@@ -30,7 +30,7 @@ export async function sendConfirmationFor(reference, { force = false, kind = 'co
 
     /* --- look before claiming, so a door sale never burns an attempt --- */
     const [booking] = await sbSelect(
-        `bookings?select=*&booking_reference=eq.${encodeURIComponent(reference)}&limit=1`
+        `bookings?select=*,booking_seats(seat_id)&booking_reference=eq.${encodeURIComponent(reference)}&limit=1`
     );
 
     if (!booking)                       return { sent: false, skipped: 'booking not found' };
@@ -69,7 +69,12 @@ export async function sendConfirmationFor(reference, { force = false, kind = 'co
 
     /* --- send --- */
     try {
-        const message = buildConfirmation(claimed, { performanceLabel, url });
+        // claim_confirmation_email returns the bookings row on its own, so the
+        // seats have to come from the row we read a moment ago.
+        const message = buildConfirmation(
+            { ...claimed, booking_seats: booking.booking_seats || [] },
+            { performanceLabel, url }
+        );
         const result = await sendEmail(message);
 
         await sbRpc('record_email_result', {
