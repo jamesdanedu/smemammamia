@@ -403,6 +403,36 @@ input[type="checkbox"] {
     .card { border: 1px solid #999; background: #fff; box-shadow: none; }
     .tag { background: #fff !important; color: #000 !important; border: 1px solid #999; }
 }
+/* Seat map panel — the hall as it will actually stand on the night */
+.seatplan { --sq: 15px; --gp: 2px; --ai: 22px; width: max-content; margin: 0 auto; padding: 4px; }
+.seatplan-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
+.seatplan .stage {
+    background: var(--cyan); color: #fff; text-align: center; border-radius: 3px;
+    padding: 6px 0; font-size: 0.64rem; letter-spacing: 0.2em; margin-bottom: 10px;
+}
+.seatplan .r { display: flex; align-items: center; gap: var(--gp); margin-bottom: var(--gp); }
+.seatplan .blk { display: flex; gap: var(--gp); }
+.seatplan .ai { width: var(--ai); flex: none; }
+.seatplan .cross { height: 12px; }
+.seatplan .lbl { width: 16px; flex: none; text-align: center; font-size: 0.58rem; color: var(--text-faint); }
+.seatplan .s {
+    width: var(--sq); height: var(--sq); flex: none; border-radius: 3px;
+    border: 1px solid var(--border-strong); background: var(--surface);
+}
+.seatplan .s.sold { background: var(--cyan); border-color: var(--cyan); }
+.seatplan .s.held { background: var(--yellow); border-color: var(--yellow); }
+.seatplan .s.wheel { outline: 1px solid var(--pink); outline-offset: 1px; }
+.seatplan-legend {
+    display: flex; gap: 6px 16px; flex-wrap: wrap; justify-content: center;
+    margin-top: 10px; font-size: 0.76rem; color: var(--text-dim);
+}
+.seatplan-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.seatplan-legend i { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--border-strong); }
+.seatplan-legend i.sold { background: var(--cyan); border-color: var(--cyan); }
+.seatplan-legend i.held { background: var(--yellow); border-color: var(--yellow); }
+.seatplan-legend i.wheel { outline: 1px solid var(--pink); outline-offset: 1px; }
+.seats-cell { font-size: 0.78rem; line-height: 1.35; }
+
 </style>
 </head>
 <body>
@@ -442,6 +472,7 @@ input[type="checkbox"] {
     <button class="tab active" data-panel="overview">Overview</button>
     <button class="tab" data-panel="bookings">Bookings</button>
     <button class="tab" data-panel="door">Door list</button>
+    <button class="tab" data-panel="seats">Seat map</button>
     <button class="tab" data-panel="add">Add booking</button>
     <button class="tab" data-panel="wall">Message wall</button>
     <button class="tab" data-panel="settings">Settings</button>
@@ -486,9 +517,9 @@ input[type="checkbox"] {
     <div class="table-scroll">
       <table>
         <thead><tr>
-          <th>Ref</th><th>Name</th><th>Contact</th><th>Night</th><th>Qty</th><th>Amount</th><th>Status</th><th>Access</th><th>Email</th><th>Sold by</th><th></th>
+          <th>Ref</th><th>Name</th><th>Contact</th><th>Night</th><th>Qty</th><th>Seats</th><th>Amount</th><th>Status</th><th>Access</th><th>Email</th><th>Sold by</th><th></th>
         </tr></thead>
-        <tbody id="bookings-body"><tr><td colspan="11" class="dim">Loading…</td></tr></tbody>
+        <tbody id="bookings-body"><tr><td colspan="12" class="dim">Loading…</td></tr></tbody>
       </table>
     </div>
     <p class="dim mt-2" style="font-size:0.82rem" id="bookings-count"></p>
@@ -503,9 +534,36 @@ input[type="checkbox"] {
     <h2 id="door-heading" style="font-size:1.05rem;margin-bottom:12px"></h2>
     <div class="table-scroll">
       <table>
-        <thead><tr><th style="width:34px">✓</th><th>Name</th><th>Qty</th><th>Ref</th><th>Paid</th><th>Access</th><th>Sold by</th></tr></thead>
-        <tbody id="door-body"><tr><td colspan="7" class="dim">Choose a night.</td></tr></tbody>
+        <thead><tr><th style="width:34px">✓</th><th>Name</th><th>Qty</th><th>Seats</th><th>Ref</th><th>Paid</th><th>Access</th><th>Sold by</th></tr></thead>
+        <tbody id="door-body"><tr><td colspan="8" class="dim">Choose a night.</td></tr></tbody>
       </table>
+    </div>
+  </section>
+
+
+  <!-- SEAT MAP -->
+  <section class="panel" id="panel-seats">
+    <div class="toolbar no-print">
+      <div class="field"><select id="seatplan-night"></select></div>
+      <button class="btn btn-ghost" id="print-seatplan" style="padding:11px 18px;font-size:0.82rem">🖨️ Print</button>
+    </div>
+    <h2 id="seatplan-heading" style="font-size:1.05rem;margin-bottom:12px"></h2>
+    <div class="card">
+      <div class="seatplan-scroll">
+        <div class="seatplan" id="seatplan">
+          <div class="stage">STAGE</div>
+          <div id="seatplan-rows"></div>
+        </div>
+      </div>
+      <div class="seatplan-legend">
+        <span><i></i> Free</span>
+        <span><i class="sold"></i> Sold</span>
+        <span><i class="held"></i> Holding</span>
+        <span><i class="wheel"></i> Wheelchair space</span>
+      </div>
+      <p class="dim text-center mt-2" style="font-size:0.82rem">
+        Hover or tap a seat for the name on it.
+      </p>
     </div>
   </section>
 
@@ -568,7 +626,10 @@ input[type="checkbox"] {
 </div>
 
 <script src="config.js"></script>
-<script>
+<script type="module">
+// Same plan the booking page and the API use — see seating.js.
+import { SEAT_MAP } from './seating.js';
+
 (function () {
     'use strict';
     const $ = id => document.getElementById(id);
@@ -649,6 +710,7 @@ input[type="checkbox"] {
             tab.classList.add('active');
             $('panel-' + tab.dataset.panel).classList.add('active');
             if (tab.dataset.panel === 'wall') loadWall();
+            if (tab.dataset.panel === 'seats') loadSeatPlan();
         });
     });
 
@@ -657,6 +719,7 @@ input[type="checkbox"] {
         const options = CONFIG.performances.map(p => `<option value="${p.key}">${p.label}</option>`).join('');
         $('filter-night').innerHTML = '<option value="">All nights</option>' + options;
         $('door-night').innerHTML = options;
+        $('seatplan-night').innerHTML = options;
         $('add-night').innerHTML = options;
     }
 
@@ -843,6 +906,7 @@ input[type="checkbox"] {
                 <td>${escapeHtml(b.customer_email || '')}<br><span class="faint">${escapeHtml(b.customer_phone || '')}</span></td>
                 <td class="night">${perf ? perf.short : b.performance_date}</td>
                 <td><strong>${b.quantity}</strong></td>
+                <td class="seats-cell">${b.seatsLabel ? escapeHtml(b.seatsLabel) : '<span class="faint">—</span>'}</td>
                 <td>${CONFIG.money(b.amount)}</td>
                 <td>${statusTag}${payTag}${overTag}</td>
                 <td>${accessCell(b)}</td>
@@ -853,7 +917,7 @@ input[type="checkbox"] {
                   ${b.status === 'cancelled' ? '' : `<button class="mini-btn" data-cancel="${b.booking_reference}">Cancel</button>`}
                 </td>
             </tr>`;
-        }).join('') : '<tr><td colspan="11" class="dim">No bookings match those filters.</td></tr>';
+        }).join('') : '<tr><td colspan="12" class="dim">No bookings match those filters.</td></tr>';
 
         $('bookings-body').querySelectorAll('[data-resend]').forEach(btn => {
             btn.addEventListener('click', async () => {
@@ -909,12 +973,12 @@ input[type="checkbox"] {
     /* ---------------- CSV ---------------- */
     $('csv-btn').addEventListener('click', () => {
         const rows = filteredBookings();
-        const header = ['Reference', 'Name', 'Email', 'Phone', 'Performance', 'Tickets', 'Amount',
+        const header = ['Reference', 'Name', 'Email', 'Phone', 'Performance', 'Tickets', 'Seats', 'Amount',
                         'Status', 'Payment', 'Access', 'Access notes', 'Sold by', 'Booked at',
                         'Confirmation sent', 'Email error'];
         const body = rows.map(b => [
             b.booking_reference, b.customer_name, b.customer_email, b.customer_phone || '',
-            b.performance_date, b.quantity, b.amount, b.status, b.payment_status,
+            b.performance_date, b.quantity, (b.seats || []).join(' '), b.amount, b.status, b.payment_status,
             CONFIG.accessLabels(b.access_needs).join(', '), b.access_notes || '',
             b.booked_by || '', new Date(b.created_at).toLocaleString('en-IE'),
             b.confirmation_sent_at ? new Date(b.confirmation_sent_at).toLocaleString('en-IE') : '',
@@ -948,12 +1012,13 @@ input[type="checkbox"] {
                   <td style="font-size:1.1rem">☐</td>
                   <td><strong>${escapeHtml(b.customer_name)}</strong></td>
                   <td><strong>${b.quantity}</strong></td>
+                  <td class="seats-cell">${b.seatsLabel ? escapeHtml(b.seatsLabel) : ''}</td>
                   <td class="ref">${b.booking_reference}</td>
                   <td>${b.payment_status === 'cash' ? 'Cash' : b.payment_status === 'refunded' ? 'Comp' : 'Card'}</td>
                   <td>${accessSummary(b) ? '♿ ' + escapeHtml(accessSummary(b)) : ''}</td>
                   <td>${escapeHtml(b.booked_by || '')}</td>
                 </tr>`).join('')
-                : '<tr><td colspan="7" class="dim">No confirmed bookings for this night yet.</td></tr>';
+                : '<tr><td colspan="8" class="dim">No confirmed bookings for this night yet.</td></tr>';
         } catch (err) {
             note('dash-alert', err.message);
         }
@@ -961,6 +1026,71 @@ input[type="checkbox"] {
 
     $('door-night').addEventListener('change', loadDoorList);
     $('print-door').addEventListener('click', () => window.print());
+
+
+    /* ---------------- seat map ----------------
+       The hall as it will stand on the night: who is where, what is still
+       free, and which chairs come out for a wheelchair. Drawn from the same
+       seating.js plan the booking page uses, so it cannot disagree with what
+       anybody was sold.
+       ------------------------------------------ */
+    let seatPlanBuilt = false;
+
+    function buildSeatPlan() {
+        const cross = SEAT_MAP.geometry.crossAfter;
+
+        $('seatplan-rows').innerHTML = SEAT_MAP.rows.map(row => {
+            const before = cross && row.index === cross ? '<div class="cross"></div>' : '';
+            const blocks = SEAT_MAP.blocks.map(b =>
+                '<div class="blk">' + row.seats.filter(s => s.blockId === b.id).map(s =>
+                    `<div class="s${s.wheelchair ? ' wheel' : ''}" data-seat="${s.id}"` +
+                    ` title="${s.id} — free"></div>`
+                ).join('') + '</div>'
+            ).join('<div class="ai"></div>');
+
+            return before + '<div class="r">' +
+                `<div class="lbl">${row.letter}</div>` + blocks +
+                `<div class="lbl">${row.letter}</div>` + '</div>';
+        }).join('');
+
+        seatPlanBuilt = true;
+    }
+
+    async function loadSeatPlan() {
+        const date = $('seatplan-night').value;
+        if (!date) return;
+        if (!seatPlanBuilt) buildSeatPlan();
+
+        const perf = CONFIG.getPerformance(date);
+        try {
+            const data = await api('seat-map', { performanceDate: date });
+            const byId = new Map(data.taken.map(t => [t.seat_id, t]));
+
+            $('seatplan-rows').querySelectorAll('.s').forEach(el => {
+                const t = byId.get(el.dataset.seat);
+                el.classList.toggle('sold', Boolean(t && t.status === 'confirmed'));
+                el.classList.toggle('held', Boolean(t && t.status === 'held'));
+                el.title = t
+                    ? `${el.dataset.seat} — ${t.customer_name} (${t.booking_reference})` +
+                      (t.status === 'held' ? ' · holding' : '') +
+                      (t.access_needs ? ' · ' + CONFIG.accessLabels(t.access_needs).join(', ') : '')
+                    : `${el.dataset.seat} — free`;
+            });
+
+            const sold = data.taken.filter(t => t.status === 'confirmed').length;
+            const held = data.taken.length - sold;
+            $('seatplan-heading').textContent =
+                `${perf ? perf.label : date} — ${sold} sold` +
+                (held ? `, ${held} holding` : '') +
+                `, ${data.remaining} free of ${data.total}`;
+
+        } catch (err) {
+            note('dash-alert', err.message);
+        }
+    }
+
+    $('seatplan-night').addEventListener('change', loadSeatPlan);
+    $('print-seatplan').addEventListener('click', () => window.print());
 
     /* ---------------- add booking ---------------- */
     $('add-access-grid').innerHTML = CONFIG.accessOptions.map(o => `
@@ -976,7 +1106,7 @@ input[type="checkbox"] {
 
         $('add-btn').disabled = true;
         try {
-            const { booking } = await api('cash-booking', {
+            const { booking, seatsLabel } = await api('cash-booking', {
                 performanceDate: $('add-night').value,
                 customerName: name,
                 quantity: qty,
@@ -988,7 +1118,9 @@ input[type="checkbox"] {
                 accessNotes: $('add-access-notes').value.trim(),
                 free: $('add-free').checked
             });
-            note('add-alert', `Added — reference ${booking.booking_reference}.`, 'success');
+            note('add-alert',
+                 `Added — reference ${booking.booking_reference}.` +
+                 (seatsLabel ? ` Seats: ${seatsLabel}.` : ''), 'success');
             ['add-name', 'add-email', 'add-phone', 'add-notes', 'add-access-notes']
                 .forEach(id => { $(id).value = ''; });
             document.querySelectorAll('[data-add-access]').forEach(cb => { cb.checked = false; });

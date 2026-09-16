@@ -18,6 +18,7 @@
 import { applyCors, sbSelect, sbRpc, supabaseConfigured } from './_supabase.js';
 import { sendConfirmationFor, isRealAddress } from './_confirmations.js';
 import { emailConfigured } from './_email.js';
+import { ensureSeats } from './_seats.js';
 import { siteUrl } from './_show.js';
 
 const MAX_RESCUE = 40;   // per run — keeps us inside the serverless time limit
@@ -139,6 +140,19 @@ export async function runReconcile(url = '') {
                         p_reference: booking.booking_reference,
                         p_transaction_id: paid.transaction_id || paid.transactions?.[0]?.id || null
                     });
+
+                    // The hold is long gone by the time we get here, so the
+                    // seats went back on sale. Seat them again — the email in
+                    // the next sweep re-reads the booking and picks them up.
+                    const reseated = await ensureSeats(
+                        booking.booking_reference, booking.performance_date, booking.quantity
+                    );
+                    if (reseated.seats.length) {
+                        console.log('reconcile: reseated', booking.booking_reference, 'as', reseated.label);
+                    } else {
+                        console.error('reconcile: could not reseat', booking.booking_reference, reseated.error);
+                        summary.rescue.unseated = (summary.rescue.unseated || 0) + 1;
+                    }
 
                     summary.rescue.rescued++;
                     summary.rescue.references.push(booking.booking_reference);

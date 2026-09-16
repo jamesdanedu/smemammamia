@@ -160,6 +160,7 @@
       <div class="detail-row"><span class="k">Doors / Curtain</span><span class="v" id="d-time">—</span></div>
       <div class="detail-row"><span class="k">Venue</span><span class="v" id="d-venue">—</span></div>
       <div class="detail-row"><span class="k">Tickets</span><span class="v" id="d-qty">—</span></div>
+      <div class="detail-row hidden" id="d-seats-row"><span class="k">Your seats</span><span class="v" id="d-seats">—</span></div>
       <div class="detail-row"><span class="k">Paid</span><span class="v" id="d-amount">—</span></div>
       <div class="detail-row hidden" id="d-access-row"><span class="k">Access</span><span class="v" id="d-access">—</span></div>
     </div>
@@ -296,6 +297,13 @@
         $('d-qty').textContent     = b.quantity + (b.quantity === 1 ? ' ticket' : ' tickets');
         $('d-amount').textContent  = CONFIG.money(b.amount);
 
+        // The seats themselves. Bookings taken before the seating map existed
+        // have none, and simply do without the line.
+        if (b.seatsLabel) {
+            $('d-seats').textContent = b.seatsLabel;
+            $('d-seats-row').classList.remove('hidden');
+        }
+
         // Access requests are echoed back so a mistake can be spotted while
         // there is still time to change the seating.
         const access = CONFIG.accessLabels(b.accessNeeds || []);
@@ -354,7 +362,8 @@
             'DTEND:' + stamp(end),
             'SUMMARY:Mamma Mia! · ' + S.school,
             'LOCATION:' + S.venue + ', ' + S.venueLine2,
-            'DESCRIPTION:Booking ' + b.reference + ' — ' + b.quantity + ' ticket(s). Doors ' + S.doorsTime + '.',
+            'DESCRIPTION:Booking ' + b.reference + ' — ' + b.quantity + ' ticket(s)' +
+                (b.seatsLabel ? '. ' + b.seatsLabel : '') + '. Doors ' + S.doorsTime + '.',
             'END:VEVENT', 'END:VCALENDAR'
         ].join('\r\n');
 

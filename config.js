@@ -87,6 +87,7 @@ const CONFIG = {
        ------------------------------------------------------------------- */
     api: {
         availability: '/api/availability',
+        seats:        '/api/seats',
         checkout:     '/api/create-checkout',
         verify:       '/api/verify-payment',
         wall:         '/api/wall',

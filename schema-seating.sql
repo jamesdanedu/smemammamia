@@ -1,94 +1,24 @@
 -- ===========================================================================
---  MAMMA MIA! — St Mary's Edenderry
---  Supabase schema
+--  MAMMA MIA! — reserved seating
 --
---  Run this once in the Supabase SQL Editor (Dashboard → SQL Editor → New query).
---  Safe to re-run: everything is IF NOT EXISTS / CREATE OR REPLACE.
+--  Run this AFTER schema.sql on a database that was created before seats were
+--  chosen at booking. A database set up from the current schema.sql already
+--  has everything below.
+--
+--  Safe to re-run.
+--
+--  The seat ids ('A1' … 'V25') are not listed here on purpose. The gym floor
+--  is described once, in seating.js, and both the booking page and the API
+--  build the same 500 ids from it. This table only records which of them are
+--  spoken for, so re-drawing the plan never means a data migration.
 -- ===========================================================================
 
 -- ---------------------------------------------------------------------------
--- 1. Performances
--- ---------------------------------------------------------------------------
-create table if not exists public.performances (
-    key         date primary key,
-    label       text        not null,
-    capacity    integer     not null default 0 check (capacity >= 0),
-    on_sale     boolean     not null default true,
-    created_at  timestamptz not null default now()
-);
-
-comment on table public.performances is 'One row per show night.';
-
--- ---------------------------------------------------------------------------
--- 2. Bookings
--- ---------------------------------------------------------------------------
-create table if not exists public.bookings (
-    id                    uuid primary key default gen_random_uuid(),
-    booking_reference     text        not null unique,
-    performance_date      date        not null references public.performances(key) on delete restrict,
-    quantity              integer     not null check (quantity > 0),
-    amount                numeric(10,2) not null check (amount >= 0),
-
-    customer_name         text        not null,
-    customer_email        text        not null,
-    customer_phone        text,
-
-    booked_by             text        not null default 'WEB',   -- 'WEB' or a TY student's name
-
-    -- What the party needs on the night. Codes only ('wheelchair,aisle'):
-    -- wheelchair, aisle, hearing, other.
-    -- The readable labels live in config.js and api/_show.js.
-    access_needs          text,
-    access_notes          text,
-
-    status                text        not null default 'held'
-                          check (status in ('held', 'confirmed', 'cancelled', 'expired')),
-    payment_status        text        not null default 'unpaid'
-                          check (payment_status in ('unpaid', 'paid', 'cash', 'refunded')),
-    payment_method        text,                                  -- 'sumup' | 'cash' | 'comp'
-
-    sumup_checkout_id     text,
-    sumup_transaction_id  text,
-
-    held_until            timestamptz,
-    notes                 text,
-    created_at            timestamptz not null default now(),
-    updated_at            timestamptz not null default now()
-);
-
-create index if not exists bookings_perf_idx    on public.bookings (performance_date, status);
-create index if not exists bookings_ref_idx     on public.bookings (booking_reference);
-create index if not exists bookings_email_idx   on public.bookings (lower(customer_email));
-create index if not exists bookings_created_idx on public.bookings (created_at desc);
-
--- Everyone who needs something on the night, per performance.
-create index if not exists bookings_access_idx
-    on public.bookings (performance_date)
-    where access_needs is not null or access_notes is not null;
-
--- keep updated_at fresh
-create or replace function public.touch_updated_at()
-returns trigger language plpgsql as $$
-begin
-    new.updated_at = now();
-    return new;
-end;
-$$;
-
-drop trigger if exists bookings_touch on public.bookings;
-create trigger bookings_touch before update on public.bookings
-for each row execute function public.touch_updated_at();
-
--- ---------------------------------------------------------------------------
--- 3. Seats
+-- 1. Who has which seat
 --
---    The gym floor is described once, in seating.js — 20 rows of 25 across
---    three blocks, 500 seats a night — and both the booking page and the API
---    build the same ids from it. This table only records which of those ids
---    are spoken for, so re-drawing the plan never means a data migration.
---
---    The primary key is the whole point: two people cannot hold the same seat
---    on the same night, whatever the application does.
+--    The primary key is the whole point: two people cannot hold the same
+--    seat on the same night, whatever the application does. Everything else
+--    below is there to make sure the row goes away again when a hold dies.
 -- ---------------------------------------------------------------------------
 create table if not exists public.booking_seats (
     performance_date date        not null references public.performances(key) on delete restrict,
@@ -103,10 +33,15 @@ comment on table public.booking_seats is
 
 create index if not exists booking_seats_booking_idx on public.booking_seats (booking_id);
 
--- A hold that ran out of time, or a booking that was cancelled, still has its
--- rows here — and the primary key would keep those seats off sale forever.
--- create_hold calls this while holding the per-performance lock, so the seats
--- come back the moment anyone looks at that night.
+-- ---------------------------------------------------------------------------
+-- 2. Let go of seats nobody is buying
+--
+--    A hold that ran out of time, or a booking that was cancelled, still has
+--    its rows in booking_seats — and the primary key would keep those seats
+--    off sale forever. This clears them. create_hold calls it while holding
+--    the per-performance lock, so the seats come back the moment anyone
+--    looks at that night.
+-- ---------------------------------------------------------------------------
 create or replace function public.release_stale_seats(p_date date)
 returns integer
 language plpgsql
@@ -210,45 +145,13 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
--- 4. Message wall
+-- 3. What is actually taken tonight
+--
+--    Same rule as performance_availability: confirmed, or held and the hold
+--    has not run out. An expired hold's rows may still be sitting in the
+--    table until the next create_hold sweeps them, so they are filtered here
+--    too — otherwise the map would show seats as gone that are on sale.
 -- ---------------------------------------------------------------------------
-create table if not exists public.messages (
-    id          uuid primary key default gen_random_uuid(),
-    author      text        not null,
-    body        text        not null check (char_length(body) between 1 and 500),
-    approved    boolean     not null default false,
-    hidden      boolean     not null default false,
-    created_at  timestamptz not null default now()
-);
-
-create index if not exists messages_feed_idx on public.messages (approved, hidden, created_at desc);
-
--- ---------------------------------------------------------------------------
--- 5. Availability view
---    A booking counts against capacity when it is confirmed, or held and the
---    hold has not yet expired.  Expired holds free themselves up — no cron job.
--- ---------------------------------------------------------------------------
-create or replace view public.performance_availability as
-select
-    p.key,
-    p.label,
-    p.capacity,
-    p.on_sale,
-    coalesce(sum(b.quantity) filter (
-        where b.status = 'confirmed'
-           or (b.status = 'held' and b.held_until > now())
-    ), 0)::int as sold,
-    greatest(p.capacity - coalesce(sum(b.quantity) filter (
-        where b.status = 'confirmed'
-           or (b.status = 'held' and b.held_until > now())
-    ), 0), 0)::int as remaining
-from public.performances p
-left join public.bookings b on b.performance_date = p.key
-group by p.key, p.label, p.capacity, p.on_sale;
-
--- What is actually taken tonight, seat by seat. Same rule as above: an
--- expired hold's rows may still be sitting in booking_seats until the next
--- create_hold sweeps them, so they are filtered out here too.
 create or replace view public.taken_seats as
 select
     bs.performance_date,
@@ -264,12 +167,15 @@ where b.status = 'confirmed'
    or (b.status = 'held' and b.held_until > now());
 
 -- ---------------------------------------------------------------------------
--- 6. Atomic hold
---    Serialises per performance with an advisory lock so two people cannot
---    both take the last pair of tickets — or the same seat.
+-- 4. Hold the tickets and the seats in one go
+--
+--    create_hold gains p_seats. Postgres treats a new argument list as a new
+--    function, so the eleven-argument version has to be dropped — with both
+--    in place every call would be ambiguous.
+--
+--    p_seats null still works: a booking with no seats chosen, which is what
+--    a database carried over from before this change already has.
 -- ---------------------------------------------------------------------------
--- Every added argument changed the signature, so the earlier versions have to
--- go: leaving them in place would make every create_hold call ambiguous.
 drop function if exists public.create_hold(text, date, integer, numeric, text, text, text, text, integer);
 drop function if exists public.create_hold(text, date, integer, numeric, text, text, text, text, integer, text, text);
 
@@ -377,69 +283,44 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
--- 7. Lock everything down.
---    The website never talks to Postgres directly — every read and write goes
---    through the /api serverless functions using the service_role key, which
---    bypasses RLS.  With RLS on and no policies, the anon key can read nothing.
+-- 5. Lock it down, like everything else
+--
+--    The website never talks to Postgres directly — /api does, with the
+--    service_role key, which bypasses RLS.
 -- ---------------------------------------------------------------------------
-alter table public.performances  enable row level security;
-alter table public.bookings      enable row level security;
 alter table public.booking_seats enable row level security;
-alter table public.messages      enable row level security;
 
-revoke all on public.performances  from anon, authenticated;
-revoke all on public.bookings      from anon, authenticated;
 revoke all on public.booking_seats from anon, authenticated;
-revoke all on public.messages      from anon, authenticated;
-revoke all on public.performance_availability from anon, authenticated;
-revoke all on public.taken_seats              from anon, authenticated;
-revoke execute on function public.release_stale_seats(date)   from anon, authenticated;
-revoke execute on function public.release_booking_seats(text) from anon, authenticated;
-revoke execute on function public.assign_seats(text, text[])  from anon, authenticated;
+revoke all on public.taken_seats  from anon, authenticated;
+revoke execute on function public.release_stale_seats(date)    from anon, authenticated;
+revoke execute on function public.release_booking_seats(text)  from anon, authenticated;
+revoke execute on function public.assign_seats(text, text[])   from anon, authenticated;
 revoke execute on function public.create_hold(text, date, integer, numeric, text, text, text, text, integer, text, text, text[]) from anon, authenticated;
 
 -- ---------------------------------------------------------------------------
--- 8. Seed the performances
---    >>> EDIT THESE to match config.js before running <<<
+-- 6. Capacity has to match the plan
 --
---    Wednesday 27th is closed to ticket sales: on_sale = false makes
---    create_hold refuse it, and it is not listed in config.js, so no page
---    offers it.  Leave the row in place — bookings.performance_date still
---    references it, and it keeps the night off sale if anyone re-runs this.
---
---    Capacity must match the plan in seating.js — 500 seats a night. Set it
---    higher and the last tickets cannot be seated; set it lower and the last
---    seats cannot be sold.
+--    seating.js lays out 500 seats a night. If capacity says something else,
+--    either the last tickets cannot be seated or the last seats cannot be
+--    sold, so keep the two in step.
 -- ---------------------------------------------------------------------------
-insert into public.performances (key, label, capacity, on_sale) values
-    ('2027-01-27', 'Wednesday 27th January 2027',   0, false),
-    ('2027-01-28', 'Thursday 28th January 2027',  500, true),
-    ('2027-01-29', 'Friday 29th January 2027',    500, true)
-on conflict (key) do update
-    set label = excluded.label,
-        capacity = excluded.capacity,
-        on_sale = excluded.on_sale;
+update public.performances set capacity = 500 where on_sale and capacity <> 500;
 
 -- ---------------------------------------------------------------------------
 -- Handy queries for later
 -- ---------------------------------------------------------------------------
--- Tickets left tonight:
---     select * from public.performance_availability;
+-- Tonight's seat map, in row order:
+--     select seat_id, booking_reference, customer_name
+--     from public.taken_seats
+--     where performance_date = '2027-01-28'
+--     order by left(seat_id, 1), substring(seat_id from 2)::int;
 --
--- Door list:
---     select booking_reference, customer_name, quantity, booked_by
---     from public.bookings
---     where performance_date = '2027-01-28' and status = 'confirmed'
---     order by customer_name;
+-- Where the wheelchair parties are sitting:
+--     select seat_id, customer_name, access_needs
+--     from public.taken_seats
+--     where performance_date = '2027-01-28' and access_needs is not null
+--     order by seat_id;
 --
--- Who needs what on the night:
---     select performance_date, booking_reference, customer_name, quantity,
---            access_needs, access_notes
---     from public.bookings
---     where status = 'confirmed'
---       and (access_needs is not null or access_notes is not null)
---     order by performance_date, customer_name;
---
--- Total taken:
---     select sum(amount) from public.bookings
---     where status = 'confirmed' and payment_status in ('paid','cash');
+-- Seats sold per night:
+--     select performance_date, count(*) from public.taken_seats
+--     where status = 'confirmed' group by 1;

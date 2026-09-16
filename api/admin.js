@@ -15,8 +15,15 @@ import {
 } from './_email.js';
 import { runReconcile } from './reconcile.js';
 import { siteUrl, SHOW, ENQUIRIES_TO, cleanAccessNeeds } from './_show.js';
+import { cleanSeats, allocateSeats, describeSeats, SEAT_MAP } from '../seating.js';
 
 const TICKET_PRICE = Number(process.env.TICKET_PRICE || 10);
+
+/** Flatten PostgREST's embedded booking_seats into a plain, sorted seat list. */
+function withSeats(booking) {
+    const seats = cleanSeats((booking.booking_seats || []).map(s => s.seat_id));
+    return { ...booking, seats, seatsLabel: describeSeats(seats) };
+}
 
 function passwordOk(supplied) {
     const expected = process.env.ADMIN_PASSWORD;
@@ -106,11 +113,11 @@ export default async function handler(req, res) {
 
             /* ---------------- booking list ---------------- */
             case 'list': {
-                const filters = ['select=*', 'order=created_at.desc', 'limit=1000'];
+                const filters = ['select=*,booking_seats(seat_id)', 'order=created_at.desc', 'limit=1000'];
                 if (body.performanceDate) filters.push(`performance_date=eq.${encodeURIComponent(body.performanceDate)}`);
                 if (body.status)          filters.push(`status=eq.${encodeURIComponent(body.status)}`);
                 const rows = await sbSelect('bookings?' + filters.join('&'));
-                return res.status(200).json({ bookings: rows });
+                return res.status(200).json({ bookings: rows.map(withSeats) });
             }
 
             /* ---------------- door list ---------------- */
@@ -118,11 +125,28 @@ export default async function handler(req, res) {
                 if (!body.performanceDate) return res.status(400).json({ error: 'performanceDate required' });
                 const rows = await sbSelect(
                     'bookings?select=booking_reference,customer_name,quantity,booked_by,payment_status,' +
-                    'access_needs,access_notes' +
+                    'access_needs,access_notes,booking_seats(seat_id)' +
                     `&performance_date=eq.${encodeURIComponent(body.performanceDate)}` +
                     '&status=eq.confirmed&order=customer_name.asc'
                 );
-                return res.status(200).json({ bookings: rows });
+                return res.status(200).json({ bookings: rows.map(withSeats) });
+            }
+
+            /* ---------------- tonight's seat map ----------------
+               Who is in which seat, for the front-of-house plan and for
+               picking seats by hand when somebody buys at the door. */
+            case 'seat-map': {
+                if (!body.performanceDate) return res.status(400).json({ error: 'performanceDate required' });
+                const rows = await sbSelect(
+                    'taken_seats?select=seat_id,booking_reference,customer_name,status,access_needs' +
+                    `&performance_date=eq.${encodeURIComponent(body.performanceDate)}`
+                );
+                return res.status(200).json({
+                    date: body.performanceDate,
+                    total: SEAT_MAP.total,
+                    taken: rows,
+                    remaining: Math.max(SEAT_MAP.total - rows.length, 0)
+                });
             }
 
             /* ---------------- cash / door booking ---------------- */
@@ -137,6 +161,25 @@ export default async function handler(req, res) {
                 const reference = newBookingRef();
                 const amount = Number((quantity * TICKET_PRICE).toFixed(2));
 
+                // Seats: whatever was picked on the map, otherwise the best
+                // run of free ones together. A door sale gets a seat number
+                // like everybody else, or the map on the night is a fiction.
+                let seats = cleanSeats(body.seats);
+                if (seats.length && seats.length !== quantity) {
+                    return res.status(400).json({
+                        error: `Choose ${quantity} seat${quantity === 1 ? '' : 's'} — ${seats.length} chosen.`
+                    });
+                }
+                if (!seats.length) {
+                    const takenRows = await sbSelect(
+                        `taken_seats?select=seat_id&performance_date=eq.${encodeURIComponent(body.performanceDate)}`
+                    );
+                    seats = allocateSeats(quantity, takenRows.map(r => r.seat_id));
+                    if (seats.length !== quantity) {
+                        return res.status(409).json({ error: 'Not enough free seats together for that party.' });
+                    }
+                }
+
                 try {
                     await sbRpc('create_hold', {
                         p_reference:    reference,
@@ -149,13 +192,18 @@ export default async function handler(req, res) {
                         p_booked_by:    String(body.bookedBy || 'DOOR').trim(),
                         p_hold_minutes: 5,
                         p_access_needs: cleanAccessNeeds(body.accessNeeds),
-                        p_access_notes: String(body.accessNotes || '').trim().slice(0, 300)
+                        p_access_notes: String(body.accessNotes || '').trim().slice(0, 300),
+                        p_seats:        seats
                     });
                 } catch (err) {
                     const msg = err.pgMessage || err.message || '';
                     if (msg.includes('SOLD_OUT')) {
                         const left = parseInt(msg.split('SOLD_OUT:')[1], 10);
                         return res.status(409).json({ error: `Not enough tickets left (${left || 0} remaining).` });
+                    }
+                    if (msg.includes('SEAT_TAKEN')) {
+                        const gone = msg.split('SEAT_TAKEN:')[1].split(/\s/)[0];
+                        return res.status(409).json({ error: `Already taken: ${gone}. Pick again.` });
                     }
                     throw err;
                 }
@@ -176,7 +224,12 @@ export default async function handler(req, res) {
                     console.error('door-sale confirmation failed', err.message);
                 }
 
-                return res.status(200).json({ booking: row, email: emailResult });
+                return res.status(200).json({
+                    booking: row,
+                    seats,
+                    seatsLabel: describeSeats(seats),
+                    email: emailResult
+                });
             }
 
             /* ---------------- cancel ---------------- */
@@ -187,7 +240,18 @@ export default async function handler(req, res) {
                     `booking_reference=eq.${encodeURIComponent(body.bookingRef)}`,
                     { status: 'cancelled', held_until: null, notes: String(body.reason || 'Cancelled by admin').slice(0, 300) }
                 );
-                return res.status(200).json({ booking: row });
+
+                // Put the seats back this second rather than waiting for the
+                // next hold to sweep them — somebody is usually standing there
+                // wanting them.
+                let seatsFreed = 0;
+                try {
+                    seatsFreed = await sbRpc('release_booking_seats', { p_reference: body.bookingRef }) || 0;
+                } catch (err) {
+                    console.error('could not release seats on cancel:', err.message);
+                }
+
+                return res.status(200).json({ booking: row, seatsFreed });
             }
 
             /* ---------------- capacity / on sale ---------------- */
