@@ -233,15 +233,19 @@ import { SEAT_MAP, LAYOUT, checkFit, sightlines } from './seating.js';
         parts.push(`<text x="${W / 2}" y="${LAYOUT.stage.depthM / 2 + 0.35}" text-anchor="middle"
                           font-size="0.95" fill="#ffffff" letter-spacing="0.3">STAGE</text>`);
 
-        // every chair, at its real size
+        // every chair, at its real size, with its seat number on it —
+        // 1 on the left as the audience faces the stage
         for (const seat of SEAT_MAP.seats) {
             const x = seat.x - LAYOUT.seat.widthM / 2;
             const y = seat.y - LAYOUT.seat.pitchM / 2;
-            const fill = seat.wheelchair ? '#c2356b' : '#22333f';
+            const w = LAYOUT.seat.widthM - 0.06, h = LAYOUT.seat.pitchM * 0.55;
+            const fill = seat.wheelchair ? '#c2356b' : '#4d5d68';
             parts.push(`<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}"
-                              width="${(LAYOUT.seat.widthM - 0.06).toFixed(2)}"
-                              height="${(LAYOUT.seat.pitchM * 0.55).toFixed(2)}"
-                              rx="0.08" fill="${fill}" opacity="${seat.wheelchair ? 0.95 : 0.55}"/>`);
+                              width="${w.toFixed(2)}" height="${h.toFixed(2)}"
+                              rx="0.08" fill="${fill}"/>`);
+            parts.push(`<text x="${(x + w / 2).toFixed(2)}" y="${(y + h / 2).toFixed(2)}"
+                              text-anchor="middle" dominant-baseline="central"
+                              font-size="0.25" font-weight="700" fill="#ffffff">${seat.number}</text>`);
         }
 
         // row letters down both sides
