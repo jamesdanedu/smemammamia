@@ -62,13 +62,13 @@ const CONFIG = {
             key: '2027-01-28',
             label: 'Thursday 28th January 2027',
             short: 'Thu 28 Jan',
-            capacity: 500                                    // TODO confirm hall capacity
+            capacity: 432                                    // seating.js: 16 rows x 27
         },
         {
             key: '2027-01-29',
             label: 'Friday 29th January 2027',
             short: 'Fri 29 Jan',
-            capacity: 500                                    // TODO confirm hall capacity
+            capacity: 432                                    // seating.js: 16 rows x 27
         }
     ],
 

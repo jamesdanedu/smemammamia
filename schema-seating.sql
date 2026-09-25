@@ -9,7 +9,7 @@
 --
 --  The seat ids ('A1' … 'V25') are not listed here on purpose. The gym floor
 --  is described once, in seating.js, and both the booking page and the API
---  build the same 500 ids from it. This table only records which of them are
+--  build the same 432 ids from it. This table only records which of them are
 --  spoken for, so re-drawing the plan never means a data migration.
 -- ===========================================================================
 
@@ -300,11 +300,11 @@ revoke execute on function public.create_hold(text, date, integer, numeric, text
 -- ---------------------------------------------------------------------------
 -- 6. Capacity has to match the plan
 --
---    seating.js lays out 500 seats a night. If capacity says something else,
+--    seating.js lays out 432 seats a night. If capacity says something else,
 --    either the last tickets cannot be seated or the last seats cannot be
 --    sold, so keep the two in step.
 -- ---------------------------------------------------------------------------
-update public.performances set capacity = 500 where on_sale and capacity <> 500;
+update public.performances set capacity = 432 where on_sale and capacity <> 432;
 
 -- ---------------------------------------------------------------------------
 -- Handy queries for later

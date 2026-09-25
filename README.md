@@ -5,7 +5,7 @@ serverless functions for anything that touches money or data, Supabase for stora
 SumUp for card payments.
 
 **The run:** Thursday 28 and Friday 29 January 2027, doors 7:00 PM, curtain
-7:30 PM. €10 flat, 500 seats a night, at St Mary's Secondary School, Edenderry,
+7:30 PM. €10 flat, 432 seats a night, at St Mary's Secondary School, Edenderry,
 Co. Offaly. Two acts, suitable for ages 13+ (PG-13). Tickets are unreserved —
 pick a night and a quantity, no seat map. Bookings are identified by a reference
 in the form `MM-XXXXXX`.
@@ -57,7 +57,7 @@ seating.html       The seating plan: the map, and the setting-out measurements
 admin.html         Password-protected dashboard
 
 config.js          >>> Show dates, times, venue, price, capacity — edit this first
-seating.js         >>> The gym floor: hall size, rows, blocks, aisles — the 500 seats
+seating.js         >>> The gym floor: hall size, rows, blocks, aisles — the 432 seats
 theme.css          Shared "Aegean whitewash" design system
 cast.js            Cast and crew list
 photos.js          Gallery image list
@@ -236,24 +236,24 @@ from it: the map people click on, the seats the database hands out, the numbers 
 the confirmation email, the admin seat map, and the setting-out plan on
 `seating.html`. There is no second copy to keep in step.
 
-The plan as it stands — **20 rows of 25 seats, 500 a night**:
+The plan as it stands — **16 rows of 27 seats, 432 a night**:
 
 | | |
 |---|---|
-| Hall floor | 30.00 m × 18.00 m *(measure this and correct it)* |
-| Stage | 6.00 m deep across one end, 2.00 m clear in front of row A |
-| Rows | 20, at 0.85 m — lettered A to V, skipping I and O |
-| Seats across | 7 + 11 + 7, with two 1.20 m aisles |
-| Side gangways | 1.55 m at each wall |
-| Cross gangway | 1.20 m, after row K |
+| Hall floor | 30.78 m × 18.90 m (101 ft × 62 ft, measured) |
+| Stage | 10.67 m (about 35 ft) deep across one end, 2.00 m clear in front of row A |
+| Rows | 16, at 0.85 m — lettered A to R, skipping I and O |
+| Seats across | 7 + 13 + 7, with two 1.20 m aisles |
+| Side gangways | 1.50 m at each wall |
+| Cross gangway | 1.20 m, after row H |
 | Behind the last row | 3.00 m to the exits |
-| Spare depth | 0.80 m |
+| Spare depth | 0.32 m |
 
 The block sizes are not arbitrary: nobody is more than 7 seats from an aisle where
 there is only one to reach, or 14 where there are aisles at both ends, and every
-gangway is at least 1.05 m. Four seats on the cross gangway (L1, L2, L24, L25) are
+gangway is at least 1.05 m. Four seats on the cross gangway (J1, J2, J26, J27) are
 wheelchair spaces — the chair is taken away rather than the seat deleted, so the
-count stays at 500 and the space can still be sold if nobody needs it.
+count stays at 432 and the space can still be sold if nobody needs it.
 
 A seat is held the moment the tickets are — `create_hold` takes the ticket count and
 the seats in one transaction, under the same per-performance lock — so two people
@@ -486,8 +486,8 @@ the code, so the site runs — but each one needs a real answer from the school.
 | # | Item | Where it lives |
 |---|---|---|
 | 1 | **Doors and curtain times.** Currently 7:00 PM / 7:30 PM. | `config.js`, `api/_show.js` (and `SHOW_DOORS` / `SHOW_CURTAIN` if overridden) |
-| 2 | **500 capacity per night** — check it against the hall's fire cert before selling to it. | `config.js`, `seating.js`, the seed block in `schema.sql`, admin *Settings* |
-| 2a | **The gym's real measurements.** The plan assumes a 30.00 m × 18.00 m clear floor. Measure it, correct `LAYOUT.hall` in `seating.js`, and check `seating.html` still reports no problems. | `seating.js` |
+| 2 | **432 capacity per night** — check it against the hall's fire cert before selling to it. | `config.js`, `seating.js`, the seed block in `schema.sql`, admin *Settings* |
+| 2a | **The stage depth.** The hall is measured at 101 ft × 62 ft; the plan gives the stage 35 ft of the length. If the stage comes out further, every 0.85 m (about 2 ft 9 in) costs a row of 27 seats — change `LAYOUT.stage.depthM` in `seating.js` and check `seating.html` still reports no problems. | `seating.js` |
 | 2b | **Fire officer sign-off on the seating plan.** Block sizes and gangway widths follow the usual guidance for temporary seating, but the sign-off is somebody else's. | `seating.html` (print it and bring it) |
 | 3 | **SumUp merchant account** — reuse the school's existing one, or open a new one for this show? | `SUMUP_API_KEY`, `SUMUP_MERCHANT_CODE` in Vercel |
 | 4 | **Contact form.** Questions go through `contact.html` → `/api/enquiries`, emailed to `smemammamia@proton.me`. Needs email set up (Step 3) to work; shares the provider's daily sending cap with confirmations. | `ENQUIRIES_TO`, `EMAIL_REPLY_TO` in Vercel |
@@ -509,8 +509,8 @@ database.
 * **Re-drawing the seating plan after tickets have sold.** Seat ids already on
   bookings are not moved. Take out a row and somebody is holding a seat that is no
   longer on the map, and will not find it on the night.
-* **Capacity and `seating.js` disagreeing.** Capacity above 500 sells tickets there
-  is nowhere to seat; below 500 leaves seats that cannot be sold.
+* **Capacity and `seating.js` disagreeing.** Capacity above 432 sells tickets there
+  is nowhere to seat; below 432 leaves seats that cannot be sold.
 * **Adding a performance date in `config.js` but not the database.** The night shows
   on the site, then booking fails with "that performance does not exist". Run *Sync
   from config.js*.

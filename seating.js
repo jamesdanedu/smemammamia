@@ -15,17 +15,20 @@
        server    import { SEAT_MAP } from '../seating.js'
    It also sets window.SEATING in a browser, for the console.
 
-   HOW THE 500 SEATS FIT
+   HOW THE 432 SEATS FIT
    ---------------------
-   Across (18.00 m of hall):   7 + 11 + 7 seats at 0.50 m  = 12.50 m
+   The hall measures 62 ft x 101 ft (18.90 m x 30.78 m), and the stage
+   takes about 35 ft (10.67 m) of the long side.
+
+   Across (18.90 m of hall):   7 + 13 + 7 seats at 0.50 m  = 13.50 m
                                2 aisles at 1.20 m          =  2.40 m
-                               side gangways, 1.55 m each  =  3.10 m
-   Down   (30.00 m of hall):   stage 6.00 m, then 2.00 m to row A,
-                               20 rows at 0.85 m           = 17.00 m
-                               cross gangway after row K   =  1.20 m
-                               exit gangway behind row V    =  3.00 m
-                                                             (0.80 m spare)
-   20 rows x 25 seats = 500 seats a night.
+                               side gangways, 1.50 m each  =  3.00 m
+   Down   (30.78 m of hall):   stage 10.67 m, then 2.00 m to row A,
+                               16 rows at 0.85 m           = 13.60 m
+                               cross gangway after row H   =  1.20 m
+                               exit gangway behind row R    =  3.00 m
+                                                             (0.32 m spare)
+   16 rows x 27 seats = 432 seats a night.
 
    The block sizes are deliberate: no more than 7 seats between a seated
    person and an aisle where there is only one aisle to reach (the side
@@ -40,13 +43,13 @@ export const LAYOUT = {
        stand on the run-off either side of the lines.
        ------------------------------------------------------------------ */
     hall: {
-        lengthM: 30.0,        // TODO confirm by measuring — stage end to back wall
-        widthM:  18.0         // TODO confirm by measuring — side wall to side wall
+        lengthM: 30.785,      // 101 ft — stage end to back wall
+        widthM:  18.898       // 62 ft — side wall to side wall
     },
 
     /* --- The stage ------------------------------------------------------ */
     stage: {
-        depthM:      6.0,     // how far the staging comes out from the end wall
+        depthM:     10.668,   // 35 ft — how far the staging comes out from the end wall
         heightM:     1.1,     // deck height above the floor; see sightlines() below
         clearanceM:  2.0      // floor kept clear between the stage and row A
     },
@@ -63,29 +66,29 @@ export const LAYOUT = {
        map, the plan, the seat numbers — follows. Keep an eye on the
        warnings from checkFit() if you do.
        ------------------------------------------------------------------- */
-    rows: 20,
+    rows: 16,
     blocks: [
         { id: 'L', name: 'Left',   seats: 7  },
-        { id: 'C', name: 'Centre', seats: 11 },
+        { id: 'C', name: 'Centre', seats: 13 },
         { id: 'R', name: 'Right',  seats: 7  }
     ],
 
     /* --- Gangways ------------------------------------------------------- */
     aisleM:        1.20,      // between blocks
-    crossAisle:    { afterRow: 10, widthM: 1.20 },  // 0 = none
+    crossAisle:    { afterRow: 8, widthM: 1.20 },  // 0 = none
     rearGangwayM:  3.00,      // behind the last row, to the exits
 
     /* --- Seats kept for people who need them ----------------------------
-       Nothing is removed from the 500: a wheelchair bay is a chair that
+       Nothing is removed from the 432: a wheelchair bay is a chair that
        gets taken away on the night, which is why the seat still has a
        number and can still be booked by anyone if nobody needs it.
 
        Both lists are seat ids. The defaults sit on a gangway: row A is off
-       the front clearance, row L is off the cross gangway, so neither
+       the front clearance, row J is off the cross gangway, so neither
        needs a squeeze past anybody else's knees.
        ------------------------------------------------------------------- */
-    wheelchairSeats: ['L1', 'L2', 'L24', 'L25'],
-    stepFreeSeats:   ['A1', 'A2', 'A24', 'A25', 'L7', 'L8', 'L18', 'L19'],
+    wheelchairSeats: ['J1', 'J2', 'J26', 'J27'],
+    stepFreeSeats:   ['A1', 'A2', 'A26', 'A27', 'J7', 'J8', 'J20', 'J21'],
 
     /* --- Row letters ----------------------------------------------------
        I and O are skipped: too easily read as 1 and 0 on a printed list.
