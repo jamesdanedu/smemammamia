@@ -248,6 +248,7 @@ The plan as it stands — **18 rows of 28 seats, 504 a night**:
 | Cross gangway | 1.20 m, after row J |
 | Behind the last row | 2.00 m to the exits |
 | Spare depth | 0.12 m — the stage cannot come out any further than 35 ft |
+| Fire exits | Stage wall at the right (behind the stage), back wall at the right, left wall at the back — positions in `LAYOUT.exits`, approximate until measured |
 
 The block sizes are not arbitrary: nobody is more than 7 seats from an aisle where
 there is only one to reach, or 14 where there are aisles at both ends, and every

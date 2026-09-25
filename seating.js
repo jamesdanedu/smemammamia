@@ -81,6 +81,25 @@ export const LAYOUT = {
     crossAisle:    { afterRow: 9, widthM: 1.20 },  // 0 = none
     rearGangwayM:  2.00,      // behind the last row, to the exits
 
+    /* --- The fire exits -------------------------------------------------
+       Drawn on the plan; they do not move any seats.
+
+       wall     'stage' (the end wall the stage is built against), 'back',
+                'left' or 'right' — as the audience faces the stage.
+       centreM  where the middle of the door is along that wall:
+                  stage/back wall — metres from the left wall
+                  left/right wall — metres from the stage wall
+       widthM   the clear opening
+
+       TODO measure: the positions below are placed near the corners the
+       caretaker described, not taped.
+       ------------------------------------------------------------------- */
+    exits: [
+        { name: 'Stage end, right', wall: 'stage', centreM: 17.40, widthM: 1.20 },
+        { name: 'Back wall, right', wall: 'back',  centreM: 17.40, widthM: 1.20 },
+        { name: 'Left wall, back',  wall: 'left',  centreM: 29.30, widthM: 1.20 }
+    ],
+
     /* --- Seats kept for people who need them ----------------------------
        Nothing is removed from the 504: a wheelchair bay is a chair that
        gets taken away on the night, which is why the seat still has a

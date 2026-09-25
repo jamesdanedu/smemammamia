@@ -274,13 +274,32 @@ import { SEAT_MAP, LAYOUT, checkFit, sightlines } from './seating.js';
         label(W / 2, L - LAYOUT.rearGangwayM / 2, m(LAYOUT.rearGangwayM) + ' to the exits');
         label(W / 2, LAYOUT.stage.depthM + LAYOUT.stage.clearanceM / 2 + 0.2, m(LAYOUT.stage.clearanceM) + ' clear');
 
+        // the fire exits: a gap in the wall, a green door and a label outside
+        for (const exit of LAYOUT.exits || []) {
+            const half = exit.widthM / 2, T = 0.34;       // door drawn 0.34 m thick
+            const onEnd = exit.wall === 'stage' || exit.wall === 'back';
+            const x = onEnd ? exit.centreM - half : (exit.wall === 'left' ? -T / 2 : W - T / 2);
+            const y = onEnd ? (exit.wall === 'stage' ? -T / 2 : L - T / 2) : exit.centreM - half;
+            const w = onEnd ? exit.widthM : T, h = onEnd ? T : exit.widthM;
+            parts.push(`<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${w}" height="${h}"
+                              fill="#1f9d55" stroke="#ffffff" stroke-width="0.05"/>`);
+
+            // label just outside the wall
+            const lx = onEnd ? exit.centreM : (exit.wall === 'left' ? -0.55 : W + 0.55);
+            const ly = onEnd ? (exit.wall === 'stage' ? -0.45 : L + 0.72) : exit.centreM;
+            parts.push(`<text x="${lx.toFixed(2)}" y="${ly.toFixed(2)}" text-anchor="middle" dominant-baseline="middle"
+                              font-size="0.5" font-weight="700" fill="#1f9d55" letter-spacing="0.06"
+                              ${onEnd ? '' : `transform="rotate(-90 ${lx.toFixed(2)} ${ly.toFixed(2)})"`}>EXIT</text>`);
+        }
+
         // overall dimensions, outside the hall
         parts.push(`<text x="${W / 2}" y="${L + 1.1}" text-anchor="middle" font-size="0.62" fill="#5a6d7a">${m(W)} across</text>`);
         parts.push(`<text x="${-0.9}" y="${L / 2}" text-anchor="middle" font-size="0.62" fill="#5a6d7a"
                           transform="rotate(-90 ${-0.9} ${L / 2})">${m(L)} deep</text>`);
 
-        return `<svg viewBox="${-pad} ${-0.6} ${W + pad * 2} ${L + pad}" role="img"
-                     aria-label="Scale plan of the gym floor: a stage across one end, then ${SEAT_MAP.rows.length} rows of ${SEAT_MAP.seatsPerRow} seats in three blocks separated by two aisles, with a cross gangway part way back and a clear gangway to the exits behind the last row.">
+        const exitWords = (LAYOUT.exits || []).map(e => e.name.toLowerCase()).join('; ');
+        return `<svg viewBox="${-pad} ${-1.0} ${W + pad * 2} ${L + pad + 0.9}" role="img"
+                     aria-label="Scale plan of the gym floor: a stage across one end, then ${SEAT_MAP.rows.length} rows of ${SEAT_MAP.seatsPerRow} seats in three blocks separated by two aisles, with a cross gangway part way back and a clear gangway to the exits behind the last row. Fire exits: ${exitWords}.">
                   ${parts.join('\n')}
                 </svg>`;
     }
@@ -344,6 +363,12 @@ import { SEAT_MAP, LAYOUT, checkFit, sightlines } from './seating.js';
         `${m(g.sideGangwayM)} at each wall and the ${m(LAYOUT.rearGangwayM)} at the back are ` +
         `the way ${SEAT_MAP.total} people leave. No extra chairs squeezed in on the night, ` +
         `however many people are asking.`,
+
+        `<strong>Keep every exit clear, including the one behind the stage.</strong> ` +
+        `The audience leaves by the back wall and left wall doors, both off the ` +
+        `${m(LAYOUT.rearGangwayM)} gangway behind row ${SEAT_MAP.rows[SEAT_MAP.rows.length - 1].letter}. ` +
+        `The door in the stage wall is inside the staging, so it is the cast and crew's ` +
+        `way out: no set, costume rails or props stacked in front of it.`,
 
         `<strong>Have the fire officer look at it.</strong> The block sizes and gangway ` +
         `widths here follow the usual guidance for temporary seating, but the person who ` +
