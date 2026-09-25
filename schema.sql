@@ -82,8 +82,8 @@ for each row execute function public.touch_updated_at();
 -- ---------------------------------------------------------------------------
 -- 3. Seats
 --
---    The gym floor is described once, in seating.js — 16 rows of 27 across
---    three blocks, 432 seats a night — and both the booking page and the API
+--    The gym floor is described once, in seating.js — 18 rows of 28 across
+--    three blocks, 504 seats a night — and both the booking page and the API
 --    build the same ids from it. This table only records which of those ids
 --    are spoken for, so re-drawing the plan never means a data migration.
 --
@@ -411,14 +411,14 @@ revoke execute on function public.create_hold(text, date, integer, numeric, text
 --    night, and zeroing capacity would only lose the seat count if the
 --    matinee is ever put on sale.
 --
---    That figure has to match the plan in seating.js — 432 seats a night.
+--    That figure has to match the plan in seating.js — 504 seats a night.
 --    Set it higher and the last tickets cannot be seated; set it lower and
 --    the last seats cannot be sold.
 -- ---------------------------------------------------------------------------
 insert into public.performances (key, label, capacity, on_sale) values
-    ('2027-01-27', 'Wednesday 27th January 2027', 432, false),
-    ('2027-01-28', 'Thursday 28th January 2027',  432, true),
-    ('2027-01-29', 'Friday 29th January 2027',    432, true)
+    ('2027-01-27', 'Wednesday 27th January 2027', 504, false),
+    ('2027-01-28', 'Thursday 28th January 2027',  504, true),
+    ('2027-01-29', 'Friday 29th January 2027',    504, true)
 on conflict (key) do update
     set label = excluded.label,
         capacity = excluded.capacity,

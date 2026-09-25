@@ -413,13 +413,13 @@
 }
 .seat-count strong { color: var(--text); }
 
-/* Twenty-seven seats across want more room than the 720px booking column
+/* Twenty-eight seats across want more room than the 720px booking column
    has to give, so with the map open this one step steps outside the column
    and the chairs grow with the window. The step only widens while the map
    is open — closed, it lines up with the rest of the form.
 
-   The 36 is the row measured in chair-widths: 27 chairs, two aisles, the
-   gaps between them and a letter at each end come to roughly 36 chairs of
+   The 37 is the row measured in chair-widths: 28 chairs, two aisles, the
+   gaps between them and a letter at each end come to roughly 37 chairs of
    width, so dividing the window by it gives a chair size that fills the
    space without spilling over. Below 760px none of this applies: the
    chairs stay at a tappable 20px and the map scrolls sideways instead. */
@@ -431,7 +431,7 @@
     }
     .step-seats.wide .seatmap {
         /* the 58px is the card padding either side of the map */
-        --seat-size: clamp(20px, calc((var(--step-w) - 58px) / 36), 36px);
+        --seat-size: clamp(20px, calc((var(--step-w) - 58px) / 37), 36px);
         --seat-gap: calc(var(--seat-size) * 0.13);
     }
 }
@@ -669,7 +669,7 @@
 <script src="config.js"></script>
 <script type="module">
 // The gym floor is described once, in seating.js. The booking page and the
-// API both build the same 432 seats from it, so the map you click on and the
+// API both build the same 504 seats from it, so the map you click on and the
 // seats the database hands out can never drift apart.
 import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js';
 
@@ -847,13 +847,13 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
     }
 
     /* ---------------- seats ----------------
-       The plan is drawn once and then only repainted, because 432 buttons is
+       The plan is drawn once and then only repainted, because 504 buttons is
        enough that rebuilding them on every tap is felt on a phone.
 
        Most people never open the map: we suggest the best run of seats still
        free together and they carry on. Opening it is for the people who care
        where they sit — and it is the reason the toggle is a button rather
-       than the map simply being there, since a 27-wide grid of small targets
+       than the map simply being there, since a 28-wide grid of small targets
        is a poor thing to meet first on a phone.
        ---------------------------------------- */
     const seatEls = new Map();

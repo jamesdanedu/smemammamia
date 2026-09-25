@@ -15,20 +15,23 @@
        server    import { SEAT_MAP } from '../seating.js'
    It also sets window.SEATING in a browser, for the console.
 
-   HOW THE 432 SEATS FIT
+   HOW THE 504 SEATS FIT
    ---------------------
    The hall measures 62 ft x 101 ft (18.90 m x 30.78 m), and the stage
    takes about 35 ft (10.67 m) of the long side.
 
-   Across (18.90 m of hall):   7 + 13 + 7 seats at 0.50 m  = 13.50 m
+   Across (18.90 m of hall):   7 + 14 + 7 seats at 0.50 m  = 14.00 m
                                2 aisles at 1.20 m          =  2.40 m
-                               side gangways, 1.50 m each  =  3.00 m
-   Down   (30.78 m of hall):   stage 10.67 m, then 2.00 m to row A,
-                               16 rows at 0.85 m           = 13.60 m
-                               cross gangway after row H   =  1.20 m
-                               exit gangway behind row R    =  3.00 m
-                                                             (0.32 m spare)
-   16 rows x 27 seats = 432 seats a night.
+                               side gangways, 1.25 m each  =  2.50 m
+   Down   (30.78 m of hall):   stage 10.67 m, then 1.50 m to row A,
+                               18 rows at 0.85 m           = 15.30 m
+                               cross gangway after row J   =  1.20 m
+                               exit gangway behind row T    =  2.00 m
+                                                             (0.12 m spare)
+   18 rows x 28 seats = 504 seats a night.
+
+   That is tight: the stage can come out no more than about 12 cm past
+   35 ft before a row has to go. Every extra 0.85 m of stage costs 28 seats.
 
    The block sizes are deliberate: no more than 7 seats between a seated
    person and an aisle where there is only one aisle to reach (the side
@@ -51,7 +54,7 @@ export const LAYOUT = {
     stage: {
         depthM:     10.668,   // 35 ft — how far the staging comes out from the end wall
         heightM:     1.1,     // deck height above the floor; see sightlines() below
-        clearanceM:  2.0      // floor kept clear between the stage and row A
+        clearanceM:  1.5      // floor kept clear between the stage and row A
     },
 
     /* --- The chairs ----------------------------------------------------- */
@@ -66,29 +69,29 @@ export const LAYOUT = {
        map, the plan, the seat numbers — follows. Keep an eye on the
        warnings from checkFit() if you do.
        ------------------------------------------------------------------- */
-    rows: 16,
+    rows: 18,
     blocks: [
         { id: 'L', name: 'Left',   seats: 7  },
-        { id: 'C', name: 'Centre', seats: 13 },
+        { id: 'C', name: 'Centre', seats: 14 },
         { id: 'R', name: 'Right',  seats: 7  }
     ],
 
     /* --- Gangways ------------------------------------------------------- */
     aisleM:        1.20,      // between blocks
-    crossAisle:    { afterRow: 8, widthM: 1.20 },  // 0 = none
-    rearGangwayM:  3.00,      // behind the last row, to the exits
+    crossAisle:    { afterRow: 9, widthM: 1.20 },  // 0 = none
+    rearGangwayM:  2.00,      // behind the last row, to the exits
 
     /* --- Seats kept for people who need them ----------------------------
-       Nothing is removed from the 432: a wheelchair bay is a chair that
+       Nothing is removed from the 504: a wheelchair bay is a chair that
        gets taken away on the night, which is why the seat still has a
        number and can still be booked by anyone if nobody needs it.
 
        Both lists are seat ids. The defaults sit on a gangway: row A is off
-       the front clearance, row J is off the cross gangway, so neither
+       the front clearance, row K is off the cross gangway, so neither
        needs a squeeze past anybody else's knees.
        ------------------------------------------------------------------- */
-    wheelchairSeats: ['J1', 'J2', 'J26', 'J27'],
-    stepFreeSeats:   ['A1', 'A2', 'A26', 'A27', 'J7', 'J8', 'J20', 'J21'],
+    wheelchairSeats: ['K1', 'K2', 'K27', 'K28'],
+    stepFreeSeats:   ['A1', 'A2', 'A27', 'A28', 'K7', 'K8', 'K21', 'K22'],
 
     /* --- Row letters ----------------------------------------------------
        I and O are skipped: too easily read as 1 and 0 on a printed list.

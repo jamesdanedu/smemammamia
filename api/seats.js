@@ -5,7 +5,7 @@
 // what it cannot offer.
 //
 // The plan itself is not sent: the browser has seating.js too, and builds
-// the same 432 ids from the same measurements.
+// the same 504 ids from the same measurements.
 
 import { applyCors, sbSelect, supabaseConfigured } from './_supabase.js';
 import { SEAT_MAP } from '../seating.js';
