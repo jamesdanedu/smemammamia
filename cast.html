@@ -227,8 +227,38 @@
             ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 
+    /* A photo named "Name_as_Role.jpg" carries its own caption: the part before
+       "_as_" is the person's real name, the part after is their role. Words are
+       split at capital letters (underscores work too), so
+       "KittyCarey_as_SophieSheridan.png" reads "Kitty Carey" / "Sophie Sheridan"
+       and "JohnMurphy_as_Sky.JPG" reads "John Murphy" / "Sky". Mc / Mac / O'
+       names stay whole: "ColletteMcEntee" → "Collette McEntee". Any other file
+       name leaves the name and role from cast.js as they are. */
+    function spaceWords(s) {
+        return s
+            .replace(/_+/g, ' ')
+            /* lower-then-Upper starts a new word ... */
+            .replace(/(\p{Ll})(?=\p{Lu})/gu, '$1 ')
+            /* ... but not straight after Mc / Mac: "Mc Entee" → "McEntee" */
+            .replace(/(^|\s)(Mc|Mac) (?=\p{Lu})/gu, '$1$2')
+            /* a single capital before a capitalised word: "ÓDálaigh" → "Ó Dálaigh" */
+            .replace(/(^|\s)(\p{Lu})(?=\p{Lu}\p{Ll})/gu, '$1$2 ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function fromFileName(photo) {
+        const base = String(photo || '').split('/').pop();
+        const m = base.match(/^(.+?)_as_(.+)\.(jpe?g|png)$/i);
+        if (!m) return null;
+        const name = spaceWords(m[1]), role = spaceWords(m[2]);
+        return name && role ? { name, role } : null;
+    }
+
     function render(list, target) {
-        $(target).innerHTML = list.map(p => `
+        $(target).innerHTML = list.map(entry => {
+            const p = { ...entry, ...fromFileName(entry.photo) };
+            return `
             <div class="person">
               <div class="portrait">
                 ${p.photo
@@ -238,7 +268,8 @@
               </div>
               <div class="person-name">${escapeHtml(p.name)}</div>
               <div class="person-role">${escapeHtml(p.role)}</div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
     }
 
     $('footer-brand').textContent = CONFIG.show.title + ' · ' + CONFIG.show.year;

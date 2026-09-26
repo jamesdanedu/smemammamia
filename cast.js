@@ -21,9 +21,33 @@
    Savage" — or just leave them out.
    ---------------------------------------------------------------------------
 
+   PHOTOS
+   ---------------------------------------------------------------------------
    Drop each person's photo into the /images folder and put the file name in
    "photo". Leave "photo" empty and their initials show instead. Roles that
    aren't cast yet can stay as "TBC" and will show a star.
+
+   Name the photo  Name_as_Role.jpg  (or .JPG, .png, .PNG) and the text under
+   it is taken from the file name — real name first, then the role. Start
+   each word with a capital letter and leave out the spaces; the page puts
+   them back:
+
+       { name: "TBC", role: "Sophie Sheridan",
+         photo: "KittyCarey_as_SophieSheridan.png" }
+           → shows  Kitty Carey  /  Sophie Sheridan
+
+       { name: "TBC", role: "Sky",
+         photo: "JohnMurphy_as_Sky.JPG" }              (one-word roles are fine)
+           → shows  John Murphy  /  Sky
+
+   Mc, Mac and O' names come out right: "ColletteMcEntee" → Collette McEntee,
+   "JamesO'Sullivan" → James O'Sullivan. Underscores also work as spaces
+   ("Kitty_Carey_as_Sophie_Sheridan.png") if you'd rather use them.
+
+   When a photo is named that way, it wins over "name" and "role" here. A
+   photo with any other file name leaves "name" and "role" as written.
+   File names are case-sensitive on the live site, so type them exactly —
+   "Sky.JPG" and "Sky.jpg" are different files.
    ========================================================================== */
 
 const CAST = {
