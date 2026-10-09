@@ -274,13 +274,31 @@ import { SEAT_MAP, LAYOUT, checkFit, sightlines } from './seating.js';
         label(W / 2, L - LAYOUT.rearGangwayM / 2, m(LAYOUT.rearGangwayM) + ' to the exits');
         label(W / 2, LAYOUT.stage.depthM + LAYOUT.stage.clearanceM / 2 + 0.2, m(LAYOUT.stage.clearanceM) + ' clear');
 
+        // the exits, as doors set into the walls
+        const EXIT_T = 0.35;                   // how thick the door is drawn
+        for (const ex of LAYOUT.exits || []) {
+            const side = ex.wall === 'left' || ex.wall === 'right';
+            const w = side ? EXIT_T : ex.widthM;
+            const h = side ? ex.widthM : EXIT_T;
+            const cx = ex.wall === 'left' ? 0 : ex.wall === 'right' ? W : ex.atM;
+            const cy = ex.wall === 'stage' ? 0 : ex.wall === 'back' ? L : ex.atM;
+            parts.push(`<rect x="${(cx - w / 2).toFixed(2)}" y="${(cy - h / 2).toFixed(2)}"
+                              width="${w}" height="${h}" fill="#2e8b57" stroke="#ffffff" stroke-width="0.06"/>`);
+            // label just outside the wall
+            const lx = ex.wall === 'left' ? -0.45 : ex.wall === 'right' ? W + 0.45 : cx;
+            const ly = ex.wall === 'stage' ? -0.3 : ex.wall === 'back' ? L + 0.6 : cy;
+            parts.push(`<text x="${lx.toFixed(2)}" y="${ly.toFixed(2)}" text-anchor="middle" font-size="0.4"
+                              font-weight="700" fill="#2e8b57"
+                              ${side ? `transform="rotate(-90 ${lx.toFixed(2)} ${ly.toFixed(2)})"` : ''}>EXIT</text>`);
+        }
+
         // overall dimensions, outside the hall
         parts.push(`<text x="${W / 2}" y="${L + 1.1}" text-anchor="middle" font-size="0.62" fill="#5a6d7a">${m(W)} across</text>`);
         parts.push(`<text x="${-0.9}" y="${L / 2}" text-anchor="middle" font-size="0.62" fill="#5a6d7a"
                           transform="rotate(-90 ${-0.9} ${L / 2})">${m(L)} deep</text>`);
 
-        return `<svg viewBox="${-pad} ${-0.6} ${W + pad * 2} ${L + pad}" role="img"
-                     aria-label="Scale plan of the gym floor: a stage across one end, then ${SEAT_MAP.rows.length} rows of ${SEAT_MAP.seatsPerRow} seats in three blocks separated by two aisles, with a cross gangway part way back and a clear gangway to the exits behind the last row.">
+        return `<svg viewBox="${-pad} ${-0.8} ${W + pad * 2} ${L + pad + 0.8}" role="img"
+                     aria-label="Scale plan of the gym floor: a stage across one end, then ${SEAT_MAP.rows.length} rows of ${SEAT_MAP.seatsPerRow} seats in three blocks separated by two aisles, with a cross gangway part way back and a clear gangway to the exits behind the last row. Exits are marked in green on the walls.">
                   ${parts.join('\n')}
                 </svg>`;
     }

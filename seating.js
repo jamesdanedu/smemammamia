@@ -75,6 +75,19 @@ export const LAYOUT = {
     crossAisle:    { afterRow: 10, widthM: 1.20 },  // 0 = none
     rearGangwayM:  3.00,      // behind the last row, to the exits
 
+    /* --- Exits -----------------------------------------------------------
+       wall: 'stage' (the end wall behind the stage), 'back', 'left' or
+       'right', as you look at the plan with the stage at the top.
+       atM:  where the middle of the door is — along the side walls it is
+             measured from the stage end, along the end walls from the
+             left-hand wall.
+       ------------------------------------------------------------------- */
+    exits: [
+        { wall: 'left',  atM: 28.5, widthM: 1.8 },   // TODO measure — left wall, near the back
+        { wall: 'back',  atM: 16.5, widthM: 1.8 },   // TODO measure — back wall, right-hand end
+        { wall: 'stage', atM: 16.5, widthM: 1.8 }    // TODO measure — stage wall, right-hand end
+    ],
+
     /* --- Seats kept for people who need them ----------------------------
        Nothing is removed from the 500: a wheelchair bay is a chair that
        gets taken away on the night, which is why the seat still has a
