@@ -214,17 +214,28 @@ where b.status = 'confirmed'
    or (b.status = 'held' and b.held_until > now());
 
 -- Seats sold and held per night. What is left on public sale depends on the
--- accessible seats, which live in seating.js — the API works that part out.
+-- accessible seats, which live in seating.js — the API works that part out
+-- and no longer reads this view.
+--
+-- capacity, sold and remaining are the columns the view had before, with
+-- their old meaning (tickets against the typed capacity). They stay so a
+-- deployment still running the old code — whose /api/availability reads
+-- them — keeps working between this migration and the new code going live.
 create view public.performance_availability as
 select
     p.key,
     p.label,
+    p.capacity,
     p.on_sale,
-    coalesce(count(t.seat_id) filter (where t.status = 'confirmed'), 0)::int as sold_seats,
-    coalesce(count(t.seat_id) filter (where t.status = 'held'), 0)::int      as held_seats
-from public.performances p
-left join public.taken_seats t on t.performance_date = p.key
-group by p.key, p.label, p.on_sale;
+    coalesce((select sum(b.quantity) from public.bookings b
+              where b.performance_date = p.key
+                and (b.status = 'confirmed' or (b.status = 'held' and b.held_until > now()))), 0)::int as sold,
+    greatest(p.capacity - coalesce((select sum(b.quantity) from public.bookings b
+              where b.performance_date = p.key
+                and (b.status = 'confirmed' or (b.status = 'held' and b.held_until > now()))), 0), 0)::int as remaining,
+    (select count(*) from public.taken_seats t where t.performance_date = p.key and t.status = 'confirmed')::int as sold_seats,
+    (select count(*) from public.taken_seats t where t.performance_date = p.key and t.status = 'held')::int      as held_seats
+from public.performances p;
 
 -- ---------------------------------------------------------------------------
 -- 7. Hold seats — all of them or none
