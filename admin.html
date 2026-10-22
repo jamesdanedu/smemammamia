@@ -61,6 +61,23 @@ body { padding-top: 0; }
 /* ---- Sign-in gate ---- */
 .gate { max-width: 400px; margin: 9vh auto; }
 
+/* Show / hide the password — handy on a phone, where a typo is easy and invisible */
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 52px; }
+.pw-eye {
+    position: absolute; top: 50%; right: 4px; transform: translateY(-50%);
+    width: 44px; height: 44px; padding: 0;
+    display: grid; place-items: center;
+    background: none; border: none; border-radius: 8px;
+    color: var(--text-dim); cursor: pointer;
+}
+.pw-eye:hover { color: var(--cyan); }
+.pw-eye:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
+.pw-eye svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.pw-eye .eye-shut { display: none; }
+.pw-eye[aria-pressed="true"] .eye-open { display: none; }
+.pw-eye[aria-pressed="true"] .eye-shut { display: block; }
+
 /* a small chapel arch over the sign-in, the one flourish this page gets */
 .gate-arch {
     width: 44px;
@@ -465,7 +482,13 @@ input[type="checkbox"] {
     <div id="gate-alert" class="alert alert-error hidden"></div>
     <div class="field">
       <label for="pw">Password</label>
-      <input type="password" id="pw" autocomplete="current-password">
+      <div class="pw-wrap">
+        <input type="password" id="pw" autocomplete="current-password" spellcheck="false" autocapitalize="off">
+        <button type="button" class="pw-eye" id="pw-eye" aria-controls="pw" aria-pressed="false" aria-label="Show password" title="Show password">
+          <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M1.5 12S5.5 4.5 12 4.5 22.5 12 22.5 12 18.5 19.5 12 19.5 1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.2"/></svg>
+          <svg class="eye-shut" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M1.5 12S5.5 4.5 12 4.5 22.5 12 22.5 12 18.5 19.5 12 19.5 1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.2"/><path d="M3 3l18 18"/></svg>
+        </button>
+      </div>
     </div>
     <button class="btn btn-primary btn-block" id="gate-btn">Sign in</button>
     </div>
@@ -798,12 +821,28 @@ import { drawSeatPlan } from './seatplan.js';
         if (message) note('gate-alert', message);
     }
 
+    /* The eye: show what was typed, and hide it again. Keeps the cursor where
+       it was, so somebody correcting a typo can carry on typing. */
+    function showPassword(show) {
+        const input = $('pw'), eye = $('pw-eye');
+        const at = [input.selectionStart, input.selectionEnd];
+        input.type = show ? 'text' : 'password';
+        eye.setAttribute('aria-pressed', String(show));
+        eye.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        eye.title = show ? 'Hide password' : 'Show password';
+        if (document.activeElement === input && at[0] !== null) input.setSelectionRange(at[0], at[1]);
+    }
+
+    $('pw-eye').addEventListener('click', () => showPassword($('pw').type === 'password'));
+
     $('gate-btn').addEventListener('click', signIn);
     $('pw').addEventListener('keypress', e => { if (e.key === 'Enter') signIn(); });
     $('logout-btn').addEventListener('click', () => signOut(''));
     $('refresh-btn').addEventListener('click', loadAll);
 
     function openDashboard() {
+        showPassword(false);
+        $('pw').value = '';
         $('gate').classList.add('hidden');
         $('dash').classList.remove('hidden');
         $('refresh-btn').style.display = '';
