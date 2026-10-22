@@ -14,6 +14,7 @@ import {
     maskAddress, parseAddressList, sendEmail
 } from './_email.js';
 import { runReconcile } from './reconcile.js';
+import { openCheckout, baseUrlFor } from './_sumup.js';
 import { siteUrl, SHOW, ENQUIRIES_TO, cleanAccessNeeds } from './_show.js';
 import { accessTeamAddresses, sendAccessEmails } from './_access.js';
 import { loadSeatState, countNight, seatRefusal } from './_seats.js';
@@ -25,14 +26,26 @@ const MAX_STAFF_SEATS = 40;
 const enc = encodeURIComponent;
 const isDate = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ''));
 
-/* How a staff booking was paid for. Card on the door goes through the SumUp
-   reader at the table, not the website, so it counts as paid but is kept
-   apart from online sales. */
+/* How a staff booking is paid for.
+
+   card_door    "Card Swipe at SME Office": taken on the office card machine,
+                not through the website. The site only records it, so it
+                counts as paid at once and is kept apart from online sales.
+                (The code is still card_door, from when it meant the door
+                table, so bookings already stored keep their meaning.)
+   card_online  "Card payment (online)": the website opens the same SumUp
+                checkout the public booking page uses. The seats are held,
+                not confirmed, until SumUp says it was paid. */
 const STAFF_PAYMENTS = {
-    cash:      { status: 'cash', method: 'cash',      free: false },
-    card_door: { status: 'paid', method: 'card_door', free: false },
-    comp:      { status: 'comp', method: 'comp',      free: true  }
+    cash:        { status: 'cash', method: 'cash',      free: false },
+    card_door:   { status: 'paid', method: 'card_door', free: false },
+    card_online: { status: 'unpaid', method: null,      free: false, online: true },
+    comp:        { status: 'comp', method: 'comp',      free: true  }
 };
+
+// SumUp's hosted payment page lasts 30 minutes, so a hold made while somebody
+// pays at the office, or on their phone from a link, lasts as long.
+const STAFF_ONLINE_HOLD_MINUTES = 30;
 
 const ACCESS_STATUSES = ['new', 'contacted', 'seated', 'closed'];
 
@@ -207,9 +220,12 @@ export default async function handler(req, res) {
                 });
             }
 
-            /* ---------------- staff booking: cash, card on the door, complimentary ----------------
+            /* ---------------- staff booking ----------------
                Staff pick the seats on the plan — any seat, accessible and
-               blocked included — and the booking is confirmed on the spot.
+               blocked included. Cash, card swipe at the office and
+               complimentary are confirmed on the spot. Card payment (online)
+               holds the seats and opens a SumUp checkout; it is confirmed the
+               way every online booking is, once SumUp says it was paid.
                Same hold function as the website, same lock, same refusal if
                somebody else has a seat. */
             case 'cash-booking':
@@ -255,7 +271,8 @@ export default async function handler(req, res) {
                         p_access_notes:   String(body.accessNotes || '').trim().slice(0, 300),
                         p_restricted:     ACCESSIBLE_IDS,
                         p_staff:          true,
-                        p_confirm:        true,
+                        p_confirm:        !payment.online,
+                        p_hold_minutes:   STAFF_ONLINE_HOLD_MINUTES,
                         p_payment_status: payment.status,
                         p_payment_method: payment.method,
                         p_notes:          String(body.notes || '').trim().slice(0, 300),
@@ -267,6 +284,28 @@ export default async function handler(req, res) {
                     const msg = err.pgMessage || err.message || '';
                     if (msg.includes('NOT_ON_SALE')) return res.status(409).json({ error: 'That night is closed for sale.' });
                     throw err;
+                }
+
+                // Card payment (online): open the SumUp checkout and hand the
+                // link back. Nothing is confirmed or emailed yet — that happens
+                // when the payment is verified, exactly as for the website.
+                if (payment.online) {
+                    const opened = await openCheckout({
+                        reference,
+                        amount,
+                        quantity: seats.length,
+                        performanceDate: body.performanceDate,
+                        baseUrl: baseUrlFor(req)
+                    });
+                    if (!opened.ok) return res.status(opened.status).json({ error: opened.error });
+                    return res.status(200).json({
+                        booking: row,
+                        seats,
+                        seatsLabel: describeSeats(seats),
+                        pending: true,
+                        checkoutUrl: opened.checkoutUrl,
+                        expiresAt: row?.held_until || null
+                    });
                 }
 
                 // Staff bookings get a confirmation too, when an address was given.

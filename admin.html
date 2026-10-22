@@ -439,6 +439,13 @@ input[type="checkbox"] {
     border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 0.88rem;
 }
 .pay-choice { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.pending-pay {
+    background: var(--yellow-tint); border: 1px solid #eed9a6; border-left: 4px solid var(--yellow);
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; font-size: 0.9rem; line-height: 1.55;
+}
+.pending-pay .pay-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 6px; align-items: center; }
+.pending-pay input { width: 100%; font: inherit; font-size: 0.8rem; padding: 7px 9px; border: 1px solid #eed9a6; border-radius: 8px; background: #fff; }
+.pending-pay .btn { padding: 10px 18px; font-size: 0.86rem; text-decoration: none; }
 .ar-row td { vertical-align: top; }
 .ar-row textarea { width: 100%; min-width: 160px; min-height: 54px; font: inherit; font-size: 0.82rem; padding: 6px; border: 1px solid var(--border-strong); border-radius: 8px; }
 .ar-row select { font: inherit; padding: 6px; border-radius: 8px; border: 1px solid var(--border-strong); }
@@ -655,12 +662,13 @@ input[type="checkbox"] {
     <div class="card">
       <h2 style="font-size:1.05rem;margin-bottom:5px">Add a booking</h2>
       <p class="dim mb-3" style="font-size:0.86rem">
-        For cash and card sales at the door, and complimentary tickets. Pick the seats on the plan —
-        any seat, accessible and blocked included. The booking is confirmed straight away and
-        gets the same confirmation email as an online one.
+        For tickets sold by staff — cash, a card swipe at the SME office, a card payment online,
+        or complimentary. Pick the seats on the plan — any seat, accessible and blocked included.
+        Every booking gets the same confirmation email as one made on the website.
       </p>
       <div id="add-from-request" class="from-request hidden"></div>
       <div id="add-alert" class="alert hidden"></div>
+      <div id="add-pending" class="pending-pay hidden" role="status"></div>
 
       <div class="field" style="max-width:360px"><label for="add-night">Performance</label><select id="add-night"></select></div>
 
@@ -688,9 +696,11 @@ input[type="checkbox"] {
           <label>Payment</label>
           <div class="pay-choice">
             <label class="check-label"><input type="radio" name="add-pay" value="cash" checked> Cash</label>
-            <label class="check-label"><input type="radio" name="add-pay" value="card_door"> Card on the door</label>
+            <label class="check-label"><input type="radio" name="add-pay" value="card_door"> Card Swipe at SME Office</label>
+            <label class="check-label"><input type="radio" name="add-pay" value="card_online"> Card payment (online)</label>
             <label class="check-label"><input type="radio" name="add-pay" value="comp"> Complimentary</label>
           </div>
+          <div class="hint" id="add-pay-hint"></div>
         </div>
         <div class="field"><label for="add-seller" id="add-seller-label">Sold by</label><input type="text" id="add-seller" placeholder="Student or staff name"></div>
         <div class="field"><label for="add-notes">Notes <span class="faint" style="text-transform:none">(optional)</span></label><input type="text" id="add-notes"></div>
@@ -898,8 +908,8 @@ import { drawSeatPlan } from './seatplan.js';
     function paidWord(b) {
         if (isComp(b)) return 'Comp';
         if (b.payment_status === 'cash') return 'Cash';
-        if (b.payment_method === 'card_door') return 'Card (door)';
-        if (b.payment_status === 'paid') return 'Online';
+        if (b.payment_method === 'card_door') return 'Card swipe (office)';
+        if (b.payment_status === 'paid') return 'Card online';
         return 'Unpaid';
     }
 
@@ -911,9 +921,9 @@ import { drawSeatPlan } from './seatplan.js';
             [t.tickets, 'Tickets issued'],
             [t.bookings, 'Bookings'],
             [CONFIG.money(t.revenue), 'Taken', 'money'],
-            [t.onlineTickets, 'Online'],
+            [t.onlineTickets, 'Card online'],
             [t.cashTickets, 'Cash'],
-            [t.cardDoorTickets, 'Card at door'],
+            [t.cardDoorTickets, 'Card swipe (office)'],
             [t.compTickets, 'Complimentary']
         ].map(([n, l, cls]) => `<div class="stat ${cls || ''}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
 
@@ -1083,7 +1093,7 @@ import { drawSeatPlan } from './seatplan.js';
             const payTag = b.status !== 'confirmed' ? ''
                 : isComp(b) ? ' <span class="tag tag-comp">Comp</span>'
                 : b.payment_status === 'cash' ? ' <span class="tag tag-cash">Cash</span>'
-                : b.payment_method === 'card_door' ? ' <span class="tag tag-cash">Card (door)</span>' : '';
+                : b.payment_method === 'card_door' ? ' <span class="tag tag-cash">Card swipe (office)</span>' : '';
             const conflictTag = b.seat_conflict ? ' <span class="tag tag-conflict">Seat conflict</span>' : '';
 
             let emailTag;
@@ -1528,12 +1538,22 @@ import { drawSeatPlan } from './seatplan.js';
         $('add-picked').textContent = seats.length
             ? `${describeSeats(seats)} — ${seats.length} ticket${seats.length === 1 ? '' : 's'}, ${pay === 'comp' ? 'complimentary' : CONFIG.money(price)}`
             : 'No seats picked.';
-        $('add-btn').textContent = seats.length ? `Add booking — ${seats.length} seat${seats.length === 1 ? '' : 's'}` : 'Add booking';
+        const what = pay === 'card_online' ? 'Hold seats and open card payment' : 'Add booking';
+        $('add-btn').textContent = seats.length ? `${what} — ${seats.length} seat${seats.length === 1 ? '' : 's'}` : what;
+        $('add-pay-hint').textContent = PAY_HINTS[pay] || '';
     }
+
+    const PAY_HINTS = {
+        cash: 'Take the cash first. The booking is confirmed straight away.',
+        card_door: 'Take the payment on the card machine at the SME office first — this only records it. Confirmed straight away.',
+        card_online: 'Holds the seats for 30 minutes and opens a SumUp card payment, the same as the website. ' +
+                     'The customer pays on this computer or from a link on their phone; the booking confirms when SumUp has the money.',
+        comp: 'No money taken. Confirmed straight away.'
+    };
 
     $('add-night').addEventListener('change', () => { add.picked.clear(); loadAddPlan(); });
     document.querySelectorAll('[name="add-pay"]').forEach(r => r.addEventListener('change', () => {
-        $('add-seller-label').textContent = r.value === 'comp' && r.checked ? 'Issued by' : 'Sold by';
+        if (r.checked) $('add-seller-label').textContent = r.value === 'comp' ? 'Issued by' : 'Sold by';
         paintAdd();
     }));
     $('add-clear').addEventListener('click', () => { add.picked.clear(); paintAdd(); });
@@ -1586,22 +1606,28 @@ import { drawSeatPlan } from './seatplan.js';
         const payment = document.querySelector('[name="add-pay"]:checked').value;
         $('add-btn').disabled = true;
         try {
-            const { booking, seatsLabel, email } = await api('staff-booking', {
+            const result = await api('staff-booking', {
                 performanceDate: $('add-night').value,
                 seats,
                 customerName: name,
                 customerEmail: $('add-email').value.trim(),
                 customerPhone: $('add-phone').value.trim(),
-                bookedBy: $('add-seller').value.trim() || (payment === 'comp' ? 'COMP' : 'DOOR'),
+                bookedBy: $('add-seller').value.trim() || ({ comp: 'COMP', cash: 'DOOR' }[payment] || 'OFFICE'),
                 notes: $('add-notes').value.trim(),
                 accessNeeds: Array.from(document.querySelectorAll('[data-add-access]:checked')).map(cb => cb.value),
                 accessNotes: $('add-access-notes').value.trim(),
                 payment,
                 accessRequestId: add.request?.id
             });
-            note('add-alert',
-                 `Added — reference ${booking.booking_reference}. Seats: ${seatsLabel}.` +
-                 (email?.sent ? ' Confirmation emailed.' : ''), 'success');
+            const { booking, seatsLabel, email } = result;
+            if (result.pending) {
+                note('add-alert', '');
+                showPending(result);
+            } else {
+                note('add-alert',
+                     `Added — reference ${booking.booking_reference}. Seats: ${seatsLabel}.` +
+                     (email?.sent ? ' Confirmation emailed.' : ''), 'success');
+            }
             ['add-name', 'add-email', 'add-phone', 'add-notes', 'add-access-notes']
                 .forEach(id => { $(id).value = ''; });
             document.querySelectorAll('[data-add-access]').forEach(cb => { cb.checked = false; });
@@ -1616,6 +1642,88 @@ import { drawSeatPlan } from './seatplan.js';
             $('add-btn').disabled = false;
         }
     });
+
+    /* ---------------- a card payment taken online by staff ----------------
+       The seats are held and a SumUp checkout is open. The customer pays on
+       the office computer (Open payment page) or on their own phone (Copy
+       link). This panel asks the server every few seconds whether SumUp has
+       the money — the same check the website's success page makes — and
+       says so when it has. The reconciler is the backstop if nobody is
+       watching. */
+    const pending = { ref: null, timer: null, until: 0 };
+
+    function showPending(r) {
+        stopPending();
+        pending.ref = r.booking.booking_reference;
+        pending.until = r.expiresAt ? new Date(r.expiresAt).getTime() : Date.now() + 30 * 60000;
+        const until = new Date(pending.until).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
+        $('add-pending').innerHTML =
+            `<strong>Waiting for card payment — ${escapeHtml(pending.ref)}</strong><br>` +
+            `${escapeHtml(r.seatsLabel)} · ${CONFIG.money(r.booking.amount)} · seats held until ${until}.` +
+            '<div class="pay-actions">' +
+              `<a class="btn btn-primary" href="${escapeHtml(r.checkoutUrl)}" target="_blank" rel="noopener">Open payment page</a>` +
+              '<button class="mini-btn" id="pay-copy">Copy link</button>' +
+              '<button class="mini-btn" id="pay-check">Check payment</button>' +
+              '<button class="mini-btn" id="pay-cancel">Cancel</button>' +
+            '</div>' +
+            `<input type="text" readonly id="pay-link" value="${escapeHtml(r.checkoutUrl)}" aria-label="Payment link">` +
+            '<div class="faint mt-1" style="font-size:0.8rem" id="pay-status">Not paid yet — this checks by itself every few seconds.</div>';
+        $('add-pending').classList.remove('hidden');
+
+        $('pay-copy').addEventListener('click', async () => {
+            try { await navigator.clipboard.writeText(r.checkoutUrl); $('pay-copy').textContent = 'Copied ✓'; }
+            catch (_) { $('pay-link').select(); document.execCommand('copy'); $('pay-copy').textContent = 'Copied ✓'; }
+        });
+        $('pay-check').addEventListener('click', () => checkPending(true));
+        $('pay-cancel').addEventListener('click', async () => {
+            if (!confirm(`Cancel ${pending.ref}? The seats go back on sale. Only do this if the customer has not paid.`)) return;
+            try {
+                await api('cancel', { bookingRef: pending.ref, reason: 'Card payment not completed' });
+                stopPending();
+                $('add-pending').classList.add('hidden');
+                note('add-alert', 'Cancelled — the seats are back on sale.', 'success');
+                loadAddPlan(); loadAll();
+            } catch (err) { $('pay-status').textContent = err.message; }
+        });
+
+        pending.timer = setInterval(() => checkPending(false), 8000);
+    }
+
+    function stopPending() {
+        if (pending.timer) clearInterval(pending.timer);
+        pending.timer = null;
+    }
+
+    async function checkPending(byHand) {
+        if (!pending.ref) return;
+        if (Date.now() > pending.until + 5 * 60000 && !byHand) {
+            stopPending();
+            $('pay-status').textContent = 'The hold has run out without a payment arriving. If the customer did pay, Check payment, or Run checks now on the Overview.';
+            return;
+        }
+        try {
+            const res = await fetch(CONFIG.api.verify, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bookingRef: pending.ref })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (data.paid) {
+                stopPending();
+                const b = data.booking || {};
+                $('add-pending').classList.add('hidden');
+                note('add-alert',
+                     `Paid — ${pending.ref} is confirmed.` + (b.seatsLabel ? ` Seats: ${b.seatsLabel}.` : '') +
+                     (data.email?.status === 'sent' ? ' Confirmation emailed.' : ''), 'success');
+                pending.ref = null;
+                loadAddPlan(); loadAll();
+            } else if (byHand) {
+                $('pay-status').textContent = `Not paid yet (SumUp says ${data.status || 'no payment'}). Checked ${new Date().toLocaleTimeString('en-IE')}.`;
+            }
+        } catch (err) {
+            if (byHand) $('pay-status').textContent = 'Could not check just now — try again.';
+        }
+    }
 
     /* ---------------- move a booking / settle a seat conflict ---------------- */
     const reseat = { plan: null, data: null, picked: new Set(), booking: null, moved: false };
