@@ -18,7 +18,7 @@
 // Run it on a schedule (see README). Nothing here depends on a webhook
 // arriving or a browser staying open.
 
-import { applyCors, sbSelect, sbRpc, supabaseConfigured } from './_supabase.js';
+import { applyCors, sbSelect, sbRpc, sbUpdate, supabaseConfigured } from './_supabase.js';
 import { sendConfirmationFor, isRealAddress } from './_confirmations.js';
 import { emailConfigured } from './_email.js';
 import { sendAccessEmails } from './_access.js';
@@ -110,7 +110,7 @@ export async function runReconcile(url = '') {
             // 'held', and is old enough that the customer has clearly gone.
             const cutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
             const stale = await sbSelect(
-                'bookings?select=booking_reference,amount,performance_date,quantity' +
+                'bookings?select=booking_reference,amount,performance_date,quantity,created_at' +
                 '&status=eq.held&sumup_checkout_id=not.is.null' +
                 `&created_at=lt.${encodeURIComponent(cutoff)}` +
                 `&order=created_at.asc&limit=${MAX_RESCUE}`
@@ -131,7 +131,20 @@ export async function runReconcile(url = '') {
                     const checkouts = await response.json();
                     const paid = Array.isArray(checkouts) ? checkouts.find(c => c.status === 'PAID') : null;
 
-                    if (!paid) { summary.rescue.stillUnpaid++; continue; }
+                    if (!paid) {
+                        summary.rescue.stillUnpaid++;
+                        // SumUp's payment page lasts 30 minutes. Two hours on,
+                        // unpaid means abandoned: mark it so it stops taking a
+                        // place in this queue, which would otherwise fill with
+                        // the same oldest 40 and never reach a real payment.
+                        if (new Date(booking.created_at) < new Date(Date.now() - 2 * 3600 * 1000)) {
+                            await sbUpdate('bookings',
+                                `booking_reference=eq.${encodeURIComponent(booking.booking_reference)}&status=eq.held`,
+                                { status: 'expired' }).catch(() => {});
+                            summary.rescue.expired = (summary.rescue.expired || 0) + 1;
+                        }
+                        continue;
+                    }
 
                     // Same amount guard as the live verifier
                     if (Number(paid.amount) + 0.001 < Number(booking.amount)) {

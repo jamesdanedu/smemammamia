@@ -27,7 +27,9 @@ import { seatRefusal } from './_seats.js';
 const BOOKING_OPEN = false;
 
 const TICKET_PRICE   = Number(process.env.TICKET_PRICE || 10);
-const HOLD_MINUTES   = Number(process.env.HOLD_MINUTES || 15);
+// A hold with no expiry would be treated as already dead and its seats sold
+// twice, so anything odd in the setting falls back to 15.
+const HOLD_MINUTES   = Math.min(60, Math.max(5, parseInt(process.env.HOLD_MINUTES, 10) || 15));
 const MAX_PER_ORDER  = Number(process.env.MAX_PER_ORDER || 10);
 
 const isEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v || '').trim());

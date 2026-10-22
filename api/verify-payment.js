@@ -47,6 +47,12 @@ export default async function handler(req, res) {
             return res.status(200).json({ paid: true, booking: publicView(booking), email });
         }
 
+        // Cancelled by the office. There are no refunds, but a cancelled
+        // booking stays cancelled — refreshing this page must not revive it.
+        if (booking.status === 'cancelled') {
+            return res.status(200).json({ paid: false, status: 'CANCELLED', error: 'This booking was cancelled. Please contact us quoting the reference.' });
+        }
+
         /* ---- ask SumUp ---- */
         const response = await fetch(
             `https://api.sumup.com/v0.1/checkouts?checkout_reference=${encodeURIComponent(bookingRef)}`,

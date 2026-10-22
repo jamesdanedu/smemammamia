@@ -150,7 +150,17 @@ OUT=$(q "insert into booking_seats (performance_date, seat_id, booking_id)
          select $NIGHT, 'E1', id from bookings where booking_reference = 'MM-LATE01'" 2>&1 || true)
 check "a duplicate seat row is impossible, whatever the code does" "duplicate key" "$(grep -o 'duplicate key' <<<"$OUT")"
 
-echo "10. the anon key can call nothing"
+echo "10. a cancelled booking stays cancelled when its payment is checked again"
+q "$(hold_sql MM-CAN001 "array['G20','G21']")" >/dev/null
+q "update bookings set status = 'cancelled', held_until = null where booking_reference = 'MM-CAN001'"
+q "select release_booking_seats('MM-CAN001')" >/dev/null
+q "$(hold_sql MM-CAN002 "array['G21']")" >/dev/null
+q "select 1 from confirm_paid_booking('MM-CAN001', 'txn_3')" >/dev/null
+check "confirm_paid_booking leaves a cancelled booking cancelled" "cancelled" \
+      "$(q "select status from bookings where booking_reference = 'MM-CAN001'")"
+check "and does not take back the seat sold since" "MM-CAN002" "$(q "select booking_reference from taken_seats where seat_id = 'G21'")"
+
+echo "11. the anon key can call nothing"
 check "anon cannot create a hold" f \
       "$(q "select has_function_privilege('anon', 'public.create_hold(text, date, text[], numeric, text, text, text, text, integer, text, text, text[], boolean, boolean, text, text, text, uuid)', 'execute')")"
 check "anon cannot confirm a payment" f "$(q "select has_function_privilege('anon', 'public.confirm_paid_booking(text, text)', 'execute')")"

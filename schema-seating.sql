@@ -126,6 +126,16 @@ alter table public.bookings drop constraint if exists bookings_payment_status_ch
 alter table public.bookings add constraint bookings_payment_status_check
     check (payment_status in ('unpaid', 'paid', 'cash', 'comp', 'refunded'));
 
+-- Any confirmed booking taken before seats existed has none. Flag it, so it
+-- shows on the admin Overview to be seated rather than its places being sold
+-- again. (A no-op on a database with no such bookings.)
+update public.bookings b
+   set seat_conflict = true,
+       notes = coalesce(b.notes || ' | ', '') || 'Booked before reserved seating — assign seats'
+ where b.status = 'confirmed'
+   and not b.seat_conflict
+   and not exists (select 1 from public.booking_seats bs where bs.booking_id = b.id);
+
 -- ---------------------------------------------------------------------------
 -- 5. Let go of seats nobody is buying
 --
@@ -393,15 +403,17 @@ begin
         raise exception 'UNKNOWN_BOOKING';
     end if;
 
-    if v_row.status = 'confirmed' then
-        return v_row;                       -- already done, nothing to do
+    -- Already confirmed: nothing to do. Cancelled by the office: stays
+    -- cancelled — a refreshed success page must not bring it back.
+    if v_row.status not in ('held', 'expired') then
+        return v_row;
     end if;
 
     perform pg_advisory_xact_lock(hashtext(v_row.performance_date::text));
 
     -- re-read under the lock: a second caller may have confirmed it meanwhile
     select * into v_row from public.bookings where booking_reference = p_reference;
-    if v_row.status = 'confirmed' then
+    if v_row.status not in ('held', 'expired') then
         return v_row;
     end if;
 
@@ -447,7 +459,12 @@ begin
                                     else notes
                                   end
      where id = v_row.id
+       and status in ('held', 'expired')   -- an admin cancel that slipped in first wins
     returning * into v_row;
+
+    if not found then
+        select * into v_row from public.bookings where booking_reference = p_reference;
+    end if;
 
     return v_row;
 end;

@@ -25,6 +25,20 @@ export async function sbSelect(path) {
     return text ? JSON.parse(text) : [];
 }
 
+/**
+ * Every row, a page at a time. Supabase hands back at most 1,000 rows a
+ * request and says nothing about the rest, so anything that must count every
+ * booking reads through this. `path` must carry an `order=`.
+ */
+export async function sbSelectAll(path, pageSize = 1000) {
+    const out = [];
+    for (let offset = 0; ; offset += pageSize) {
+        const page = await sbSelect(`${path}&limit=${pageSize}&offset=${offset}`);
+        out.push(...page);
+        if (page.length < pageSize) return out;
+    }
+}
+
 /** POST /rest/v1/<table> */
 export async function sbInsert(table, rows, { upsert = false } = {}) {
     const res = await fetch(`${BASE}/rest/v1/${table}`, {

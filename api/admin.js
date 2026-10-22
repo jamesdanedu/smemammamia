@@ -6,7 +6,7 @@
 import crypto from 'node:crypto';
 import {
     applyCors, requireMethod, readBody,
-    sbSelect, sbUpdate, sbRpc, sbInsert, newBookingRef, supabaseConfigured
+    sbSelect, sbSelectAll, sbUpdate, sbRpc, sbInsert, newBookingRef, supabaseConfigured
 } from './_supabase.js';
 import { sendConfirmationFor } from './_confirmations.js';
 import {
@@ -86,9 +86,10 @@ export default async function handler(req, res) {
             case 'summary': {
                 const [perfs, bookings, requests] = await Promise.all([
                     sbSelect('performances?select=key,label,on_sale&order=key.asc'),
-                    sbSelect('bookings?select=booking_reference,performance_date,quantity,amount,status,' +
+                    sbSelectAll('bookings?select=booking_reference,performance_date,quantity,amount,status,' +
                              'payment_status,payment_method,booked_by,customer_name,confirmation_sent_at,' +
-                             'last_email_error,seat_conflict,seats_requested,access_needs,access_notes'),
+                             'last_email_error,seat_conflict,seats_requested,access_needs,access_notes' +
+                             '&status=eq.confirmed&order=created_at.asc'),
                     sbSelect('access_requests?select=id,reference,performance_date,name,wheelchair_spaces,' +
                              'companion_seats,status,team_emailed_at,ack_emailed_at,created_at&order=created_at.asc')
                 ]);
@@ -171,17 +172,17 @@ export default async function handler(req, res) {
 
             /* ---------------- booking list ---------------- */
             case 'list': {
-                const filters = ['select=*,booking_seats(seat_id)', 'order=created_at.desc', 'limit=1000'];
+                const filters = ['select=*,booking_seats(seat_id)', 'order=created_at.desc'];
                 if (body.performanceDate) filters.push(`performance_date=eq.${enc(body.performanceDate)}`);
                 if (body.status)          filters.push(`status=eq.${enc(body.status)}`);
-                const rows = await sbSelect('bookings?' + filters.join('&'));
+                const rows = await sbSelectAll('bookings?' + filters.join('&'));
                 return res.status(200).json({ bookings: rows.map(withSeats) });
             }
 
             /* ---------------- door list ---------------- */
             case 'door-list': {
                 if (!isDate(body.performanceDate)) return res.status(400).json({ error: 'performanceDate required' });
-                const rows = await sbSelect(
+                const rows = await sbSelectAll(
                     'bookings?select=booking_reference,customer_name,quantity,booked_by,payment_status,payment_method,' +
                     'seat_conflict,access_needs,access_notes,booking_seats(seat_id)' +
                     `&performance_date=eq.${enc(body.performanceDate)}` +
