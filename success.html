@@ -141,15 +141,21 @@
     <div class="text-center">
       <div class="tick">✓</div>
       <h1 class="section-title" style="margin-bottom:6px"><span class="neon-cyan">You're Going!</span></h1>
-      <p class="dim">Your tickets are booked and paid for. See you on the island.</p>
+      <p class="dim" id="going-line">Your tickets are booked and paid for. See you on the island.</p>
     </div>
 
     <div class="ref-box">
       <div class="ref-label">Booking reference</div>
       <div class="ref-value" id="ref-value">—</div>
-      <p class="dim mt-1" style="font-size:0.83rem">Every reference starts <strong>MM-</strong> (for example <strong>MM-4F2K9A</strong>). Nothing to print — just give your name at the door.</p>
+      <p class="dim mt-1" style="font-size:0.83rem">Every reference starts <strong>MM-</strong> (for example <strong>MM-4F2K9A</strong>). Nothing to print — just give the booking name or this reference at the door.</p>
     </div>
 
+    <div id="conflict-note" class="alert alert-info hidden" style="font-size:0.9rem">
+      <strong>Your seats are being arranged.</strong> Your payment arrived after the seats you chose
+      had been released, and some of them have since been booked by somebody else. Your booking
+      stands — the box office will choose seats together for your party and email them to you
+      well before the night.
+    </div>
     <div id="email-status" class="alert alert-success" style="font-size:0.9rem">
       Sending your confirmation email…
     </div>
@@ -295,13 +301,19 @@
         $('d-time').textContent    = S.doorsTime + ' / ' + S.startTime;
         $('d-venue').textContent   = S.venue;
         $('d-qty').textContent     = b.quantity + (b.quantity === 1 ? ' ticket' : ' tickets');
-        $('d-amount').textContent  = CONFIG.money(b.amount);
+        const comp = b.paymentStatus === 'comp' || b.paymentStatus === 'refunded';
+        $('d-amount').textContent  = comp ? 'Complimentary' : CONFIG.money(b.amount);
+        if (comp) $('going-line').textContent = 'Your tickets are booked. See you on the island.';
 
-        // The seats themselves. Bookings taken before the seating map existed
-        // have none, and simply do without the line.
+        // The seats themselves. A paid booking whose seats went while the
+        // customer was away has none yet — say so plainly.
         if (b.seatsLabel) {
             $('d-seats').textContent = b.seatsLabel;
             $('d-seats-row').classList.remove('hidden');
+        } else if (b.seatConflict) {
+            $('d-seats').textContent = 'To be confirmed by the box office';
+            $('d-seats-row').classList.remove('hidden');
+            $('conflict-note').classList.remove('hidden');
         }
 
         // Access requests are echoed back so a mistake can be spotted while

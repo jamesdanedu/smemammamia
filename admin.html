@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="seatplan.css">
 <style>
 /* ==========================================================================
    Admin — the same Aegean whitewash palette as the public site, dialled down
@@ -403,35 +404,43 @@ input[type="checkbox"] {
     .card { border: 1px solid #999; background: #fff; box-shadow: none; }
     .tag { background: #fff !important; color: #000 !important; border: 1px solid #999; }
 }
-/* Seat map panel — the hall as it will actually stand on the night */
-.seatplan { --sq: 15px; --gp: 2px; --ai: 22px; width: max-content; margin: 0 auto; padding: 4px; }
-.seatplan-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
-.seatplan .stage {
-    background: var(--cyan); color: #fff; text-align: center; border-radius: 3px;
-    padding: 6px 0; font-size: 0.64rem; letter-spacing: 0.2em; margin-bottom: 10px;
-}
-.seatplan .r { display: flex; align-items: center; gap: var(--gp); margin-bottom: var(--gp); }
-.seatplan .blk { display: flex; gap: var(--gp); }
-.seatplan .ai { width: var(--ai); flex: none; }
-.seatplan .cross { height: 12px; }
-.seatplan .lbl { width: 16px; flex: none; text-align: center; font-size: 0.58rem; color: var(--text-faint); }
-.seatplan .s {
-    width: var(--sq); height: var(--sq); flex: none; border-radius: 3px;
-    border: 1px solid var(--border-strong); background: var(--surface);
-}
-.seatplan .s.sold { background: var(--cyan); border-color: var(--cyan); }
-.seatplan .s.held { background: var(--yellow); border-color: var(--yellow); }
-.seatplan .s.wheel { outline: 1px solid var(--pink); outline-offset: 1px; }
-.seatplan-legend {
-    display: flex; gap: 6px 16px; flex-wrap: wrap; justify-content: center;
-    margin-top: 10px; font-size: 0.76rem; color: var(--text-dim);
-}
-.seatplan-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.seatplan-legend i { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--border-strong); }
-.seatplan-legend i.sold { background: var(--cyan); border-color: var(--cyan); }
-.seatplan-legend i.held { background: var(--yellow); border-color: var(--yellow); }
-.seatplan-legend i.wheel { outline: 1px solid var(--pink); outline-offset: 1px; }
+/* ---- Seat plans: the drawing itself is seatplan.css ---- */
+.plan-card .sp-scroll { max-height: min(74vh, 860px); }
+.plan-modes { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 10px; }
+.plan-modes label { display: inline-flex; align-items: center; gap: 7px; font-size: 0.88rem; cursor: pointer; min-height: 36px; }
+.plan-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.plan-actions input[type="text"] { min-height: 38px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 10px; font: inherit; }
+.picked-line { font-weight: 700; margin-top: 10px; }
+.picked-sub { font-size: 0.82rem; color: var(--text-dim); }
+.counts-line { font-size: 0.86rem; color: var(--text-dim); margin-top: 4px; }
+.counts-line strong { color: var(--text); }
 .seats-cell { font-size: 0.78rem; line-height: 1.35; }
+.tag-conflict { background: var(--pink-tint); color: #8d1f48; border-color: #efc2d3; }
+.tag-comp { background: var(--lime-tint); color: #465c30; border-color: #cadcb6; }
+.from-request {
+    background: var(--sp-access-tint); border: 1px solid #d7c6e3; border-left: 4px solid var(--sp-access);
+    border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 0.88rem;
+}
+.pay-choice { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.ar-row td { vertical-align: top; }
+.ar-row textarea { width: 100%; min-width: 160px; min-height: 54px; font: inherit; font-size: 0.82rem; padding: 6px; border: 1px solid var(--border-strong); border-radius: 8px; }
+.ar-row select { font: inherit; padding: 6px; border-radius: 8px; border: 1px solid var(--border-strong); }
+.who-list { columns: 2 320px; column-gap: 28px; font-size: 0.82rem; line-height: 1.5; margin-top: 16px; }
+.who-list .row { break-inside: avoid; margin-bottom: 6px; }
+.who-list .row strong { display: inline-block; min-width: 22px; }
+.modal-box.plan-modal { max-width: min(1100px, 96vw); width: 100%; text-align: left; max-height: 96vh; overflow: auto; }
+.print-only { display: none; }
+
+@media print {
+    .print-only { display: block; }
+    .plan-modes, .plan-actions, .sp-legend { display: none !important; }
+    #panel-seats .card { border: none; padding: 0; box-shadow: none; }
+    /* the whole hall on one landscape A4 page, a surname in every seat taken */
+    #panel-seats .sp-grid { --cell: 5.9mm !important; }
+    #panel-seats .sp-seat { font-size: 5pt; justify-content: flex-start; padding-left: 0.4mm; }
+    #panel-seats .sp-small .sp-num { display: inline; }
+    .who-list { font-size: 9pt; break-before: page; }
+}
 
 </style>
 </head>
@@ -471,8 +480,9 @@ input[type="checkbox"] {
   <div class="tabs">
     <button class="tab active" data-panel="overview">Overview</button>
     <button class="tab" data-panel="bookings">Bookings</button>
+    <button class="tab" data-panel="access">Access requests <span id="access-count"></span></button>
     <button class="tab" data-panel="door">Door list</button>
-    <button class="tab" data-panel="seats">Seat map</button>
+    <button class="tab" data-panel="seats">Seat plan</button>
     <button class="tab" data-panel="add">Add booking</button>
     <button class="tab" data-panel="wall">Message wall</button>
     <button class="tab" data-panel="settings">Settings</button>
@@ -481,7 +491,8 @@ input[type="checkbox"] {
   <!-- OVERVIEW -->
   <section class="panel active" id="panel-overview">
     <div id="email-banner" class="hidden"></div>
-    <div id="capacity-banner" class="hidden"></div>
+    <div id="conflict-banner" class="hidden"></div>
+    <div id="requests-banner" class="hidden"></div>
     <div id="access-banner" class="hidden"></div>
     <div class="stats" id="stat-tiles"></div>
 
@@ -495,13 +506,14 @@ input[type="checkbox"] {
   <!-- BOOKINGS -->
   <section class="panel" id="panel-bookings">
     <div class="toolbar">
-      <div class="field grow"><input type="search" id="search" placeholder="Search name, email or MM-XXXXXX"></div>
+      <div class="field grow"><input type="search" id="search" placeholder="Search name, email, seat or MM-XXXXXX"></div>
       <div class="field"><select id="filter-night"><option value="">All nights</option></select></div>
       <div class="field"><select id="filter-status">
         <option value="">All statuses</option>
         <option value="confirmed">Confirmed</option>
         <option value="held">Held</option>
         <option value="cancelled">Cancelled</option>
+        <option value="conflict">Seat conflicts</option>
       </select></div>
       <div class="field"><select id="filter-email">
         <option value="">Any email state</option>
@@ -510,7 +522,7 @@ input[type="checkbox"] {
       </select></div>
       <div class="field"><select id="filter-access">
         <option value="">Access: everyone</option>
-        <option value="yes">Access requests only</option>
+        <option value="yes">Access needs only</option>
       </select></div>
       <button class="btn btn-ghost" id="csv-btn" style="padding:11px 18px;font-size:0.82rem">⬇ CSV</button>
     </div>
@@ -523,6 +535,35 @@ input[type="checkbox"] {
       </table>
     </div>
     <p class="dim mt-2" style="font-size:0.82rem" id="bookings-count"></p>
+  </section>
+
+  <!-- ACCESS REQUESTS -->
+  <section class="panel" id="panel-access">
+    <div class="toolbar">
+      <div class="field"><select id="ar-filter-night"><option value="">All nights</option></select></div>
+      <div class="field"><select id="ar-filter-status">
+        <option value="open">Open (new and contacted)</option>
+        <option value="">Every status</option>
+        <option value="new">New</option>
+        <option value="contacted">Contacted</option>
+        <option value="seated">Seated</option>
+        <option value="closed">Closed</option>
+      </select></div>
+    </div>
+    <p class="dim mb-2" style="font-size:0.84rem" id="ar-team-line"></p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>Ref</th><th>Night</th><th>Name</th><th>Contact</th><th>Needs</th><th>Notes</th><th>Status</th><th>Staff notes</th><th>Emails</th><th></th>
+        </tr></thead>
+        <tbody id="ar-body"><tr><td colspan="10" class="dim">Loading…</td></tr></tbody>
+      </table>
+    </div>
+    <p class="dim mt-2" style="font-size:0.82rem">
+      A wheelchair space takes the place of two seats with the chairs taken away, and the
+      companion sits alongside. <strong>Book seats</strong> opens Add booking with the request
+      filled in — pick the accessible seats being used and it is marked seated.
+    </p>
   </section>
 
   <!-- DOOR LIST -->
@@ -540,56 +581,103 @@ input[type="checkbox"] {
     </div>
   </section>
 
-
-  <!-- SEAT MAP -->
+  <!-- SEAT PLAN -->
   <section class="panel" id="panel-seats">
     <div class="toolbar no-print">
       <div class="field"><select id="seatplan-night"></select></div>
-      <button class="btn btn-ghost" id="print-seatplan" style="padding:11px 18px;font-size:0.82rem">🖨️ Print</button>
+      <button class="btn btn-ghost" id="print-seatplan" style="padding:11px 18px;font-size:0.82rem">🖨️ Print with names</button>
     </div>
-    <h2 id="seatplan-heading" style="font-size:1.05rem;margin-bottom:12px"></h2>
-    <div class="card">
-      <div class="seatplan-scroll">
-        <div class="seatplan" id="seatplan">
-          <div class="stage">STAGE</div>
-          <div id="seatplan-rows"></div>
-        </div>
+    <h2 id="seatplan-heading" style="font-size:1.05rem;margin-bottom:4px"></h2>
+    <p class="counts-line" id="seatplan-counts"></p>
+    <div class="card plan-card mt-2">
+      <div class="plan-modes no-print" role="radiogroup" aria-label="What clicking a seat does">
+        <label><input type="radio" name="plan-mode" value="view" checked> Who is where</label>
+        <label><input type="radio" name="plan-mode" value="block"> Block seats (sound desk, house seats)</label>
+        <label><input type="radio" name="plan-mode" value="release"> Release accessible seats to general sale</label>
       </div>
-      <div class="seatplan-legend">
+      <div id="seatplan"></div>
+      <div class="sp-legend">
         <span><i></i> Free</span>
         <span><i class="sold"></i> Sold</span>
         <span><i class="held"></i> Holding</span>
-        <span><i class="wheel"></i> Wheelchair space</span>
+        <span><i class="blocked"></i> Blocked</span>
+        <span><i class="access"></i> Accessible, kept back</span>
+        <span><i class="released"></i> Accessible, released</span>
+        <span><i class="mine"></i> Picked</span>
       </div>
-      <p class="dim text-center mt-2" style="font-size:0.82rem">
-        Hover or tap a seat for the name on it.
+      <div class="plan-actions no-print hidden" id="block-actions">
+        <span class="picked-sub" id="block-picked">Click seats to pick them.</span>
+        <input type="text" id="block-note" placeholder="Why (optional), e.g. Sound desk" maxlength="120">
+        <button class="mini-btn" id="block-do">Block picked seats</button>
+        <button class="mini-btn" id="unblock-do">Unblock picked seats</button>
+        <button class="mini-btn" id="block-clear">Clear</button>
+      </div>
+      <div class="plan-actions no-print hidden" id="release-actions">
+        <span class="picked-sub" id="release-picked">Click accessible seats to pick them.</span>
+        <button class="mini-btn" id="release-do">Release to general sale</button>
+        <button class="mini-btn" id="unrelease-do">Keep back again</button>
+        <button class="mini-btn" id="release-all">Pick every accessible seat</button>
+        <button class="mini-btn" id="release-clear">Clear</button>
+      </div>
+      <div id="seat-alert" class="alert hidden mt-2"></div>
+      <p class="dim text-center mt-2 no-print" style="font-size:0.82rem">
+        Hover or focus a seat for the name on it. Printing puts surnames in the seats and adds the list below.
       </p>
+      <div class="who-list" id="who-list"></div>
     </div>
   </section>
 
   <!-- ADD BOOKING -->
   <section class="panel" id="panel-add">
-    <div class="card" style="max-width:560px">
-      <h2 style="font-size:1.05rem;margin-bottom:5px">Add a cash or door booking</h2>
-      <p class="dim mb-3" style="font-size:0.86rem">For tickets sold in person. Counts against capacity straight away.</p>
+    <div class="card">
+      <h2 style="font-size:1.05rem;margin-bottom:5px">Add a booking</h2>
+      <p class="dim mb-3" style="font-size:0.86rem">
+        For cash and card sales at the door, and complimentary tickets. Pick the seats on the plan —
+        any seat, accessible and blocked included. The booking is confirmed straight away and
+        gets the same confirmation email as an online one.
+      </p>
+      <div id="add-from-request" class="from-request hidden"></div>
       <div id="add-alert" class="alert hidden"></div>
 
-      <div class="field"><label for="add-night">Performance</label><select id="add-night"></select></div>
-      <div class="field"><label for="add-name">Customer name</label><input type="text" id="add-name" placeholder="Jane Murphy"></div>
-      <div class="field"><label for="add-qty">Tickets</label><input type="number" id="add-qty" value="2" min="1" max="30"></div>
-      <div class="field"><label for="add-email">Email <span class="faint" style="text-transform:none">(optional)</span></label><input type="email" id="add-email"></div>
-      <div class="field"><label for="add-phone">Phone <span class="faint" style="text-transform:none">(optional)</span></label><input type="tel" id="add-phone"></div>
-      <div class="field"><label for="add-seller">Sold by</label><input type="text" id="add-seller" placeholder="Student or staff name"></div>
-      <div class="field"><label for="add-notes">Notes <span class="faint" style="text-transform:none">(optional)</span></label><input type="text" id="add-notes"></div>
-      <div class="field">
-        <label for="add-access-notes">Access requirements <span class="faint" style="text-transform:none">(optional)</span></label>
-        <div id="add-access-grid" style="margin-bottom:8px"></div>
-        <input type="text" id="add-access-notes" placeholder="Anything front of house should know" maxlength="300">
+      <div class="field" style="max-width:360px"><label for="add-night">Performance</label><select id="add-night"></select></div>
+
+      <div id="add-plan"></div>
+      <div class="sp-legend">
+        <span><i></i> Free</span>
+        <span><i class="mine"></i> Picked</span>
+        <span><i class="gone"></i> Taken</span>
+        <span><i class="blocked"></i> Blocked</span>
+        <span><i class="access"></i> Accessible</span>
       </div>
-      <label class="check-label" style="margin-bottom:16px">
-        <input type="checkbox" id="add-free"> Complimentary (no money taken)
-      </label>
-      <button class="btn btn-primary btn-block" id="add-btn">Add booking</button>
+      <p class="picked-line" id="add-picked">No seats picked.</p>
+      <div class="plan-actions">
+        <label class="picked-sub" for="add-helper-n">Find</label>
+        <select id="add-helper-n"></select>
+        <button class="mini-btn" id="add-best">together</button>
+        <button class="mini-btn" id="add-clear">Clear</button>
+      </div>
+
+      <div style="max-width:560px;margin-top:20px">
+        <div class="field"><label for="add-name">Customer name</label><input type="text" id="add-name" placeholder="Jane Murphy"></div>
+        <div class="field"><label for="add-email">Email <span class="faint" style="text-transform:none">(optional — they get a confirmation)</span></label><input type="email" id="add-email"></div>
+        <div class="field"><label for="add-phone">Phone <span class="faint" style="text-transform:none">(optional)</span></label><input type="tel" id="add-phone"></div>
+        <div class="field">
+          <label>Payment</label>
+          <div class="pay-choice">
+            <label class="check-label"><input type="radio" name="add-pay" value="cash" checked> Cash</label>
+            <label class="check-label"><input type="radio" name="add-pay" value="card_door"> Card on the door</label>
+            <label class="check-label"><input type="radio" name="add-pay" value="comp"> Complimentary</label>
+          </div>
+        </div>
+        <div class="field"><label for="add-seller" id="add-seller-label">Sold by</label><input type="text" id="add-seller" placeholder="Student or staff name"></div>
+        <div class="field"><label for="add-notes">Notes <span class="faint" style="text-transform:none">(optional)</span></label><input type="text" id="add-notes"></div>
+        <div class="field">
+          <label for="add-access-notes">Access requirements <span class="faint" style="text-transform:none">(optional)</span></label>
+          <div id="add-access-grid" style="margin-bottom:8px"></div>
+          <input type="text" id="add-access-notes" placeholder="Anything front of house should know" maxlength="300">
+        </div>
+        <button class="btn btn-primary btn-block" id="add-btn">Add booking</button>
+      </div>
     </div>
   </section>
 
@@ -606,16 +694,20 @@ input[type="checkbox"] {
 
   <!-- SETTINGS -->
   <section class="panel" id="panel-settings">
-    <div class="card mb-3" style="max-width:620px">
-      <h2 style="font-size:1.05rem;margin-bottom:5px">Capacity and sales</h2>
-      <p class="dim mb-3" style="font-size:0.86rem">Change how many tickets are on sale, or close a night.</p>
+    <div class="card mb-3" style="max-width:680px">
+      <h2 style="font-size:1.05rem;margin-bottom:5px">Seats and sales</h2>
+      <p class="dim mb-3" style="font-size:0.86rem">
+        Seats on sale come from the plan in <code>seating.js</code>: every seat, less the
+        accessible seats not released, less any blocked. Release and block seats on the
+        Seat plan tab.
+      </p>
       <div id="settings-list"></div>
     </div>
 
-    <div class="card" style="max-width:620px">
+    <div class="card" style="max-width:680px">
       <h2 style="font-size:1.05rem;margin-bottom:5px">Sync performances</h2>
       <p class="dim mb-3" style="font-size:0.86rem">
-        Copies the dates, labels and capacities from <code>config.js</code> into the database.
+        Copies the dates and labels from <code>config.js</code> into the database.
         Run this after you edit the show dates.
       </p>
       <button class="btn btn-ghost" id="sync-btn">Sync from config.js</button>
@@ -625,10 +717,28 @@ input[type="checkbox"] {
 
 </div>
 
+<!-- =================== RESEAT =================== -->
+<div class="modal" id="reseat-modal" role="dialog" aria-modal="true" aria-labelledby="reseat-title">
+  <div class="modal-box plan-modal">
+    <h2 id="reseat-title" style="font-size:1.15rem;margin-bottom:4px">Move a booking</h2>
+    <p class="dim mb-2" id="reseat-sub" style="font-size:0.88rem"></p>
+    <div id="reseat-alert" class="alert hidden"></div>
+    <div id="reseat-plan"></div>
+    <p class="picked-line" id="reseat-picked"></p>
+    <div class="plan-actions">
+      <button class="btn btn-primary" id="reseat-save" style="padding:11px 22px">Move to these seats</button>
+      <button class="btn btn-ghost" id="reseat-send" style="padding:11px 22px" disabled>Send updated seats</button>
+      <button class="btn btn-ghost" id="reseat-close" style="padding:11px 22px">Close</button>
+    </div>
+  </div>
+</div>
+
 <script src="config.js"></script>
 <script type="module">
-// Same plan the booking page and the API use — see seating.js.
-import { SEAT_MAP } from './seating.js';
+// Same plan the booking page and the API use — see seating.js. Every seat
+// plan on this page is drawn by seatplan.js from it.
+import { SEAT_MAP, ACCESSIBLE_IDS, allocateSeats, cleanSeats, describeSeats, getSeat, isAccessible } from './seating.js';
+import { drawSeatPlan } from './seatplan.js';
 
 (function () {
     'use strict';
@@ -636,7 +746,7 @@ import { SEAT_MAP } from './seating.js';
     const KEY = 'mm_admin_pw';
 
     let pw = sessionStorage.getItem(KEY) || '';
-    let cache = { summary: null, bookings: [], wall: [] };
+    let cache = { summary: null, bookings: [], wall: [], requests: [] };
 
     /* ---------------- api ---------------- */
     async function api(action, extra = {}) {
@@ -647,7 +757,7 @@ import { SEAT_MAP } from './seating.js';
         });
         const data = await res.json().catch(() => ({}));
         if (res.status === 401) { signOut('Session expired — sign in again.'); throw new Error('unauthorised'); }
-        if (!res.ok) throw new Error(data.error || 'Request failed');
+        if (!res.ok) throw Object.assign(new Error(data.error || 'Request failed'), { data, status: res.status });
         return data;
     }
 
@@ -703,21 +813,22 @@ import { SEAT_MAP } from './seating.js';
     }
 
     /* ---------------- tabs ---------------- */
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            tab.classList.add('active');
-            $('panel-' + tab.dataset.panel).classList.add('active');
-            if (tab.dataset.panel === 'wall') loadWall();
-            if (tab.dataset.panel === 'seats') loadSeatPlan();
-        });
-    });
+    function showTab(name) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.panel === name));
+        document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+        if (name === 'wall') loadWall();
+        if (name === 'seats') loadSeatPlan();
+        if (name === 'add') loadAddPlan();
+        if (name === 'access') loadRequests();
+    }
+
+    document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => showTab(tab.dataset.panel)));
 
     /* ---------------- selects ---------------- */
     function fillNightSelects() {
         const options = CONFIG.performances.map(p => `<option value="${p.key}">${p.label}</option>`).join('');
         $('filter-night').innerHTML = '<option value="">All nights</option>' + options;
+        $('ar-filter-night').innerHTML = '<option value="">All nights</option>' + options;
         $('door-night').innerHTML = options;
         $('seatplan-night').innerHTML = options;
         $('add-night').innerHTML = options;
@@ -733,42 +844,70 @@ import { SEAT_MAP } from './seating.js';
             renderBookings();
             renderSettings();
             loadDoorList();
+            const open = summary.accessRequests?.open || 0;
+            $('access-count').textContent = open ? `(${open})` : '';
             note('dash-alert', '');
         } catch (err) {
             if (err.message !== 'unauthorised') note('dash-alert', err.message);
         }
     }
 
+    const perfShort = date => CONFIG.getPerformance(date)?.short || date;
+    const perfLabel = date => CONFIG.getPerformance(date)?.label || date;
+    const isComp = b => b.payment_status === 'comp' || b.payment_status === 'refunded';
+
+    function paidWord(b) {
+        if (isComp(b)) return 'Comp';
+        if (b.payment_status === 'cash') return 'Cash';
+        if (b.payment_method === 'card_door') return 'Card (door)';
+        if (b.payment_status === 'paid') return 'Online';
+        return 'Unpaid';
+    }
+
     /* ---------------- overview ---------------- */
     function renderOverview() {
-        const t = cache.summary.totals;
+        const s = cache.summary, t = s.totals;
 
         $('stat-tiles').innerHTML = [
-            [t.tickets, 'Tickets sold'],
+            [t.tickets, 'Tickets issued'],
             [t.bookings, 'Bookings'],
             [CONFIG.money(t.revenue), 'Taken', 'money'],
             [t.onlineTickets, 'Online'],
-            [t.cashTickets, 'Cash / door']
+            [t.cashTickets, 'Cash'],
+            [t.cardDoorTickets, 'Card at door'],
+            [t.compTickets, 'Complimentary']
         ].map(([n, l, cls]) => `<div class="stat ${cls || ''}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
 
-        $('perf-cards').innerHTML = (cache.summary.performances || []).map(p => {
-            const pct = p.capacity ? Math.min(100, Math.round(p.sold / p.capacity * 100)) : 0;
+        $('perf-cards').innerHTML = (s.performances || []).map(p => {
+            const used = p.sellable - p.free;
+            const pct = p.sellable ? Math.min(100, Math.round(used / p.sellable * 100)) : 0;
+            const a = p.accessible;
+            const comps = t.compByNight?.[p.key] || 0;
+            const conflicts = (s.seatConflicts || []).filter(c => c.performanceDate === p.key).length;
+            const requests = (s.accessRequests?.openList || []).filter(r => r.performance_date === p.key).length;
             return `<div class="card">
                 <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
-                  <strong>${p.label}</strong>
+                  <strong>${escapeHtml(p.label)}</strong>
                   ${p.on_sale ? '' : '<span class="tag tag-cancelled">Closed</span>'}
                 </div>
                 <div class="mt-1 dim perf-line">
-                  <strong class="figure">${p.sold}</strong> of ${p.capacity} sold ·
-                  <strong class="perf-left">${p.remaining}</strong> left
+                  <strong class="figure">${p.sold}</strong> sold ·
+                  <strong>${p.held}</strong> holding ·
+                  <strong class="perf-left">${p.free}</strong> free
+                  <span class="faint">of ${p.sellable} on sale</span>
                 </div>
                 <div class="cap-bar"><div class="cap-fill" style="width:${pct}%"></div></div>
-                <div class="dim mt-1" style="font-size:0.78rem">${pct}% full</div>
+                <div class="dim mt-1" style="font-size:0.8rem;line-height:1.6">
+                  ${pct}% of seats on sale taken${comps ? ` · ${comps} complimentary` : ''}${p.blocked ? ` · ${p.blocked} blocked` : ''}<br>
+                  ♿ Accessible: <strong>${a.assigned}</strong> assigned · <strong>${a.free}</strong> still kept back${a.released ? ` · ${a.released} released to sale` : ''}<br>
+                  ${requests ? `<strong>${requests}</strong> open access request${requests === 1 ? '' : 's'}` : 'No open access requests'}
+                  ${conflicts ? ` · <strong style="color:var(--pink)">${conflicts} seat conflict${conflicts === 1 ? '' : 's'}</strong>` : ''}
+                </div>
             </div>`;
         }).join('');
 
         /* ---- email health ---- */
-        const email = cache.summary.email || {};
+        const email = s.email || {};
         const banner = $('email-banner');
 
         if (!email.configured) {
@@ -793,36 +932,57 @@ import { SEAT_MAP } from './seating.js';
         const reconcileBtn = $('reconcile-btn');
         if (reconcileBtn) reconcileBtn.addEventListener('click', runReconcile);
 
-        /* ---- bookings rescued past capacity need a human ---- */
-        const cap = $('capacity-banner');
-        if (cache.summary.overCapacity > 0) {
-            cap.className = 'banner banner-bad';
-            cap.innerHTML = `<span><strong>${cache.summary.overCapacity} booking(s) went through after the night filled up.</strong> ` +
-                'They paid, so they have been honoured. Filter the bookings list to check seating.</span>';
-            cap.classList.remove('hidden');
+        /* ---- paid bookings whose seats went: the office has to reseat them ---- */
+        const conflicts = s.seatConflicts || [];
+        const cb = $('conflict-banner');
+        if (conflicts.length) {
+            cb.className = 'banner banner-bad';
+            cb.innerHTML = `<span><strong>${conflicts.length} paid booking${conflicts.length === 1 ? '' : 's'} need${conflicts.length === 1 ? 's' : ''} seats.</strong> ` +
+                'The payment arrived after the hold ran out and the seats had gone. The booking stands — ' +
+                'choose seats together for the party, then send them the new seats.<br>' +
+                conflicts.map(c => `${escapeHtml(c.reference)} · ${escapeHtml(c.name)} · ${perfShort(c.performanceDate)} · ` +
+                    `${c.quantity} ticket${c.quantity === 1 ? '' : 's'}` +
+                    (c.wanted.length ? ` (wanted ${escapeHtml(describeSeats(c.wanted))})` : '') +
+                    ` <button class="mini-btn" data-reseat="${escapeHtml(c.reference)}">Reseat</button>`).join('<br>') +
+                '</span>';
+            cb.classList.remove('hidden');
+            cb.querySelectorAll('[data-reseat]').forEach(b => b.addEventListener('click', () => openReseat(b.dataset.reseat)));
         } else {
-            cap.classList.add('hidden');
+            cb.classList.add('hidden');
         }
 
-        /* ---- access requests: something to plan, not a problem ---- */
+        /* ---- open access requests ---- */
+        const ar = s.accessRequests || { open: 0 };
+        const rb = $('requests-banner');
+        if (ar.open > 0 || ar.unsentEmails > 0) {
+            rb.className = 'banner banner-warn';
+            rb.innerHTML = `<span><strong>${ar.open} open access request${ar.open === 1 ? '' : 's'}</strong> ` +
+                `(${ar.byStatus?.new || 0} new, ${ar.byStatus?.contacted || 0} contacted)` +
+                (ar.unsentEmails ? ` · ${ar.unsentEmails} with an email not yet sent` : '') + '.</span>' +
+                '<button class="mini-btn" id="goto-requests">Open requests</button>';
+            rb.classList.remove('hidden');
+            $('goto-requests').addEventListener('click', () => showTab('access'));
+        } else {
+            rb.classList.add('hidden');
+        }
+
+        /* ---- access needs ticked on ordinary bookings ---- */
         const acc = $('access-banner');
-        const access = cache.summary.access || { bookings: 0 };
+        const access = s.access || { bookings: 0 };
         if (access.bookings > 0) {
             const nights = Object.entries(access.byNight || {})
                 .sort((a, b) => a[0].localeCompare(b[0]))
-                .map(([date, n]) => {
-                    const perf = CONFIG.getPerformance(date);
-                    return `${perf ? perf.short : date}: ${n.bookings} booking${n.bookings === 1 ? '' : 's'} (${n.tickets} seat${n.tickets === 1 ? '' : 's'})`;
-                }).join(' · ');
+                .map(([date, n]) => `${perfShort(date)}: ${n.bookings} booking${n.bookings === 1 ? '' : 's'} (${n.tickets} seat${n.tickets === 1 ? '' : 's'})`)
+                .join(' · ');
             acc.className = 'banner';
-            acc.innerHTML = `<span><strong>${access.bookings} booking(s) asked for access or seating help</strong> — ${escapeHtml(nights)}. ` +
+            acc.innerHTML = `<span><strong>${access.bookings} booking(s) noted other access needs</strong> — ${escapeHtml(nights)}. ` +
                 'The details are in the Access column and on each door list.</span>';
             acc.classList.remove('hidden');
         } else {
             acc.classList.add('hidden');
         }
 
-        const sellers = Object.entries(cache.summary.bySeller || {}).sort((a, b) => b[1] - a[1]);
+        const sellers = Object.entries(s.bySeller || {}).sort((a, b) => b[1] - a[1]);
         $('seller-list').innerHTML = sellers.length
             ? sellers.map(([who, n]) =>
                 `<div class="seller-row">
@@ -831,14 +991,11 @@ import { SEAT_MAP } from './seating.js';
             : '<p class="dim">No confirmed bookings yet.</p>';
     }
 
-    /* ---------------- access requests ---------------- */
+    /* ---------------- access needs on a booking ---------------- */
     function accessSummary(b) {
         const labels = CONFIG.accessLabels(b.access_needs);
         const notes = (b.access_notes || '').trim();
         if (!labels.length && !notes) return '';
-        // A booking can be flagged with notes only, or with neither if the
-        // customer ticked the question and changed their mind — say so rather
-        // than showing a blank where a requirement might be.
         if (!labels.length) return notes;
         return labels.join(', ') + (notes ? ' — ' + notes : '');
     }
@@ -859,13 +1016,14 @@ import { SEAT_MAP } from './seating.js';
 
         return cache.bookings.filter(b => {
             if (night && b.performance_date !== night) return false;
-            if (status && b.status !== status) return false;
+            if (status === 'conflict') { if (!b.seat_conflict) return false; }
+            else if (status && b.status !== status) return false;
             if (emailState === 'pending' && b.confirmation_sent_at) return false;
             if (emailState === 'sent' && !b.confirmation_sent_at) return false;
             if (accessOnly && !b.access_needs && !b.access_notes) return false;
             if (q) {
                 const hay = [b.booking_reference, b.customer_name, b.customer_email, b.customer_phone,
-                             b.booked_by, accessSummary(b)]
+                             b.booked_by, accessSummary(b), (b.seats || []).join(' '), b.seatsLabel]
                     .join(' ').toLowerCase();
                 if (!hay.includes(q)) return false;
             }
@@ -878,14 +1036,16 @@ import { SEAT_MAP } from './seating.js';
         $('bookings-count').textContent = `${rows.length} of ${cache.bookings.length} bookings`;
 
         $('bookings-body').innerHTML = rows.length ? rows.map(b => {
-            const perf = CONFIG.getPerformance(b.performance_date);
             const held = b.status === 'held' && b.held_until && new Date(b.held_until) > new Date();
             const statusTag = b.status === 'confirmed' ? '<span class="tag tag-confirmed">Confirmed</span>'
                 : b.status === 'cancelled' ? '<span class="tag tag-cancelled">Cancelled</span>'
                 : held ? '<span class="tag tag-held">Holding</span>'
                 : '<span class="tag tag-cancelled">Expired</span>';
-            const payTag = b.payment_status === 'cash' ? ' <span class="tag tag-cash">Cash</span>' : '';
-            const overTag = b.over_capacity ? ' <span class="tag tag-failed">Over capacity</span>' : '';
+            const payTag = b.status !== 'confirmed' ? ''
+                : isComp(b) ? ' <span class="tag tag-comp">Comp</span>'
+                : b.payment_status === 'cash' ? ' <span class="tag tag-cash">Cash</span>'
+                : b.payment_method === 'card_door' ? ' <span class="tag tag-cash">Card (door)</span>' : '';
+            const conflictTag = b.seat_conflict ? ' <span class="tag tag-conflict">Seat conflict</span>' : '';
 
             let emailTag;
             if (b.status !== 'confirmed') {
@@ -904,20 +1064,24 @@ import { SEAT_MAP } from './seating.js';
                 <td><strong class="ref">${b.booking_reference}</strong></td>
                 <td><strong>${escapeHtml(b.customer_name)}</strong></td>
                 <td>${escapeHtml(b.customer_email || '')}<br><span class="faint">${escapeHtml(b.customer_phone || '')}</span></td>
-                <td class="night">${perf ? perf.short : b.performance_date}</td>
+                <td class="night">${perfShort(b.performance_date)}</td>
                 <td><strong>${b.quantity}</strong></td>
-                <td class="seats-cell">${b.seatsLabel ? escapeHtml(b.seatsLabel) : '<span class="faint">—</span>'}</td>
+                <td class="seats-cell">${b.seatsLabel ? escapeHtml(b.seatsLabel) : b.seat_conflict ? '<strong style="color:var(--pink)">To assign</strong>' : '<span class="faint">—</span>'}</td>
                 <td>${CONFIG.money(b.amount)}</td>
-                <td>${statusTag}${payTag}${overTag}</td>
+                <td>${statusTag}${payTag}${conflictTag}</td>
                 <td>${accessCell(b)}</td>
                 <td>${emailTag}</td>
                 <td>${escapeHtml(b.booked_by || '')}</td>
                 <td style="white-space:nowrap">
+                  ${b.status === 'confirmed' ? `<button class="mini-btn" data-reseat="${b.booking_reference}">${b.seat_conflict ? 'Reseat' : 'Move'}</button> ` : ''}
                   ${b.status === 'confirmed' ? `<button class="mini-btn" data-resend="${b.booking_reference}">Resend</button> ` : ''}
                   ${b.status === 'cancelled' ? '' : `<button class="mini-btn" data-cancel="${b.booking_reference}">Cancel</button>`}
                 </td>
             </tr>`;
         }).join('') : '<tr><td colspan="12" class="dim">No bookings match those filters.</td></tr>';
+
+        $('bookings-body').querySelectorAll('[data-reseat]').forEach(btn =>
+            btn.addEventListener('click', () => openReseat(btn.dataset.reseat)));
 
         $('bookings-body').querySelectorAll('[data-resend]').forEach(btn => {
             btn.addEventListener('click', async () => {
@@ -940,10 +1104,22 @@ import { SEAT_MAP } from './seating.js';
         $('bookings-body').querySelectorAll('[data-cancel]').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const ref = btn.dataset.cancel;
-                if (!confirm(`Cancel booking ${ref}? The tickets go back on sale.`)) return;
+                if (!confirm(`Cancel booking ${ref}? Its seats go back on sale.`)) return;
                 btn.disabled = true;
-                try { await api('cancel', { bookingRef: ref }); await loadAll(); }
-                catch (err) { note('dash-alert', err.message); btn.disabled = false; }
+                try {
+                    await api('cancel', { bookingRef: ref });
+                } catch (err) {
+                    // Paid online: there are no refunds, so say so and ask again.
+                    if (err.data?.needsConfirm && confirm(`${err.message}\n\nCancel ${ref} anyway?`)) {
+                        try { await api('cancel', { bookingRef: ref, confirmNoRefund: true }); }
+                        catch (e2) { note('dash-alert', e2.message); btn.disabled = false; return; }
+                    } else {
+                        if (!err.data?.needsConfirm) note('dash-alert', err.message);
+                        btn.disabled = false;
+                        return;
+                    }
+                }
+                await loadAll();
             });
         });
     }
@@ -958,11 +1134,13 @@ import { SEAT_MAP } from './seating.js';
         try {
             const r = await api('run-reconcile');
             const parts = [];
-            if (r.rescue?.rescued) parts.push(`${r.rescue.rescued} paid booking(s) rescued`);
-            if (r.emails?.sent)    parts.push(`${r.emails.sent} email(s) sent`);
-            if (r.emails?.failed)  parts.push(`${r.emails.failed} still failing`);
+            if (r.rescue?.rescued)       parts.push(`${r.rescue.rescued} paid booking(s) rescued`);
+            if (r.rescue?.seatConflicts) parts.push(`${r.rescue.seatConflicts} need reseating`);
+            if (r.emails?.sent)          parts.push(`${r.emails.sent} email(s) sent`);
+            if (r.emails?.failed)        parts.push(`${r.emails.failed} still failing`);
+            if (r.accessEmails?.sent)    parts.push(`${r.accessEmails.sent} access-request email(s) sent`);
             note('dash-alert', parts.length ? parts.join(' · ') : 'Nothing outstanding — all clear.',
-                 r.emails?.failed ? 'error' : 'success');
+                 r.emails?.failed || r.rescue?.seatConflicts ? 'error' : 'success');
             await loadAll();
         } catch (err) {
             note('dash-alert', err.message);
@@ -973,12 +1151,13 @@ import { SEAT_MAP } from './seating.js';
     /* ---------------- CSV ---------------- */
     $('csv-btn').addEventListener('click', () => {
         const rows = filteredBookings();
-        const header = ['Reference', 'Name', 'Email', 'Phone', 'Performance', 'Tickets', 'Seats', 'Amount',
-                        'Status', 'Payment', 'Access', 'Access notes', 'Sold by', 'Booked at',
-                        'Confirmation sent', 'Email error'];
+        const header = ['Reference', 'Name', 'Email', 'Phone', 'Performance', 'Tickets', 'Seats', 'Seats (ids)', 'Amount',
+                        'Status', 'Payment', 'Payment method', 'Seat conflict', 'Access', 'Access notes', 'Sold by',
+                        'Booked at', 'Confirmation sent', 'Email error'];
         const body = rows.map(b => [
             b.booking_reference, b.customer_name, b.customer_email, b.customer_phone || '',
-            b.performance_date, b.quantity, (b.seats || []).join(' '), b.amount, b.status, b.payment_status,
+            b.performance_date, b.quantity, b.seatsLabel || '', (b.seats || []).join(' '), b.amount, b.status,
+            isComp(b) ? 'comp' : b.payment_status, b.payment_method || '', b.seat_conflict ? 'yes' : '',
             CONFIG.accessLabels(b.access_needs).join(', '), b.access_notes || '',
             b.booked_by || '', new Date(b.created_at).toLocaleString('en-IE'),
             b.confirmation_sent_at ? new Date(b.confirmation_sent_at).toLocaleString('en-IE') : '',
@@ -996,25 +1175,90 @@ import { SEAT_MAP } from './seating.js';
         URL.revokeObjectURL(a.href);
     });
 
+    /* ---------------- access requests ---------------- */
+    const STATUS_WORDS = { new: 'New', contacted: 'Contacted', seated: 'Seated', closed: 'Closed' };
+
+    async function loadRequests() {
+        const status = $('ar-filter-status').value;
+        try {
+            const data = await api('access-requests', {
+                performanceDate: $('ar-filter-night').value || undefined,
+                status: status === 'open' ? undefined : status || undefined
+            });
+            cache.requests = (data.requests || []).filter(r => status !== 'open' || r.status === 'new' || r.status === 'contacted');
+            $('ar-team-line').textContent = data.team?.length
+                ? `New requests are emailed to ${data.team.join(', ')}.` : '';
+            renderRequests();
+        } catch (err) { note('dash-alert', err.message); }
+    }
+
+    function renderRequests() {
+        const rows = cache.requests;
+        $('ar-body').innerHTML = rows.length ? rows.map(r => `
+            <tr class="ar-row" data-id="${r.id}">
+              <td><strong class="ref">${escapeHtml(r.reference)}</strong><br><span class="faint email-sub">${new Date(r.created_at).toLocaleString('en-IE', { dateStyle: 'short', timeStyle: 'short' })}</span></td>
+              <td class="night">${perfShort(r.performance_date)}</td>
+              <td><strong>${escapeHtml(r.name)}</strong></td>
+              <td>${escapeHtml(r.email)}<br><span class="faint">${escapeHtml(r.phone || '')}</span></td>
+              <td style="white-space:nowrap">♿ ${r.wheelchair_spaces} wheelchair<br>${r.companion_seats} companion</td>
+              <td style="max-width:220px">${escapeHtml(r.notes || '')}</td>
+              <td>
+                <select data-ar-status aria-label="Status of ${escapeHtml(r.reference)}">
+                  ${Object.entries(STATUS_WORDS).map(([v, l]) => `<option value="${v}" ${r.status === v ? 'selected' : ''}>${l}</option>`).join('')}
+                </select>
+                ${r.booking_reference ? `<br><span class="faint email-sub">${escapeHtml(r.booking_reference)}</span>` : ''}
+              </td>
+              <td><textarea data-ar-notes aria-label="Staff notes for ${escapeHtml(r.reference)}" placeholder="Who called, what was agreed">${escapeHtml(r.staff_notes || '')}</textarea></td>
+              <td style="white-space:nowrap;font-size:0.8rem">
+                Team ${r.team_emailed_at ? '✓' : '<strong style="color:var(--pink)">✗</strong>'}<br>
+                Ack ${r.ack_emailed_at ? '✓' : '<strong style="color:var(--pink)">✗</strong>'}
+                ${!r.team_emailed_at || !r.ack_emailed_at ? '<br><button class="mini-btn" data-ar-resend>Retry</button>' : ''}
+              </td>
+              <td><button class="mini-btn" data-ar-book>Book seats</button></td>
+            </tr>`).join('')
+            : '<tr><td colspan="10" class="dim">No requests match.</td></tr>';
+
+        $('ar-body').querySelectorAll('.ar-row').forEach(tr => {
+            const id = tr.dataset.id;
+            const r = cache.requests.find(x => x.id === id);
+            tr.querySelector('[data-ar-status]').addEventListener('change', async e => {
+                try { await api('access-request-update', { id, status: e.target.value }); r.status = e.target.value; loadAll(); }
+                catch (err) { note('dash-alert', err.message); }
+            });
+            tr.querySelector('[data-ar-notes]').addEventListener('change', async e => {
+                try { await api('access-request-update', { id, staffNotes: e.target.value }); r.staff_notes = e.target.value; }
+                catch (err) { note('dash-alert', err.message); }
+            });
+            tr.querySelector('[data-ar-resend]')?.addEventListener('click', async e => {
+                e.target.disabled = true;
+                try { await api('access-request-resend', { id }); await loadRequests(); }
+                catch (err) { note('dash-alert', err.message); e.target.disabled = false; }
+            });
+            tr.querySelector('[data-ar-book]').addEventListener('click', () => bookFromRequest(r));
+        });
+    }
+
+    $('ar-filter-night').addEventListener('change', loadRequests);
+    $('ar-filter-status').addEventListener('change', loadRequests);
+
     /* ---------------- door list ---------------- */
     async function loadDoorList() {
         const date = $('door-night').value;
         if (!date) return;
-        const perf = CONFIG.getPerformance(date);
         try {
             const { bookings } = await api('door-list', { performanceDate: date });
             const total = bookings.reduce((t, b) => t + b.quantity, 0);
             const withAccess = bookings.filter(b => accessSummary(b));
-            $('door-heading').textContent = `${perf ? perf.label : date} — ${bookings.length} bookings, ${total} tickets` +
+            $('door-heading').textContent = `${perfLabel(date)} — ${bookings.length} bookings, ${total} tickets` +
                 (withAccess.length ? ` · ${withAccess.length} needing access support` : '');
             $('door-body').innerHTML = bookings.length ? bookings.map(b => `
                 <tr>
                   <td style="font-size:1.1rem">☐</td>
                   <td><strong>${escapeHtml(b.customer_name)}</strong></td>
                   <td><strong>${b.quantity}</strong></td>
-                  <td class="seats-cell">${b.seatsLabel ? escapeHtml(b.seatsLabel) : ''}</td>
+                  <td class="seats-cell">${b.seatsLabel ? escapeHtml(b.seatsLabel) : b.seat_conflict ? '<strong>⚠ Seats to be assigned — see the office</strong>' : ''}</td>
                   <td class="ref">${b.booking_reference}</td>
-                  <td>${b.payment_status === 'cash' ? 'Cash' : b.payment_status === 'refunded' ? 'Comp' : 'Card'}</td>
+                  <td>${paidWord(b)}</td>
                   <td>${accessSummary(b) ? '♿ ' + escapeHtml(accessSummary(b)) : ''}</td>
                   <td>${escapeHtml(b.booked_by || '')}</td>
                 </tr>`).join('')
@@ -1027,110 +1271,385 @@ import { SEAT_MAP } from './seating.js';
     $('door-night').addEventListener('change', loadDoorList);
     $('print-door').addEventListener('click', () => window.print());
 
-
-    /* ---------------- seat map ----------------
-       The hall as it will stand on the night: who is where, what is still
-       free, and which chairs come out for a wheelchair. Drawn from the same
-       seating.js plan the booking page uses, so it cannot disagree with what
-       anybody was sold.
+    /* ---------------- seat plan ----------------
+       The hall as it will stand on the night: who is where, what is held,
+       what is blocked, and which accessible seats are kept back or released.
+       Drawn from the same seating.js plan the booking page uses. The same
+       drawing blocks seats and releases accessible ones, one mode at a time.
        ------------------------------------------ */
-    let seatPlanBuilt = false;
+    const seatTab = { plan: null, data: null, picked: new Set(), names: false };
+    const planMode = () => document.querySelector('[name="plan-mode"]:checked').value;
 
-    function buildSeatPlan() {
-        const cross = SEAT_MAP.geometry.crossAfter;
+    function surname(name) {
+        const parts = String(name || '').trim().split(/\s+/);
+        return (parts[parts.length - 1] || '').slice(0, 7);
+    }
 
-        $('seatplan-rows').innerHTML = SEAT_MAP.rows.map(row => {
-            const before = cross && row.index === cross ? '<div class="cross"></div>' : '';
-            const blocks = SEAT_MAP.blocks.map(b =>
-                '<div class="blk">' + row.seats.filter(s => s.blockId === b.id).map(s =>
-                    `<div class="s${s.wheelchair ? ' wheel' : ''}" data-seat="${s.id}"` +
-                    ` title="${s.id} — free"></div>`
-                ).join('') + '</div>'
-            ).join('<div class="ai"></div>');
+    function paintSeatTab() {
+        const d = seatTab.data;
+        if (!seatTab.plan || !d) return;
+        const taken = new Map(d.taken.map(t => [t.seat_id, t]));
+        const blocks = new Map(d.blocks.map(b => [b.seat_id, b]));
+        const released = new Set(d.released);
+        const mode = planMode();
 
-            return before + '<div class="r">' +
-                `<div class="lbl">${row.letter}</div>` + blocks +
-                `<div class="lbl">${row.letter}</div>` + '</div>';
-        }).join('');
+        seatTab.plan.paint(s => {
+            const where = `Row ${s.row}, seat ${s.number}`;
+            const t = taken.get(s.id), b = blocks.get(s.id);
+            const rel = s.accessible && released.has(s.id);
+            let state = 'free', label = `${where}, free`;
 
-        seatPlanBuilt = true;
+            if (t) {
+                state = t.status === 'held' ? 'held' : 'sold';
+                label = `${where}, ${t.customer_name} (${t.booking_reference})${t.status === 'held' ? ', holding' : ''}`;
+            } else if (b) {
+                state = 'blocked';
+                label = `${where}, blocked${b.note ? ' — ' + b.note : ''}`;
+            } else if (s.accessible) {
+                label = `${where}, accessible seat, ${rel ? 'released to general sale' : 'kept back'}`;
+            }
+            if (seatTab.picked.has(s.id)) state = 'selected';
+
+            return {
+                state, label, title: label, released: rel,
+                text: seatTab.names && t ? surname(t.customer_name) : String(s.number),
+                disabled: mode === 'release' ? !s.accessible : false
+            };
+        });
+
+        const n = seatTab.picked.size;
+        const words = n ? `${n} picked: ${describeSeats([...seatTab.picked])}` : '';
+        $('block-picked').textContent = words || 'Click seats to pick them.';
+        $('release-picked').textContent = words || 'Click accessible seats to pick them.';
+    }
+
+    function renderWhoList() {
+        const d = seatTab.data;
+        const byRow = new Map();
+        for (const t of d.taken) {
+            const s = getSeat(t.seat_id);
+            if (!s) continue;
+            if (!byRow.has(s.row)) byRow.set(s.row, []);
+            byRow.get(s.row).push({ n: s.number, t });
+        }
+        const rows = SEAT_MAP.rows.filter(r => byRow.has(r.letter)).map(r => {
+            const seats = byRow.get(r.letter).sort((a, b) => a.n - b.n);
+            // run each booking's consecutive seats together: 5–8 Murphy (MM-…)
+            const runs = [];
+            for (const x of seats) {
+                const last = runs[runs.length - 1];
+                if (last && last.ref === x.t.booking_reference && x.n === last.to + 1) last.to = x.n;
+                else runs.push({ from: x.n, to: x.n, ref: x.t.booking_reference, name: x.t.customer_name, held: x.t.status === 'held' });
+            }
+            return `<div class="row"><strong>${r.letter}</strong> ` + runs.map(x =>
+                `${x.from === x.to ? x.from : x.from + '–' + x.to} ${escapeHtml(x.name)} <span class="faint">(${x.ref}${x.held ? ', holding' : ''})</span>`
+            ).join('; ') + '</div>';
+        });
+        const blocked = d.blocks.length ? `<div class="row"><strong>Blocked</strong> ${escapeHtml(describeSeats(d.blocks.map(b => b.seat_id)))}</div>` : '';
+        $('who-list').innerHTML = rows.length || blocked
+            ? '<h3 style="font-size:0.95rem;margin-bottom:6px;column-span:all">Who sits where</h3>' + rows.join('') + blocked
+            : '<p class="dim">Nobody seated yet.</p>';
     }
 
     async function loadSeatPlan() {
         const date = $('seatplan-night').value;
         if (!date) return;
-        if (!seatPlanBuilt) buildSeatPlan();
-
-        const perf = CONFIG.getPerformance(date);
-        try {
-            const data = await api('seat-map', { performanceDate: date });
-            const byId = new Map(data.taken.map(t => [t.seat_id, t]));
-
-            $('seatplan-rows').querySelectorAll('.s').forEach(el => {
-                const t = byId.get(el.dataset.seat);
-                el.classList.toggle('sold', Boolean(t && t.status === 'confirmed'));
-                el.classList.toggle('held', Boolean(t && t.status === 'held'));
-                el.title = t
-                    ? `${el.dataset.seat} — ${t.customer_name} (${t.booking_reference})` +
-                      (t.status === 'held' ? ' · holding' : '') +
-                      (t.access_needs ? ' · ' + CONFIG.accessLabels(t.access_needs).join(', ') : '')
-                    : `${el.dataset.seat} — free`;
+        if (!seatTab.plan) {
+            seatTab.plan = drawSeatPlan($('seatplan'), {
+                label: 'Seat plan for the night. Arrow keys move between seats.',
+                onSeat: seatTabPick
             });
-
-            const sold = data.taken.filter(t => t.status === 'confirmed').length;
-            const held = data.taken.length - sold;
-            $('seatplan-heading').textContent =
-                `${perf ? perf.label : date} — ${sold} sold` +
-                (held ? `, ${held} holding` : '') +
-                `, ${data.remaining} free of ${data.total}`;
-
+        }
+        try {
+            seatTab.data = await api('seat-map', { performanceDate: date });
+            const c = seatTab.data.counts;
+            $('seatplan-heading').textContent = perfLabel(date);
+            $('seatplan-counts').innerHTML =
+                `<strong>${c.sold}</strong> sold · <strong>${c.held}</strong> holding · <strong>${c.free}</strong> free of ` +
+                `<strong>${c.sellable}</strong> on sale (${c.total} seats − ${c.accessible.total - c.accessible.released} accessible kept back` +
+                ` − ${c.blocked} blocked) · ♿ ${c.accessible.assigned} accessible assigned, ${c.accessible.free} still kept back`;
+            paintSeatTab();
+            renderWhoList();
         } catch (err) {
             note('dash-alert', err.message);
         }
     }
 
-    $('seatplan-night').addEventListener('change', loadSeatPlan);
+    function seatTabPick(id) {
+        const mode = planMode();
+        if (mode === 'view') return;
+        if (mode === 'release' && !isAccessible(id)) return;
+        if (seatTab.picked.has(id)) seatTab.picked.delete(id); else seatTab.picked.add(id);
+        paintSeatTab();
+    }
+
+    document.querySelectorAll('[name="plan-mode"]').forEach(r => r.addEventListener('change', () => {
+        seatTab.picked.clear();
+        $('block-actions').classList.toggle('hidden', planMode() !== 'block');
+        $('release-actions').classList.toggle('hidden', planMode() !== 'release');
+        note('seat-alert', '');
+        paintSeatTab();
+    }));
+
+    async function seatTabAction(action, extra, okWords) {
+        const seats = cleanSeats([...seatTab.picked]);
+        if (!seats.length) return note('seat-alert', 'Pick some seats first.');
+        try {
+            const r = await api(action, { performanceDate: $('seatplan-night').value, seats, ...extra });
+            note('seat-alert', `${okWords}: ${describeSeats(seats)}${r.changed !== undefined ? ` (${r.changed} changed)` : ''}.`, 'success');
+            seatTab.picked.clear();
+            await loadSeatPlan();
+            loadAll();
+        } catch (err) {
+            note('seat-alert', err.message);
+        }
+    }
+
+    $('block-do').addEventListener('click', () => seatTabAction('block-seats', { blocked: true, note: $('block-note').value }, 'Blocked'));
+    $('unblock-do').addEventListener('click', () => seatTabAction('block-seats', { blocked: false }, 'Unblocked'));
+    $('block-clear').addEventListener('click', () => { seatTab.picked.clear(); paintSeatTab(); });
+    $('release-do').addEventListener('click', () => seatTabAction('release-seats', { released: true }, 'Released to general sale'));
+    $('unrelease-do').addEventListener('click', () => seatTabAction('release-seats', { released: false }, 'Kept back again'));
+    $('release-all').addEventListener('click', () => { ACCESSIBLE_IDS.forEach(id => seatTab.picked.add(id)); paintSeatTab(); });
+    $('release-clear').addEventListener('click', () => { seatTab.picked.clear(); paintSeatTab(); });
+
+    $('seatplan-night').addEventListener('change', () => { seatTab.picked.clear(); loadSeatPlan(); });
+
+    // Printed, each seat carries the surname of whoever is in it.
     $('print-seatplan').addEventListener('click', () => window.print());
+    window.addEventListener('beforeprint', () => { seatTab.names = true; paintSeatTab(); });
+    window.addEventListener('afterprint',  () => { seatTab.names = false; paintSeatTab(); });
+
+    /* ---------------- seat picking for staff ----------------
+       Add booking and Move a booking share this: any seat that nobody has,
+       accessible and blocked included. */
+    function staffPaint(plan, data, picked, { ownSeats = [] } = {}) {
+        const taken = new Map(data.taken.map(t => [t.seat_id, t]));
+        const blocks = new Map(data.blocks.map(b => [b.seat_id, b]));
+        const released = new Set(data.released);
+        const own = new Set(ownSeats);
+        plan.paint(s => {
+            const where = `Row ${s.row}, seat ${s.number}`;
+            const t = own.has(s.id) ? null : taken.get(s.id);
+            if (picked.has(s.id)) return { state: 'selected', label: `${where}, picked`, released: s.accessible };
+            if (t) return { state: 'unavailable', disabled: true, label: `${where}, taken by ${t.customer_name}`, title: `${t.customer_name} (${t.booking_reference})` };
+            if (blocks.has(s.id)) return { state: 'blocked', label: `${where}, blocked — staff can still use it`, title: 'Blocked' + (blocks.get(s.id).note ? ': ' + blocks.get(s.id).note : '') };
+            if (s.accessible) return { state: 'free', released: released.has(s.id), label: `${where}, accessible seat, free` };
+            return { state: 'free', label: `${where}, free` };
+        });
+    }
+
+    function staffToggle(set, data, id, max, ownSeats = []) {
+        const t = data.taken.find(x => x.seat_id === id);
+        if (t && !ownSeats.includes(id)) return false;
+        if (set.has(id)) set.delete(id);
+        else if (set.size < max) set.add(id);
+        else return false;
+        return true;
+    }
 
     /* ---------------- add booking ---------------- */
+    const add = { plan: null, data: null, picked: new Set(), request: null };
+    const MAX_STAFF = 40;
+
     $('add-access-grid').innerHTML = CONFIG.accessOptions.map(o => `
         <label class="check-label" style="margin-bottom:4px">
           <input type="checkbox" id="add-access-${o.code}" value="${o.code}" data-add-access> ${o.label}
         </label>`).join('');
 
+    $('add-helper-n').innerHTML = Array.from({ length: 12 }, (_, i) => `<option>${i + 1}</option>`).join('');
+    $('add-helper-n').value = '2';
+
+    async function loadAddPlan() {
+        const date = $('add-night').value;
+        if (!add.plan) {
+            add.plan = drawSeatPlan($('add-plan'), {
+                label: 'Pick seats for this booking. Arrow keys move, Enter picks.',
+                onSeat: id => {
+                    if (!add.data) return;
+                    if (!staffToggle(add.picked, add.data, id, MAX_STAFF)) return;
+                    paintAdd();
+                }
+            });
+        }
+        try {
+            add.data = await api('seat-map', { performanceDate: date });
+            // anything picked that has gone since drops out
+            for (const id of [...add.picked]) if (add.data.taken.some(t => t.seat_id === id)) add.picked.delete(id);
+            paintAdd();
+        } catch (err) { note('add-alert', err.message); }
+    }
+
+    function paintAdd() {
+        if (!add.plan || !add.data) return;
+        staffPaint(add.plan, add.data, add.picked);
+        const seats = cleanSeats([...add.picked]);
+        const pay = document.querySelector('[name="add-pay"]:checked').value;
+        const price = pay === 'comp' ? 0 : seats.length * CONFIG.ticket.price;
+        $('add-picked').textContent = seats.length
+            ? `${describeSeats(seats)} — ${seats.length} ticket${seats.length === 1 ? '' : 's'}, ${pay === 'comp' ? 'complimentary' : CONFIG.money(price)}`
+            : 'No seats picked.';
+        $('add-btn').textContent = seats.length ? `Add booking — ${seats.length} seat${seats.length === 1 ? '' : 's'}` : 'Add booking';
+    }
+
+    $('add-night').addEventListener('change', () => { add.picked.clear(); loadAddPlan(); });
+    document.querySelectorAll('[name="add-pay"]').forEach(r => r.addEventListener('change', () => {
+        $('add-seller-label').textContent = r.value === 'comp' && r.checked ? 'Issued by' : 'Sold by';
+        paintAdd();
+    }));
+    $('add-clear').addEventListener('click', () => { add.picked.clear(); paintAdd(); });
+    $('add-best').addEventListener('click', () => {
+        if (!add.data) return;
+        const n = parseInt($('add-helper-n').value, 10);
+        // The helper keeps to ordinary seats; pick accessible or blocked ones by hand.
+        const off = new Set([...add.data.taken.map(t => t.seat_id), ...add.data.blocks.map(b => b.seat_id), ...ACCESSIBLE_IDS]);
+        const found = allocateSeats(n, off);
+        if (found.length !== n) return note('add-alert', `No ${n} ordinary seats left together — pick them on the plan.`);
+        note('add-alert', '');
+        add.picked = new Set(found);
+        paintAdd();
+        add.plan.reveal(found[0]);
+    });
+
+    function bookFromRequest(r) {
+        add.request = r;
+        add.picked.clear();
+        $('add-night').value = r.performance_date;
+        $('add-name').value = r.name;
+        $('add-email').value = r.email;
+        $('add-phone').value = r.phone || '';
+        $('add-access-notes').value = [r.notes, `${r.wheelchair_spaces} wheelchair, ${r.companion_seats} companion`].filter(Boolean).join(' — ').slice(0, 300);
+        document.querySelectorAll('[data-add-access]').forEach(cb => { cb.checked = cb.value === 'wheelchair' && r.wheelchair_spaces > 0; });
+        $('add-from-request').innerHTML =
+            `<strong>Booking for access request ${escapeHtml(r.reference)}</strong> — ${escapeHtml(r.name)}, ` +
+            `${r.wheelchair_spaces} wheelchair space${r.wheelchair_spaces === 1 ? '' : 's'} and ${r.companion_seats} companion seat${r.companion_seats === 1 ? '' : 's'}. ` +
+            'Pick the seats being used (a wheelchair space is the place of two seats). Saving marks the request seated. ' +
+            '<button class="mini-btn" id="add-unlink">Not from a request</button>';
+        $('add-from-request').classList.remove('hidden');
+        $('add-unlink').addEventListener('click', clearRequestLink);
+        showTab('add');
+    }
+
+    function clearRequestLink() {
+        add.request = null;
+        $('add-from-request').classList.add('hidden');
+    }
+
     $('add-btn').addEventListener('click', async () => {
         const name = $('add-name').value.trim();
-        const qty = parseInt($('add-qty').value, 10);
+        const seats = cleanSeats([...add.picked]);
+        if (!seats.length) return note('add-alert', 'Pick the seats on the plan.');
         if (name.length < 2) return note('add-alert', 'Please enter the customer name.');
-        if (!Number.isInteger(qty) || qty < 1) return note('add-alert', 'Please enter a valid number of tickets.');
 
+        const blocked = seats.filter(id => add.data.blocks.some(b => b.seat_id === id));
+        if (blocked.length && !confirm(`${describeSeats(blocked)} ${blocked.length === 1 ? 'is' : 'are'} blocked. Book ${blocked.length === 1 ? 'it' : 'them'} anyway?`)) return;
+
+        const payment = document.querySelector('[name="add-pay"]:checked').value;
         $('add-btn').disabled = true;
         try {
-            const { booking, seatsLabel } = await api('cash-booking', {
+            const { booking, seatsLabel, email } = await api('staff-booking', {
                 performanceDate: $('add-night').value,
+                seats,
                 customerName: name,
-                quantity: qty,
                 customerEmail: $('add-email').value.trim(),
                 customerPhone: $('add-phone').value.trim(),
-                bookedBy: $('add-seller').value.trim() || 'DOOR',
+                bookedBy: $('add-seller').value.trim() || (payment === 'comp' ? 'COMP' : 'DOOR'),
                 notes: $('add-notes').value.trim(),
                 accessNeeds: Array.from(document.querySelectorAll('[data-add-access]:checked')).map(cb => cb.value),
                 accessNotes: $('add-access-notes').value.trim(),
-                free: $('add-free').checked
+                payment,
+                accessRequestId: add.request?.id
             });
             note('add-alert',
-                 `Added — reference ${booking.booking_reference}.` +
-                 (seatsLabel ? ` Seats: ${seatsLabel}.` : ''), 'success');
+                 `Added — reference ${booking.booking_reference}. Seats: ${seatsLabel}.` +
+                 (email?.sent ? ' Confirmation emailed.' : ''), 'success');
             ['add-name', 'add-email', 'add-phone', 'add-notes', 'add-access-notes']
                 .forEach(id => { $(id).value = ''; });
             document.querySelectorAll('[data-add-access]').forEach(cb => { cb.checked = false; });
+            add.picked.clear();
+            clearRequestLink();
+            await loadAddPlan();
             await loadAll();
         } catch (err) {
             note('add-alert', err.message);
+            loadAddPlan();
         } finally {
             $('add-btn').disabled = false;
         }
     });
+
+    /* ---------------- move a booking / settle a seat conflict ---------------- */
+    const reseat = { plan: null, data: null, picked: new Set(), booking: null, moved: false };
+
+    async function openReseat(ref) {
+        const b = cache.bookings.find(x => x.booking_reference === ref);
+        if (!b) return;
+        reseat.booking = b;
+        reseat.picked = new Set();
+        reseat.moved = false;
+        $('reseat-title').textContent = `${b.seat_conflict ? 'Reseat' : 'Move'} ${b.booking_reference} — ${b.customer_name}`;
+        $('reseat-sub').textContent = `${perfLabel(b.performance_date)} · ${b.quantity} ticket${b.quantity === 1 ? '' : 's'} · ` +
+            (b.seatsLabel ? `now in ${b.seatsLabel}` : 'no seats yet') +
+            (b.seat_conflict && b.seats_requested?.length ? ` · wanted ${describeSeats(b.seats_requested)}` : '') +
+            `. Pick ${b.quantity} seat${b.quantity === 1 ? '' : 's'}.`;
+        $('reseat-send').disabled = true;
+        note('reseat-alert', '');
+        $('reseat-modal').classList.add('visible');
+        document.body.style.overflow = 'hidden';
+
+        if (!reseat.plan) {
+            reseat.plan = drawSeatPlan($('reseat-plan'), {
+                label: 'Pick the new seats. Arrow keys move, Enter picks.',
+                onSeat: id => {
+                    if (!reseat.data) return;
+                    if (!staffToggle(reseat.picked, reseat.data, id, reseat.booking.quantity, reseat.booking.seats || [])) return;
+                    paintReseat();
+                }
+            });
+        }
+        try {
+            reseat.data = await api('seat-map', { performanceDate: b.performance_date });
+            paintReseat();
+            if (b.seats?.[0]) reseat.plan.reveal(b.seats[0]);
+        } catch (err) { note('reseat-alert', err.message); }
+    }
+
+    function paintReseat() {
+        staffPaint(reseat.plan, reseat.data, reseat.picked, { ownSeats: reseat.booking.seats || [] });
+        const n = reseat.picked.size, need = reseat.booking.quantity;
+        $('reseat-picked').textContent = n ? `${describeSeats([...reseat.picked])} — ${n} of ${need}` : `None picked — ${need} needed.`;
+        $('reseat-save').disabled = n !== need;
+    }
+
+    $('reseat-save').addEventListener('click', async () => {
+        try {
+            const r = await api('reseat', { bookingRef: reseat.booking.booking_reference, seats: cleanSeats([...reseat.picked]) });
+            note('reseat-alert', `Moved to ${r.seatsLabel}. Send the customer their new seats?`, 'success');
+            reseat.moved = true;
+            reseat.booking.seats = r.seats;
+            reseat.picked.clear();
+            reseat.data = await api('seat-map', { performanceDate: reseat.booking.performance_date });
+            paintReseat();
+            $('reseat-send').disabled = false;
+            loadAll();
+        } catch (err) { note('reseat-alert', err.message); }
+    });
+
+    $('reseat-send').addEventListener('click', async () => {
+        $('reseat-send').disabled = true;
+        try {
+            const r = await api('resend-confirmation', { bookingRef: reseat.booking.booking_reference, kind: 'seats-updated' });
+            note('reseat-alert', r.ok ? 'Updated confirmation sent.' : `Could not send: ${r.reason}`, r.ok ? 'success' : 'error');
+            if (!r.ok) $('reseat-send').disabled = false;
+        } catch (err) { note('reseat-alert', err.message); $('reseat-send').disabled = false; }
+    });
+
+    function closeReseat() {
+        $('reseat-modal').classList.remove('visible');
+        document.body.style.overflow = '';
+    }
+    $('reseat-close').addEventListener('click', closeReseat);
+    $('reseat-modal').addEventListener('keydown', e => { if (e.key === 'Escape') closeReseat(); });
 
     /* ---------------- wall ---------------- */
     async function loadWall() {
@@ -1172,15 +1691,17 @@ import { SEAT_MAP } from './seating.js';
     function renderSettings() {
         $('settings-list').innerHTML = (cache.summary.performances || []).map(p => `
             <div class="set-row">
-              <strong>${p.label}</strong>
-              <div style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">
-                <input type="number" class="cap-input" value="${p.capacity}" min="0" data-cap="${p.key}"
-                       aria-label="Capacity for ${p.label}">
+              <strong>${escapeHtml(p.label)}</strong>
+              <div class="dim" style="font-size:0.84rem;margin-top:4px">
+                <strong style="color:var(--text)">${p.sellable}</strong> seats on sale =
+                ${p.total} seats − ${p.accessible.total - p.accessible.released} accessible kept back − ${p.blocked} blocked
+              </div>
+              <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap">
                 <label class="check-label">
                   <input type="checkbox" data-sale="${p.key}" ${p.on_sale ? 'checked' : ''}> On sale
                 </label>
                 <button class="mini-btn" data-save="${p.key}">Save</button>
-                <span class="dim" style="font-size:0.8rem">${p.sold} sold</span>
+                <span class="dim" style="font-size:0.8rem">${p.sold} sold · ${p.held} holding</span>
               </div>
             </div>`).join('');
 
@@ -1192,7 +1713,6 @@ import { SEAT_MAP } from './seating.js';
                 try {
                     await api('set-performance', {
                         performanceDate: key,
-                        capacity: $('settings-list').querySelector(`[data-cap="${key}"]`).value,
                         onSale: $('settings-list').querySelector(`[data-sale="${key}"]`).checked
                     });
                     await loadAll();
@@ -1209,7 +1729,7 @@ import { SEAT_MAP } from './seating.js';
         $('sync-btn').disabled = true;
         try {
             await api('sync-performances', {
-                performances: CONFIG.performances.map(p => ({ key: p.key, label: p.label, capacity: p.capacity }))
+                performances: CONFIG.performances.map(p => ({ key: p.key, label: p.label }))
             });
             note('sync-alert', 'Performances synced from config.js.', 'success');
             await loadAll();

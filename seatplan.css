@@ -1,0 +1,219 @@
+/* ==========================================================================
+   The hall plan — see seatplan.js. Shared by booking, admin and seating.
+   Built on the theme tokens in theme.css; nothing here sets a new colour
+   family except the exit-sign green, which has to be that green.
+   ========================================================================== */
+
+:root {
+    --sp-free:        #ffffff;
+    --sp-free-edge:   var(--border-strong);
+    --sp-access:      #7a5b8f;              /* accessible seats — the theme's purple */
+    --sp-access-tint: #efe8f4;
+    --sp-gone:        #d9dfe3;              /* sold, held or blocked */
+    --sp-gone-edge:   #c3ccd2;
+    --sp-mine:        var(--pink);          /* the customer's own selection */
+    --sp-walk:        #f3efe4;              /* aisles and walkways, a soft sand */
+    --sp-stage:       #e6f1f9;
+    --sp-exit:        #1d8a43;
+}
+
+.sp-tools {
+    display: flex; justify-content: center; gap: 6px; margin-bottom: 8px;
+}
+.sp-zoom {
+    min-width: 44px; min-height: 40px; padding: 0 12px;
+    border: 1px solid var(--border-strong); border-radius: 999px;
+    background: var(--surface); color: var(--text);
+    font: 600 0.9rem var(--font-body); cursor: pointer;
+}
+.sp-zoom:hover { background: var(--cyan-tint); }
+.sp-zoom:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+.sp-scroll {
+    overflow: auto;
+    max-height: min(78vh, 900px);
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-3);
+    padding: 2px;
+}
+
+.sp-grid {
+    --cell: 24px;
+    display: grid;
+    width: max-content;
+    margin: 0 auto;
+    padding: calc(var(--cell) * 0.7);       /* PAD in seatplan.js */
+    position: relative;
+    font-family: var(--font-body);
+}
+
+.sp-hall {
+    border: max(2px, calc(var(--cell) * 0.12)) solid var(--text);
+    background: var(--surface);
+    border-radius: 2px;
+    z-index: 0;
+}
+
+.sp-backstage, .sp-stage {
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1;
+    text-transform: uppercase; letter-spacing: 0.3em;
+    font-weight: 700; color: var(--text-dim);
+}
+.sp-backstage {
+    background: repeating-linear-gradient(135deg, #eef1f3 0 6px, #e4e9ec 6px 12px);
+    border-bottom: 1px solid var(--border-strong);
+    font-size: max(8px, calc(var(--cell) * 0.38));
+}
+.sp-stage {
+    background: var(--sp-stage);
+    border-bottom: max(2px, calc(var(--cell) * 0.1)) solid var(--cyan);
+    font-family: var(--font-display);
+    font-size: max(10px, calc(var(--cell) * 0.8));
+    color: var(--cyan);
+}
+
+.sp-walk { background: var(--sp-walk); z-index: 1; }
+
+.sp-rowlabel {
+    z-index: 2;
+    display: flex; align-items: center; justify-content: center;
+    font-size: max(7px, calc(var(--cell) * 0.42));
+    font-weight: 700; color: var(--text-dim);
+}
+
+.sp-seat {
+    z-index: 3;
+    margin: calc(var(--cell) * 0.07);
+    padding: 0;
+    border: 1px solid var(--sp-free-edge);
+    border-radius: calc(var(--cell) * 0.22) calc(var(--cell) * 0.22) calc(var(--cell) * 0.1) calc(var(--cell) * 0.1);
+    background: var(--sp-free);
+    color: var(--text-dim);
+    font: 600 calc(var(--cell) * 0.36) / 1 var(--font-body);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    min-width: 0;
+}
+button.sp-seat { cursor: pointer; }
+button.sp-seat:hover:not([aria-disabled="true"]):not([data-state="selected"]) { background: var(--cyan-tint); border-color: var(--cyan); }
+.sp-seat:focus-visible { outline: 3px solid var(--cyan); outline-offset: 1px; z-index: 5; }
+
+.sp-seat[data-accessible="1"] {
+    background: var(--sp-access-tint);
+    border: 2px solid var(--sp-access);
+    color: var(--sp-access);
+}
+button.sp-seat[data-accessible="1"]:hover:not([aria-disabled="true"]):not([data-state="selected"]) { background: #e2d5ec; border-color: var(--sp-access); }
+/* released to general sale: sells like any seat, keeps a mark so staff know */
+.sp-seat[data-accessible="1"][data-released="1"] {
+    background: var(--sp-free);
+    border: 2px dashed var(--sp-access);
+    color: var(--text-dim);
+}
+
+/* Seat states. Prefixed with .sp-grid so a state always outranks the
+   accessible and released looks above: a released accessible seat that is
+   sold reads as sold, and one the customer picks turns their colour. */
+.sp-grid .sp-seat[data-state="unavailable"],
+.sp-grid .sp-seat[data-state="sold"],
+.sp-grid .sp-seat[data-state="held"],
+.sp-grid .sp-seat[data-state="blocked"] {
+    background: var(--sp-gone);
+    border-color: var(--sp-gone-edge);
+    border-style: solid;
+    color: #9aa7af;
+}
+button.sp-seat[data-state="unavailable"] { cursor: not-allowed; }
+
+/* admin colours: who is where */
+.sp-grid .sp-seat[data-state="sold"]     { background: #c9dbe8; border-color: #9fbfd6; color: var(--text); }
+.sp-grid .sp-seat[data-state="held"]     { background: var(--yellow-tint); border-color: var(--yellow); color: #8a6208; }
+.sp-grid .sp-seat[data-state="blocked"]  {
+    background: repeating-linear-gradient(135deg, #d9dfe3 0 3px, #eef1f3 3px 6px);
+    border-color: #9aa7af;
+}
+.sp-grid .sp-seat[data-state="conflict"] { background: var(--pink-tint); border: 2px solid var(--pink); color: #8d1f48; }
+
+/* an accessible seat keeps its purple edge whatever has happened to it */
+.sp-grid .sp-seat[data-accessible="1"][data-state="unavailable"],
+.sp-grid .sp-seat[data-accessible="1"][data-state="sold"],
+.sp-grid .sp-seat[data-accessible="1"][data-state="held"],
+.sp-grid .sp-seat[data-accessible="1"][data-state="blocked"] { border-color: var(--sp-access); }
+
+.sp-grid .sp-seat[data-state="selected"] {
+    background: var(--sp-mine);
+    border-color: var(--sp-mine);
+    border-style: solid;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(194, 53, 107, 0.35);
+}
+
+.sp-small .sp-num { display: none; }
+.sp-small .sp-seat { border-width: 1px; }
+
+/* a door in the wall, by the toilets */
+.sp-door {
+    z-index: 2;
+    background: var(--surface);
+    margin: calc(var(--cell) * 0.12) -2px;
+    border-top: 2px solid var(--text-dim);
+    border-bottom: 2px solid var(--text-dim);
+}
+
+.sp-wc {
+    z-index: 2;
+    display: flex; align-items: center; justify-content: flex-end;
+    padding-right: calc(var(--cell) * 0.2);
+}
+.sp-wc svg {
+    width: calc(var(--cell) * 1.15); height: calc(var(--cell) * 1.15);
+    min-width: 12px; min-height: 12px;
+    fill: #fff; border-radius: 3px; padding: 2px;
+}
+.sp-wc-female svg { background: var(--pink); }
+.sp-wc-male svg   { background: var(--cyan); }
+
+/* the green running man, straddling the wall */
+.sp-exit {
+    z-index: 4;
+    place-self: center;
+    display: flex; align-items: center; justify-content: center;
+    width: calc(var(--cell) * 1.3); height: calc(var(--cell) * 1.3);
+    min-width: 14px; min-height: 14px;
+    background: var(--sp-exit);
+    border: 2px solid #fff;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.sp-exit svg { width: 82%; height: 82%; fill: #fff; }
+
+/* the key under a plan */
+.sp-legend {
+    display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: center;
+    margin-top: 12px; font-size: 0.84rem; color: var(--text-dim);
+}
+.sp-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sp-legend i {
+    display: inline-block; width: 16px; height: 16px; border-radius: 4px 4px 2px 2px;
+    border: 1px solid var(--sp-free-edge); background: var(--sp-free); flex: none;
+}
+.sp-legend i.access   { background: var(--sp-access-tint); border: 2px solid var(--sp-access); }
+.sp-legend i.gone     { background: var(--sp-gone); border-color: var(--sp-gone-edge); }
+.sp-legend i.mine     { background: var(--sp-mine); border-color: var(--sp-mine); }
+.sp-legend i.sold     { background: #c9dbe8; border-color: #9fbfd6; }
+.sp-legend i.held     { background: var(--yellow-tint); border-color: var(--yellow); }
+.sp-legend i.blocked  { background: repeating-linear-gradient(135deg, #d9dfe3 0 3px, #eef1f3 3px 6px); border-color: #9aa7af; }
+.sp-legend i.released { border: 2px dashed var(--sp-access); }
+.sp-legend i.conflict { background: var(--pink-tint); border: 2px solid var(--pink); }
+.sp-legend i.walk     { background: var(--sp-walk); border-color: #e6dfcd; }
+.sp-legend i.exit     { background: var(--sp-exit); border-color: var(--sp-exit); }
+
+@media print {
+    .sp-tools { display: none !important; }
+    .sp-scroll { overflow: visible; max-height: none; border: none; padding: 0; background: none; }
+    .sp-grid { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}

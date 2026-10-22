@@ -1,7 +1,12 @@
 // GET /api/availability
 // Public endpoint. Returns only aggregate numbers — never customer data.
+//
+// What is on sale comes from the seat plan, not a typed capacity: every
+// seat in seating.js, less the accessible seats not released, less any
+// blocked in admin.
 
 import { applyCors, sbSelect, supabaseConfigured } from './_supabase.js';
+import { countAllNights } from './_seats.js';
 
 export default async function handler(req, res) {
     if (applyCors(req, res)) return;
@@ -15,19 +20,19 @@ export default async function handler(req, res) {
     }
 
     try {
-        const rows = await sbSelect(
-            'performance_availability?select=key,label,capacity,on_sale,sold,remaining&order=key.asc'
-        );
+        const perfs = await sbSelect('performances?select=key,label,on_sale&order=key.asc');
+        const counts = await countAllNights(perfs.map(p => p.key));
 
         const out = {};
-        for (const r of rows) {
-            out[r.key] = {
-                label: r.label,
-                capacity: r.capacity,
-                sold: r.sold,
-                remaining: r.remaining,
-                onSale: r.on_sale,
-                soldOut: r.remaining <= 0 || !r.on_sale
+        for (const p of perfs) {
+            const c = counts[p.key];
+            out[p.key] = {
+                label: p.label,
+                capacity: c.sellable,
+                sold: c.sellable - c.free,
+                remaining: c.free,
+                onSale: p.on_sale,
+                soldOut: c.free <= 0 || !p.on_sale
             };
         }
 

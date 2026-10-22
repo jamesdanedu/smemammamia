@@ -1,15 +1,17 @@
 // POST /api/create-checkout
-// 1. Reserves the tickets (atomic, capacity-checked)
+// 1. Holds the seats the customer picked — all of them or none
 // 2. Opens a SumUp checkout for the correct amount
 //
-// The price is decided here, never by the browser.
+// The browser sends seat ids, never an amount and never a ticket count: the
+// number of tickets is the number of seats, and the price is decided here.
 
 import {
     applyCors, requireMethod, readBody,
     sbRpc, sbSelect, sbUpdate, newBookingRef, supabaseConfigured
 } from './_supabase.js';
 import { cleanAccessNeeds } from './_show.js';
-import { cleanSeats, allocateSeats, describeSeats } from '../seating.js';
+import { cleanSeats, describeSeats, ACCESSIBLE_IDS } from '../seating.js';
+import { seatRefusal } from './_seats.js';
 
 /* >>> BOOKING PAUSE — set back to true to reopen sales. <<<
    Moves together with CONFIG.features.bookingOpen in config.js. That one
@@ -48,7 +50,6 @@ export default async function handler(req, res) {
 
     const body = readBody(req);
     const performanceDate = clean(body.performanceDate, 10);
-    const quantity        = parseInt(body.quantity, 10);
     const customerName    = clean(body.customerName);
     const customerEmail   = clean(body.customerEmail, 160).toLowerCase();
     const customerPhone   = clean(body.customerPhone, 40);
@@ -61,25 +62,28 @@ export default async function handler(req, res) {
 
     // Seats, same treatment: anything that is not a seat on the plan in
     // seating.js falls out here, before it can reach the database.
-    let seats             = cleanSeats(body.seats);
+    const asked           = Array.isArray(body.seats) ? body.seats.length : 0;
+    const seats           = cleanSeats(body.seats);
+    const quantity        = seats.length;
 
     /* ---------------- validation ---------------- */
     if (!/^\d{4}-\d{2}-\d{2}$/.test(performanceDate)) {
         return res.status(400).json({ error: 'Please choose a performance.' });
     }
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_PER_ORDER) {
-        return res.status(400).json({ error: `Please choose between 1 and ${MAX_PER_ORDER} tickets.` });
+    if (!quantity) {
+        return res.status(400).json({ error: 'Please choose your seats on the plan.' });
+    }
+    if (quantity !== asked) {
+        return res.status(400).json({ error: 'Some of those seats are not on the plan. Please choose again.' });
+    }
+    if (quantity > MAX_PER_ORDER) {
+        return res.status(400).json({ error: `Please choose no more than ${MAX_PER_ORDER} seats in one booking.` });
     }
     if (customerName.length < 2) {
         return res.status(400).json({ error: 'Please enter your name.' });
     }
     if (!isEmail(customerEmail)) {
         return res.status(400).json({ error: 'Please enter a valid email address.' });
-    }
-    if (seats.length && seats.length !== quantity) {
-        return res.status(400).json({
-            error: `Please choose ${quantity} seat${quantity === 1 ? '' : 's'} — you have chosen ${seats.length}.`
-        });
     }
 
     const SUMUP_API_KEY       = process.env.SUMUP_API_KEY;
@@ -93,35 +97,17 @@ export default async function handler(req, res) {
     const amount = Number((quantity * TICKET_PRICE).toFixed(2));
     const bookingRef = newBookingRef();
 
-    /* ---------------- 1. seats, if the browser did not choose ----------------
-       Normally the booking page sends the seats the customer clicked. If it
-       could not — an old page left open, a map that failed to load — we pick
-       for them rather than sell a ticket with nowhere to sit. create_hold
-       checks them again under its lock, so a seat taken in the meantime is
-       still caught. */
-    if (!seats.length) {
-        try {
-            const takenRows = await sbSelect(
-                `taken_seats?select=seat_id&performance_date=eq.${encodeURIComponent(performanceDate)}`
-            );
-            seats = allocateSeats(quantity, takenRows.map(r => r.seat_id));
-        } catch (err) {
-            console.error('could not auto-allocate seats:', err.message);
-        }
-        if (seats.length !== quantity) {
-            return res.status(409).json({
-                error: 'We could not find that many seats together. Please choose your seats on the map.'
-            });
-        }
-    }
-
-    /* ---------------- 2. reserve the seats ---------------- */
+    /* ---------------- 1. hold the seats ----------------
+       create_hold checks, under one lock per night, that every seat is free,
+       not blocked, and not an accessible seat that is still kept back —
+       then holds them all, or none. ACCESSIBLE_IDS is the list from
+       seating.js; the database knows which of them have been released. */
     let booking;
     try {
         booking = await sbRpc('create_hold', {
             p_reference:    bookingRef,
             p_date:         performanceDate,
-            p_quantity:     quantity,
+            p_seats:        seats,
             p_amount:       amount,
             p_name:         customerName,
             p_email:        customerEmail,
@@ -130,32 +116,32 @@ export default async function handler(req, res) {
             p_hold_minutes: HOLD_MINUTES,
             p_access_needs: accessNeeds,
             p_access_notes: accessNotes,
-            p_seats:        seats
+            p_restricted:   ACCESSIBLE_IDS
         });
     } catch (err) {
         const msg = err.pgMessage || err.message || '';
         console.error('create_hold failed:', msg);
 
-        if (msg.includes('SOLD_OUT')) {
-            const left = parseInt(msg.split('SOLD_OUT:')[1], 10);
+        const refused = seatRefusal(msg);
+        if (refused && refused.kind === 'taken') {
+            const gone = refused.seats;
+            const which = gone.length === 1 ? `Seat ${gone[0]} was` : `Seats ${gone.join(', ')} were`;
+            const rest = gone.length >= quantity
+                ? `Please pick ${gone.length === 1 ? 'another' : 'others'}.`
+                : `Your other seats are still selected — please pick ${gone.length === 1 ? 'one more' : gone.length + ' more'}.`;
             return res.status(409).json({
-                error: left > 0
-                    ? `Sorry — only ${left} ticket${left === 1 ? '' : 's'} left for that night.`
-                    : 'Sorry — that performance has just sold out.',
-                remaining: Number.isFinite(left) ? left : 0
-            });
-        }
-        if (msg.includes('SEAT_TAKEN')) {
-            const gone = msg.split('SEAT_TAKEN:')[1].split(/[\s]/)[0].split(',').filter(Boolean);
-            return res.status(409).json({
-                error: gone.length === 1
-                    ? `Seat ${gone[0]} was taken a moment before you. Please pick another.`
-                    : `Seats ${gone.join(', ')} were taken a moment before you. Please pick others.`,
+                error: `${which} taken a moment before you. ${rest}`,
                 seatsTaken: gone
             });
         }
-        if (msg.includes('SEAT_COUNT_MISMATCH')) {
-            return res.status(400).json({ error: 'Please choose one seat per ticket.' });
+        if (refused && refused.kind === 'restricted') {
+            return res.status(409).json({
+                error: 'Accessible seats are not sold online. Use “Need accessible seating?” and the team will arrange them with you.',
+                seatsRestricted: refused.seats
+            });
+        }
+        if (msg.includes('DUPLICATE_SEATS') || msg.includes('NO_SEATS')) {
+            return res.status(400).json({ error: 'Please choose your seats on the plan.' });
         }
         if (msg.includes('NOT_ON_SALE')) {
             return res.status(409).json({ error: 'Tickets for that night are not on sale.' });
@@ -166,7 +152,7 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Could not reserve your tickets. Please try again.' });
     }
 
-    /* ---------------- 3. open the SumUp checkout ---------------- */
+    /* ---------------- 2. open the SumUp checkout ---------------- */
     const host     = req.headers['x-forwarded-host'] || req.headers.host;
     const protocol = String(host || '').includes('localhost') ? 'http' : 'https';
     const baseUrl  = `${protocol}://${host}`;

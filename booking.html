@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="seatplan.css">
 <style>
 .page-head { text-align: center; padding: 44px 20px 6px; position: relative; overflow: hidden; }
 
@@ -122,43 +123,6 @@
 .night-day { font-family: var(--font-display); font-weight: 600; font-size: 1.12rem; margin-bottom: 2px; }
 .night-when { font-size: 0.88rem; color: var(--text-dim); margin-bottom: 10px; font-weight: 500; }
 
-/* Quantity stepper */
-.qty-row { display: flex; align-items: center; justify-content: center; gap: 20px; }
-
-.qty-btn {
-    width: 54px; height: 54px;
-    border-radius: 50%;
-    border: 1px solid transparent;
-    background: var(--cyan);
-    box-shadow: var(--pop-blue);
-    color: #fff;
-    font-family: var(--font-body);
-    font-size: 1.6rem;
-    font-weight: 600;
-    line-height: 1;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
-    -webkit-appearance: none;
-}
-
-.qty-btn:hover:not(:disabled) {
-    background: #17618f;
-    transform: translateY(-2px);
-    box-shadow: 0 14px 32px rgba(27, 108, 168, 0.3);
-}
-
-.qty-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; filter: saturate(0.4); }
-
-.qty-value {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 3rem;
-    min-width: 88px;
-    text-align: center;
-    color: var(--text);
-    font-variant-numeric: tabular-nums;
-}
-
 /* Access question */
 .check-label {
     display: flex;
@@ -267,174 +231,62 @@
 @media (max-width: 720px) {
     .head-arch { width: min(320px, 80vw); height: 168px; }
 }
-/* ---------------- Seat map ----------------
-   Sized in seat-widths so the drawing keeps the proportions of the real
-   floor: an aisle really is wider than a chair. It scrolls sideways on a
-   phone rather than shrinking the chairs below a tappable size.
-   ------------------------------------------ */
-.seat-summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.seat-summary-seats {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 1.05rem;
-    color: var(--text);
-}
-
-.seat-pick-toggle {
-    background: none;
-    border: 1px solid var(--border-strong);
-    border-radius: 999px;
-    padding: 8px 15px;
-    font: inherit;
-    font-size: 0.82rem;
-    color: var(--cyan);
-    cursor: pointer;
-}
-.seat-pick-toggle:hover { background: var(--cyan-tint); }
-
-.seatmap-panel { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
-
-.seatmap-scroll {
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    padding: 4px 0 10px;
-    /* fades the cut edge on a narrow screen, so it is plain that the row
-       carries on past it; on a wide one the map fits and nothing fades */
-    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent 100%);
-            mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent 100%);
-}
-.seatmap-scroll.at-end {
-    -webkit-mask-image: none;
-            mask-image: none;
-}
-
-.seatmap-hint {
-    text-align: center;
-    font-size: 0.8rem;
-    color: var(--text-dim);
-    margin-bottom: 4px;
-}
-@media (min-width: 760px) { .step-seats.wide .seatmap-hint { display: none; } }
-
-.seatmap {
-    --seat-size: 20px;
-    --seat-gap: 2px;
-    --aisle-w: calc(var(--seat-size) * 1.6);   /* 1.2 m aisle against a 0.5 m chair */
-    width: max-content;
-    margin: 0 auto;
-    padding: 0 4px;
-}
-
-.stage-bar {
-    background: linear-gradient(180deg, var(--cyan), var(--cyan-soft));
-    color: #fff;
-    text-align: center;
-    border-radius: 3px 3px 40% 40% / 3px 3px 22px 22px;
-    padding: 9px 0 13px;
-    font-size: 0.7rem;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    margin-bottom: 14px;
-}
-
-.seat-row { display: flex; align-items: center; gap: var(--seat-gap); margin-bottom: var(--seat-gap); }
-.seat-block { display: flex; gap: var(--seat-gap); }
-.aisle { width: var(--aisle-w); flex: none; }
-.cross-aisle { height: 18px; }
-
-.row-label {
-    width: calc(var(--seat-size) * 0.9);
-    flex: none;
-    text-align: center;
-    font-size: 0.64rem;
-    font-weight: 700;
-    color: var(--text-faint);
-    line-height: 1;
-}
-
-.seat {
-    width: var(--seat-size);
-    height: var(--seat-size);
-    flex: none;
-    padding: 0;
-    border: 1px solid var(--border-strong);
-    border-radius: 5px 5px 3px 3px;
-    background: var(--surface);
-    cursor: pointer;
-    font-size: 0;
-    transition: transform 0.08s ease, background 0.12s ease;
-}
-.seat:hover:not([disabled]) { transform: translateY(-1px); background: var(--cyan-tint); }
-.seat:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
-
-.seat[data-state="taken"] {
-    background: #dde4e8;
-    border-color: #ccd6db;
-    cursor: not-allowed;
-}
-.seat[data-state="selected"] {
-    background: var(--pink);
-    border-color: var(--pink);
-    box-shadow: 0 2px 6px rgba(194, 53, 107, 0.35);
-}
-.seat[data-wheelchair="1"] { border-color: var(--cyan); border-width: 2px; }
-
-.seat-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 16px;
-    justify-content: center;
-    margin-top: 12px;
-    font-size: 0.76rem;
-    color: var(--text-dim);
-}
-.seat-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.legend-chip {
-    width: 14px; height: 14px; border-radius: 4px 4px 2px 2px;
-    border: 1px solid var(--border-strong); background: var(--surface);
-}
-.legend-chip.taken    { background: #dde4e8; border-color: #ccd6db; }
-.legend-chip.selected { background: var(--pink); border-color: var(--pink); }
-.legend-chip.wheel    { border: 2px solid var(--cyan); }
-
-.seat-count {
-    text-align: center;
-    font-size: 0.85rem;
-    color: var(--text-dim);
-    margin-top: 10px;
-}
-.seat-count strong { color: var(--text); }
-
-/* Twenty-five seats across want more room than the 720px booking column
-   has to give, so with the map open this one step steps outside the column
-   and the chairs grow with the window. The step only widens while the map
-   is open — closed, it lines up with the rest of the form.
-
-   The 34 is the row measured in chair-widths: 25 chairs, two aisles, the
-   gaps between them and a letter at each end come to roughly 34 chairs of
-   width, so dividing the window by it gives a chair size that fills the
-   space without spilling over. Below 760px none of this applies: the
-   chairs stay at a tappable 20px and the map scrolls sideways instead. */
+/* ---------------- The seat plan step ----------------
+   The hall is 28 seats across, more than the 720px booking column can
+   give, so on a wide screen this one step steps outside the column and the
+   plan uses the window. On a phone the plan pans inside its own box and
+   the zoom buttons take it from the whole hall to seats big enough to tap.
+   The plan itself is drawn by seatplan.js from seating.js.
+   ------------------------------------------------------ */
 @media (min-width: 760px) {
-    .step-seats.wide {
-        --step-w: min(1280px, calc(100vw - 24px));
+    .step-seats {
+        --step-w: min(1180px, calc(100vw - 24px));
         width: var(--step-w);
         margin-left: calc(50% - var(--step-w) / 2);
     }
-    .step-seats.wide .seatmap {
-        /* the 58px is the card padding either side of the map */
-        --seat-size: clamp(20px, calc((var(--step-w) - 58px) / 34), 36px);
-        --seat-gap: calc(var(--seat-size) * 0.13);
-    }
 }
+
+.seat-intro {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 10px 16px; margin-bottom: 12px;
+}
+.seat-intro p { font-size: 0.9rem; color: var(--text-dim); margin: 0; }
+
+.access-link {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 15px; min-height: 44px;
+    border: 2px solid var(--sp-access); border-radius: 999px;
+    background: var(--sp-access-tint); color: var(--sp-access);
+    font: 700 0.9rem var(--font-body); cursor: pointer;
+}
+.access-link:hover { background: #e2d5ec; }
+.access-link:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+.seat-picked {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 10px 16px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
+}
+.seat-picked-words { font-family: var(--font-display); font-weight: 600; font-size: 1.08rem; }
+.seat-picked-count { font-size: 0.86rem; color: var(--text-dim); }
+
+.seat-helper { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.seat-helper label { font-size: 0.84rem; color: var(--text-dim); }
+.seat-helper select {
+    min-height: 40px; padding: 0 10px; border-radius: 10px;
+    border: 1px solid var(--border-strong); background: #fff; font: inherit;
+}
+.btn-small { padding: 9px 16px; font-size: 0.84rem; min-height: 40px; }
+
+.sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* the access request form */
+.modal-box.wide { max-width: 520px; text-align: left; }
+.access-form .row2 { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+.access-form .field { margin-bottom: 14px; }
+.hp { position: absolute; left: -5000px; width: 1px; height: 1px; overflow: hidden; }
 
 </style>
 </head>
@@ -468,7 +320,7 @@
 
 <main class="booking-wrap">
 
-  <div id="global-alert" class="alert alert-error hidden"></div>
+  <div id="global-alert" class="alert alert-error hidden" role="alert"></div>
 
   <div id="loading-state" class="card text-center">
     <div class="spinner"></div>
@@ -484,78 +336,56 @@
     </section>
 
     <!-- STEP 2 -->
-    <section class="step">
-      <div class="step-head"><div class="step-num">2</div><div class="step-title">How many tickets?</div></div>
+    <section class="step step-seats" id="step-seats" aria-labelledby="seats-title">
+      <div class="step-head"><div class="step-num">2</div><div class="step-title" id="seats-title">Choose your seats</div></div>
       <div class="card">
-        <div class="qty-row">
-          <button type="button" class="qty-btn" id="qty-minus" aria-label="One fewer ticket">−</button>
-          <div class="qty-value" id="qty-value">1</div>
-          <button type="button" class="qty-btn" id="qty-plus" aria-label="One more ticket">+</button>
-        </div>
-        <p class="text-center faint mt-2" id="qty-hint"></p>
-      </div>
-    </section>
 
-    <!-- STEP 3 -->
-    <section class="step step-seats" id="step-seats">
-      <div class="step-head"><div class="step-num">3</div><div class="step-title">Your seats</div></div>
-      <div class="card">
+        <div class="seat-intro">
+          <p>Tap a seat to choose it, tap it again to let it go. One seat per ticket, up to <span id="max-seats">10</span> in a booking. The stage is at the top.</p>
+          <button type="button" class="access-link" id="access-open">♿ Need accessible seating?</button>
+        </div>
 
         <div id="seat-loading" class="text-center hidden" style="padding:10px 0">
           <div class="spinner"></div>
           <p class="faint mt-2" style="font-size:0.86rem">Looking at what is free…</p>
         </div>
 
-        <div id="seat-chosen">
-          <div class="seat-summary">
-            <div>
-              <div class="faint" style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em">Reserved for you</div>
-              <div class="seat-summary-seats" id="seat-words">—</div>
-            </div>
-            <button type="button" class="seat-pick-toggle" id="seat-toggle" aria-expanded="false" aria-controls="seatmap-panel">
-              Pick your own
-            </button>
-          </div>
-          <p class="faint mt-2" style="font-size:0.84rem" id="seat-note">
-            We have picked the best seats left together. Change them if you would rather sit somewhere else.
-          </p>
+        <div id="seat-plan"></div>
+
+        <div class="sp-legend" aria-hidden="true">
+          <span><i></i> Available</span>
+          <span><i class="mine"></i> Your seats</span>
+          <span><i class="gone"></i> Not available</span>
+          <span><i class="access"></i> Accessible — ask us</span>
+          <span><i class="walk"></i> Aisles and walkways</span>
+          <span><i class="exit"></i> Exit</span>
         </div>
 
-        <div class="seatmap-panel hidden" id="seatmap-panel">
-          <p class="seatmap-hint">Swipe the map sideways to see the whole row.</p>
-          <div class="seatmap-scroll" id="seatmap-scroll">
-            <div class="seatmap" id="seatmap">
-              <div class="stage-bar">Stage</div>
-              <div id="seat-rows"></div>
-            </div>
+        <div class="seat-picked">
+          <div>
+            <div class="seat-picked-words" id="seat-words">No seats chosen yet</div>
+            <div class="seat-picked-count" id="seat-count"></div>
           </div>
-
-          <div class="seat-legend">
-            <span><i class="legend-chip" aria-hidden="true"></i> Free</span>
-            <span><i class="legend-chip selected" aria-hidden="true"></i> Yours</span>
-            <span><i class="legend-chip taken" aria-hidden="true"></i> Taken</span>
-            <span><i class="legend-chip wheel" aria-hidden="true"></i> Wheelchair space</span>
+          <div class="seat-helper">
+            <label for="helper-n">Find me</label>
+            <select id="helper-n"></select>
+            <button type="button" class="btn btn-ghost btn-small" id="seat-best">seats together</button>
+            <button type="button" class="btn btn-ghost btn-small" id="seat-clear">Clear</button>
           </div>
-
-          <p class="seat-count" id="seat-count" role="status"></p>
-
-          <div class="text-center mt-2">
-            <button type="button" class="btn btn-ghost" id="seat-best" style="padding:10px 18px;font-size:0.84rem">
-              ✨ Choose the best available for me
-            </button>
-          </div>
-
-          <p class="faint text-center mt-2" style="font-size:0.8rem">
-            Row A is nearest the stage. <a href="seating.html" target="_blank" rel="noopener">See the full plan</a>.
-          </p>
         </div>
 
+        <p class="sr-only" id="seat-live" aria-live="polite"></p>
+
+        <p class="faint text-center mt-2" style="font-size:0.8rem">
+          Row A is nearest the stage. Seat 1 is on the left as you face the stage.
+          On a phone, drag the plan to move around it.
+        </p>
       </div>
     </section>
 
-    <!-- STEP 4 -->
+    <!-- STEP 3 -->
     <section class="step">
-      <div class="step-head"><div class="step-num">4</div><div class="step-title">Your details</div></div>
+      <div class="step-head"><div class="step-num">3</div><div class="step-title">Your details</div></div>
       <div class="card">
         <div class="field">
           <label for="customer-name">Full name</label>
@@ -578,18 +408,18 @@
       </div>
     </section>
 
-    <!-- STEP 5 -->
+    <!-- STEP 4 -->
     <section class="step">
-      <div class="step-head"><div class="step-num">5</div><div class="step-title">Access requirements</div></div>
+      <div class="step-head"><div class="step-num">4</div><div class="step-title">Anything we should know?</div></div>
       <div class="card">
         <p class="dim mb-2" style="font-size:0.92rem">
-          We keep seats aside at every performance. Tell us now and we will have them
-          ready for you — it is no trouble at all.
+          For a wheelchair space, use <a href="#" id="access-open-2">Need accessible seating?</a> instead —
+          the team will arrange the seats with you. For anything else, tell us here.
         </p>
 
         <label class="check-label" for="access-needed">
           <input type="checkbox" id="access-needed" aria-controls="access-options" aria-expanded="false">
-          <span>Someone in my party has access or seating requirements</span>
+          <span>Someone in my party has other access or seating requirements</span>
         </label>
 
         <fieldset class="access-options" id="access-options" hidden>
@@ -598,20 +428,20 @@
           <div class="field mt-2" style="margin-bottom:0">
             <label for="access-notes">Anything we should know <span class="faint" style="text-transform:none">(optional)</span></label>
             <textarea id="access-notes" rows="3" maxlength="300"
-                      placeholder="For example: two wheelchair users, or a seat beside the aisle for someone who cannot manage steps."></textarea>
+                      placeholder="For example: a seat beside the aisle for someone who cannot manage steps."></textarea>
             <div class="hint">We only share this with the front-of-house team on the night.</div>
           </div>
         </fieldset>
       </div>
     </section>
 
-    <!-- STEP 6 -->
+    <!-- STEP 5 -->
     <section class="step">
-      <div class="step-head"><div class="step-num">6</div><div class="step-title">Confirm and pay</div></div>
+      <div class="step-head"><div class="step-num">5</div><div class="step-title">Confirm and pay</div></div>
       <div class="card card-neon">
         <div class="summary-row"><span>Performance</span><strong id="sum-night" style="color:var(--text)">—</strong></div>
-        <div class="summary-row"><span>Tickets</span><strong id="sum-qty" style="color:var(--text)">—</strong></div>
         <div class="summary-row"><span>Seats</span><strong id="sum-seats" style="color:var(--text)">—</strong></div>
+        <div class="summary-row"><span>Tickets</span><strong id="sum-qty" style="color:var(--text)">—</strong></div>
         <div class="summary-row"><span>Price each</span><strong id="sum-price" style="color:var(--text)">—</strong></div>
         <div class="summary-row hidden" id="sum-access-row"><span>Access</span><strong id="sum-access" style="color:var(--text)">—</strong></div>
         <div class="summary-total"><span>Total</span><span class="amount" id="sum-total">—</span></div>
@@ -628,9 +458,73 @@
   <div class="trust-row">
     <span>🔒 Secure checkout</span>
     <span>💳 Powered by SumUp</span>
-    <span>🎟️ Seats reserved in your name</span>
+    <span>🎟️ Seats reserved for you</span>
   </div>
 </main>
+
+<!-- ===================== ACCESSIBLE SEATING REQUEST ===================== -->
+<div class="modal" id="access-modal" role="dialog" aria-modal="true" aria-labelledby="access-title">
+  <div class="modal-box wide">
+    <h2 id="access-title" style="font-size:1.2rem;margin-bottom:4px">Accessible seating</h2>
+
+    <div id="access-form-wrap">
+      <p class="dim mb-2" style="font-size:0.9rem">
+        Accessible seats are not sold online, so we can get the space right for you.
+        A wheelchair space takes the place of two seats with the chairs taken away,
+        and a companion sits alongside. Tell us what you need and the team will be in
+        touch to arrange the seats — nothing is booked or charged until then.
+      </p>
+      <div id="access-alert" class="alert alert-error hidden" role="alert"></div>
+      <form class="access-form" id="access-form" novalidate>
+        <div class="field">
+          <label for="ar-night">Which night</label>
+          <select id="ar-night" required></select>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="ar-wheel">Wheelchair spaces</label>
+            <input type="number" id="ar-wheel" min="0" max="10" value="1" inputmode="numeric" required>
+          </div>
+          <div class="field">
+            <label for="ar-companion">Companion seats</label>
+            <input type="number" id="ar-companion" min="0" max="20" value="1" inputmode="numeric" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="ar-name">Your name</label>
+          <input type="text" id="ar-name" autocomplete="name" required>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="ar-email">Email</label>
+            <input type="email" id="ar-email" autocomplete="email" inputmode="email" required>
+          </div>
+          <div class="field">
+            <label for="ar-phone">Phone</label>
+            <input type="tel" id="ar-phone" autocomplete="tel" inputmode="tel" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="ar-notes">Anything else <span class="faint" style="text-transform:none">(optional)</span></label>
+          <textarea id="ar-notes" rows="3" maxlength="1000"
+                    placeholder="For example: we would like to sit near an exit, or one of us uses a walking frame."></textarea>
+        </div>
+        <div class="hp" aria-hidden="true">
+          <label for="ar-website">Leave this empty</label>
+          <input type="text" id="ar-website" tabindex="-1" autocomplete="off">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="ar-send">Send request</button>
+      </form>
+    </div>
+
+    <div id="access-done" class="hidden">
+      <div class="alert alert-success" id="access-done-text" role="status"></div>
+    </div>
+
+    <button type="button" class="btn btn-ghost btn-block mt-2" id="access-close">Close</button>
+  </div>
+</div>
+
 
 <!-- ===================== HANDING OVER TO SUMUP ===================== -->
 <div class="modal" id="payment-modal" role="dialog" aria-modal="true" aria-labelledby="pay-title">
@@ -668,10 +562,12 @@
 
 <script src="config.js"></script>
 <script type="module">
-// The gym floor is described once, in seating.js. The booking page and the
-// API both build the same 500 seats from it, so the map you click on and the
-// seats the database hands out can never drift apart.
-import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js';
+// The hall is described once, in seating.js, and drawn by seatplan.js. The
+// booking page, the admin pages and the API all build the same 504 seats
+// from it, so the plan you click on and the seats the database holds can
+// never drift apart.
+import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats, isAccessible, getSeat } from './seating.js';
+import { drawSeatPlan } from './seatplan.js';
 
 (function () {
     'use strict';
@@ -680,13 +576,13 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
 
     const state = {
         date: null,
-        qty: 1,
         max: T.maxPerBooking,
         availability: null,
-        taken: new Set(),
+        unavailable: new Set(),     // sold, held or blocked — the public is not told which
+        released: new Set(),        // accessible seats put on general sale tonight
         seats: [],
-        seatsByHand: false,
         seatsLoading: false,
+        seatsLoaded: false,
         access: [],
         accessNotes: '',
         bookingRef: null,
@@ -696,12 +592,14 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
     };
 
     const $ = id => document.getElementById(id);
+    let plan = null;
 
     /* ---------------- chrome ---------------- */
     $('head-sub').textContent =
         CONFIG.money(T.price) + ' per ticket · ' + S.venue;
     $('footer-brand').textContent = S.title + ' · ' + S.year;
     $('footer-line').textContent = S.school;
+    $('max-seats').textContent = T.maxPerBooking;
 
     function alertBox(message, kind = 'error') {
         const el = $('global-alert');
@@ -709,6 +607,12 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
         el.className = 'alert alert-' + kind;
         el.textContent = message;
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function say(message) {
+        // a fresh node each time, so a repeated message is still read out
+        $('seat-live').textContent = '';
+        setTimeout(() => { $('seat-live').textContent = message; }, 30);
     }
 
     /* ---------------- 1. load availability ---------------- */
@@ -744,8 +648,12 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
         $('loading-state').classList.add('hidden');
         $('booking-form').classList.remove('hidden');
 
-        buildSeatMap();
+        plan = drawSeatPlan($('seat-plan'), {
+            label: 'Seating plan. Use the arrow keys to move between seats, Enter to choose one.',
+            onSeat: pickSeat
+        });
         renderNights();
+        fillHelper();
 
         // pre-select from ?date=, else the first night with tickets
         const wanted = new URLSearchParams(location.search).get('date');
@@ -780,7 +688,8 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
 
             const [day, ...rest] = p.label.split(' ');
             return `
-              <button type="button" class="night" data-key="${p.key}" ${soldOut ? 'disabled' : ''}>
+              <button type="button" class="night${p.key === state.date ? ' selected' : ''}" data-key="${p.key}"
+                      aria-pressed="${p.key === state.date}" ${soldOut ? 'disabled' : ''}>
                 <div class="night-day">${day}</div>
                 <div class="night-when">${rest.join(' ')} · ${S.startTime}</div>
                 ${pill}
@@ -793,128 +702,31 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
     }
 
     function selectNight(key) {
+        const changed = state.date !== key;
         state.date = key;
         $('night-list').querySelectorAll('.night').forEach(b => {
             b.classList.toggle('selected', b.dataset.key === key);
+            b.setAttribute('aria-pressed', String(b.dataset.key === key));
         });
 
         const left = remainingFor(key);
-        state.max = Math.min(T.maxPerBooking, left === null ? T.maxPerBooking : left);
-        if (state.qty > state.max) state.qty = Math.max(1, state.max);
+        state.max = Math.max(1, Math.min(T.maxPerBooking, left === null ? T.maxPerBooking : left));
 
         alertBox('');
+        if (changed) state.seats = [];   // seats belong to a night
+        fillHelper();
         updateSummary();
         loadSeats(key);
     }
 
-    /* ---------------- quantity ---------------- */
-    $('qty-minus').addEventListener('click', () => { if (state.qty > 1) { state.qty--; reconcileSeats(); updateSummary(); } });
-    $('qty-plus').addEventListener('click',  () => { if (state.qty < state.max) { state.qty++; reconcileSeats(); updateSummary(); } });
+    /* ---------------- seats ---------------- */
 
-    function updateSummary() {
-        $('qty-value').textContent = state.qty;
-        $('qty-minus').disabled = state.qty <= 1;
-        $('qty-plus').disabled  = state.qty >= state.max;
-
-        const left = state.date ? remainingFor(state.date) : null;
-        $('qty-hint').textContent = !state.date
-            ? 'Pick a night first'
-            : (left !== null && left <= T.maxPerBooking
-                ? `${left} ticket${left === 1 ? '' : 's'} left for this night`
-                : `Up to ${T.maxPerBooking} tickets per booking`);
-
-        const perf = state.date ? CONFIG.getPerformance(state.date) : null;
-        $('sum-night').textContent = perf ? perf.label : '—';
-        $('sum-qty').textContent   = state.qty + (state.qty === 1 ? ' ticket' : ' tickets');
-        $('sum-price').textContent = CONFIG.money(T.price);
-        $('sum-total').textContent = CONFIG.money(state.qty * T.price);
-
-        const seatsNeeded = state.qty - state.seats.length;
-        $('sum-seats').textContent = state.seats.length ? describeSeats(state.seats) : '—';
-        $('seat-words').textContent = state.seats.length
-            ? describeSeats(state.seats)
-            : (state.date ? 'No seats chosen yet' : 'Choose a night first');
-        $('seat-count').innerHTML =
-            `<strong>${state.seats.length}</strong> of ${state.qty} seat${state.qty === 1 ? '' : 's'} chosen`;
-
-        const ready = state.date && state.seats.length === state.qty;
-        $('pay-btn').disabled = !ready || state.submitting || state.seatsLoading;
-        $('pay-btn').innerHTML = !state.date
-            ? 'Choose a night to continue'
-            : seatsNeeded > 0
-                ? `Choose ${seatsNeeded} more seat${seatsNeeded === 1 ? '' : 's'}`
-                : `💳 Pay ${CONFIG.money(state.qty * T.price)} by card`;
-    }
-
-    /* ---------------- seats ----------------
-       The plan is drawn once and then only repainted, because 500 buttons is
-       enough that rebuilding them on every tap is felt on a phone.
-
-       Most people never open the map: we suggest the best run of seats still
-       free together and they carry on. Opening it is for the people who care
-       where they sit — and it is the reason the toggle is a button rather
-       than the map simply being there, since a 25-wide grid of small targets
-       is a poor thing to meet first on a phone.
-       ---------------------------------------- */
-    const seatEls = new Map();
-
-    function buildSeatMap() {
-        const cross = SEAT_MAP.geometry.crossAfter;
-
-        $('seat-rows').innerHTML = SEAT_MAP.rows.map(row => {
-            const before = cross && row.index === cross
-                ? '<div class="cross-aisle" aria-hidden="true"></div>' : '';
-
-            const blocks = SEAT_MAP.blocks.map(b =>
-                '<div class="seat-block">' +
-                row.seats.filter(s => s.blockId === b.id).map(seatButton).join('') +
-                '</div>'
-            ).join('<div class="aisle" aria-hidden="true"></div>');
-
-            return before +
-                '<div class="seat-row">' +
-                `<div class="row-label" aria-hidden="true">${row.letter}</div>` +
-                blocks +
-                `<div class="row-label" aria-hidden="true">${row.letter}</div>` +
-                '</div>';
-        }).join('');
-
-        seatEls.clear();
-        $('seat-rows').querySelectorAll('.seat').forEach(el => seatEls.set(el.dataset.seat, el));
-    }
-
-    function seatButton(seat) {
-        return '<button type="button" class="seat" data-state="free"' +
-               ` data-seat="${seat.id}"` +
-               (seat.wheelchair ? ' data-wheelchair="1"' : '') +
-               ' aria-pressed="false"' +
-               ` aria-label="Row ${seat.row}, seat ${seat.number}"></button>`;
-    }
-
-    function paintSeats() {
-        const mine = new Set(state.seats);
-
-        seatEls.forEach((el, id) => {
-            const seat  = SEAT_MAP.byId.get(id);
-            const taken = state.taken.has(id);
-            const held  = mine.has(id);
-
-            el.dataset.state = held ? 'selected' : taken ? 'taken' : 'free';
-            el.disabled = taken && !held;
-            el.setAttribute('aria-pressed', String(held));
-            el.setAttribute('aria-label',
-                `Row ${seat.row}, seat ${seat.number}` +
-                (seat.wheelchair ? ', wheelchair space' : '') + ', ' +
-                (held ? 'chosen' : taken ? 'already taken' : 'free'));
-        });
-    }
+    /** Accessible and not released tonight: shown, but booked through a request. */
+    const restricted = id => isAccessible(id) && !state.released.has(id);
 
     async function loadSeats(date) {
         state.seatsLoading = true;
-        state.seats = [];
-        state.seatsByHand = false;
         $('seat-loading').classList.remove('hidden');
-        $('seat-chosen').classList.add('hidden');
         updateSummary();
 
         try {
@@ -922,162 +734,163 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
             if (!res.ok) throw new Error('seat lookup failed');
             const data = await res.json();
 
-            // Only accept what this night actually says; a stale reply for the
+            // Only accept what this night actually says; a slow reply for the
             // night they just switched away from would grey out the wrong seats.
             if (state.date !== date) return;
-            state.taken = new Set(cleanSeats(data.taken || []));
+            state.unavailable = new Set(cleanSeats(data.unavailable || []));
+            state.released = new Set(cleanSeats(data.released || []));
+            state.seatsLoaded = true;
+
+            // anything they had chosen that has gone since stays gone
+            const lost = state.seats.filter(id => state.unavailable.has(id) || restricted(id));
+            if (lost.length) {
+                state.seats = state.seats.filter(id => !lost.includes(id));
+                alertBox(`${describeSeats(lost)} ${lost.length === 1 ? 'has' : 'have'} just been taken — ` +
+                         'your other seats are still chosen.');
+            }
 
         } catch (err) {
-            console.warn('seat map failed', err);
+            console.warn('seat plan failed', err);
             if (state.date !== date) return;
-            state.taken = new Set();
-            $('seat-note').textContent =
-                'We could not check the map just now. Carry on — we will seat your party ' +
-                'together and put the seat numbers in your confirmation email.';
+            state.seatsLoaded = false;
+            alertBox('We could not load the seating plan just now. Please refresh the page to try again.');
         } finally {
             if (state.date === date) {
                 state.seatsLoading = false;
                 $('seat-loading').classList.add('hidden');
-                $('seat-chosen').classList.remove('hidden');
-                suggestSeats();
+                paintSeats();
+                updateSummary();
             }
         }
     }
 
-    /** The best run still free together, which is what most people want. */
-    function suggestSeats() {
-        state.seats = allocateSeats(state.qty, state.taken);
-        state.seatsByHand = false;
-        paintSeats();
-        updateSummary();
-        if (!$('seatmap-panel').classList.contains('hidden')) showSelection();
-    }
+    function paintSeats() {
+        if (!plan) return;
+        const mine = new Set(state.seats);
 
-    function toggleSeat(id) {
-        const chosen = state.seats.indexOf(id);
-
-        if (chosen >= 0) {
-            state.seats.splice(chosen, 1);
-        } else {
-            if (state.taken.has(id)) return;
-            // Already holding one per ticket: the seat chosen longest ago makes
-            // way, so a tap always does something instead of being refused.
-            if (state.seats.length >= state.qty) state.seats.shift();
-            state.seats.push(id);
-        }
-
-        state.seatsByHand = true;
-        paintSeats();
-        updateSummary();
-    }
-
-    /**
-     * Ticket count changed. Somebody who picked their own seats keeps them:
-     * we trim from the end, or grow the run they chose along its own row.
-     * Only when neither works do we move them, and say so.
-     */
-    function reconcileSeats() {
-        if (!state.date || state.seatsLoading) return;
-        if (!state.seatsByHand) { suggestSeats(); return; }
-
-        if (state.seats.length > state.qty) {
-            state.seats = cleanSeats(state.seats).slice(0, state.qty);
-        } else if (state.seats.length < state.qty) {
-            const grown = growSelection();
-            if (grown.length === state.qty) {
-                state.seats = grown;
-            } else {
-                suggestSeats();
-                $('seat-note').textContent =
-                    'Your seats could not stretch that far, so we have found the party a new spot together.';
-                return;
+        plan.paint(s => {
+            const where = `Row ${s.row}, seat ${s.number}`;
+            if (mine.has(s.id)) {
+                return { state: 'selected', label: `${where}, selected`, released: s.accessible };
             }
-        }
-
-        paintSeats();
-        updateSummary();
-    }
-
-    /** Extend the chosen run sideways within its own block, if it can. */
-    function growSelection() {
-        const chosen = cleanSeats(state.seats);
-        if (!chosen.length) return [];
-
-        const first = SEAT_MAP.byId.get(chosen[0]);
-        const sameBlock = chosen.every(id => {
-            const s = SEAT_MAP.byId.get(id);
-            return s.rowIndex === first.rowIndex && s.blockId === first.blockId;
+            if (state.unavailable.has(s.id)) {
+                return { state: 'unavailable', disabled: true, label: `${where}, ${s.accessible ? 'accessible seat, ' : ''}unavailable` };
+            }
+            if (s.accessible && state.released.has(s.id)) {
+                return { state: 'free', released: true, label: `${where}, accessible seat, available` };
+            }
+            if (s.accessible) {
+                return { state: 'free', label: `${where}, accessible seat — opens the accessible seating request` };
+            }
+            return { state: 'free', label: `${where}, available` };
         });
-        if (!sameBlock) return [];
+    }
 
-        const block = SEAT_MAP.rows[first.rowIndex].seats.filter(s => s.blockId === first.blockId);
-        const held = new Set(chosen);
-        let lo = block.findIndex(s => s.id === chosen[0]);
-        let hi = block.findIndex(s => s.id === chosen[chosen.length - 1]);
+    function pickSeat(id) {
+        if (!state.date || state.seatsLoading || !state.seatsLoaded) return;
+        const s = getSeat(id);
+        const where = `Row ${s.row}, seat ${s.number}`;
+        const at = state.seats.indexOf(id);
 
-        while (held.size < state.qty) {
-            const right = block[hi + 1];
-            const left  = block[lo - 1];
-            if (right && !state.taken.has(right.id)) { held.add(right.id); hi++; continue; }
-            if (left  && !state.taken.has(left.id))  { held.add(left.id);  lo--; continue; }
-            return [];
+        if (at >= 0) {
+            state.seats.splice(at, 1);
+            say(`${where} removed. ${countWords()}`);
+        } else if (state.unavailable.has(id)) {
+            say(`${where} is not available.`);
+            return;
+        } else if (restricted(id)) {
+            openAccess();
+            return;
+        } else if (state.seats.length >= state.max) {
+            const msg = `You can choose up to ${state.max} seat${state.max === 1 ? '' : 's'} in one booking. ` +
+                        'Tap one of your seats to let it go first.';
+            $('seat-count').textContent = msg;
+            say(msg);
+            return;
+        } else {
+            state.seats.push(id);
+            say(`${where} selected. ${countWords()}`);
         }
-        return cleanSeats([...held]);
+
+        alertBox('');
+        paintSeats();
+        updateSummary();
     }
 
-    $('seat-rows').addEventListener('click', function (e) {
-        const btn = e.target.closest('.seat');
-        if (btn && !btn.disabled) toggleSeat(btn.dataset.seat);
-    });
-
-    /* On a phone the map is wider than the screen, so bring the seats we are
-       holding into view rather than opening on row A's left-hand corner. */
-    function showSelection() {
-        const first = state.seats.length && seatEls.get(state.seats[0]);
-        if (first) first.scrollIntoView({ block: 'nearest', inline: 'center' });
-        markScrollEnd();
+    function countWords() {
+        const n = state.seats.length;
+        return n ? `${n} seat${n === 1 ? '' : 's'} chosen.` : 'No seats chosen.';
     }
 
-    function markScrollEnd() {
-        const box = $('seatmap-scroll');
-        const atEnd = box.scrollLeft + box.clientWidth >= box.scrollWidth - 2;
-        box.classList.toggle('at-end', atEnd);
+    /* "Find me N seats together" — the best run left, for anyone who does not
+       want to pick eight seats one at a time on a phone. */
+    function fillHelper() {
+        const sel = $('helper-n');
+        const current = parseInt(sel.value, 10) || 2;
+        sel.innerHTML = Array.from({ length: state.max }, (_, i) =>
+            `<option value="${i + 1}">${i + 1}</option>`).join('');
+        sel.value = String(Math.min(current, state.max));
     }
 
-    $('seatmap-scroll').addEventListener('scroll', markScrollEnd, { passive: true });
-
-    $('seat-best').addEventListener('click', function () {
-        suggestSeats();
-        $('seat-note').textContent = 'We have picked the best seats left together.';
-    });
-
-    $('seat-toggle').addEventListener('click', function () {
-        const panel = $('seatmap-panel');
-        const open = panel.classList.toggle('hidden') === false;
-        this.setAttribute('aria-expanded', String(open));
-        this.textContent = open ? 'Done' : 'Pick your own';
-
-        // Only this step breaks out of the booking column, and only while
-        // the map is open — see the .step-seats.wide rules.
-        $('step-seats').classList.toggle('wide', open);
-
-        if (open) {
-            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            showSelection();
+    $('seat-best').addEventListener('click', () => {
+        if (!state.seatsLoaded) return;
+        const n = parseInt($('helper-n').value, 10) || 1;
+        const off = new Set([...state.unavailable, ...SEAT_MAP.seats.filter(s => restricted(s.id)).map(s => s.id)]);
+        const found = allocateSeats(n, off);
+        if (found.length !== n) {
+            const msg = `There are no longer ${n} seats together. Please choose them on the plan.`;
+            $('seat-count').textContent = msg;
+            say(msg);
+            return;
         }
+        state.seats = found;
+        paintSeats();
+        updateSummary();
+        plan.reveal(found[0]);
+        say(`${describeSeats(found)} selected.`);
     });
 
-    // Resizing changes whether the map still overflows, so the faded edge
-    // has to be worked out again.
-    window.addEventListener('resize', markScrollEnd, { passive: true });
+    $('seat-clear').addEventListener('click', () => {
+        state.seats = [];
+        paintSeats();
+        updateSummary();
+        say('All seats cleared.');
+    });
 
-    /* ---------------- access and seating ----------------
+    /* ---------------- summary ---------------- */
+    function updateSummary() {
+        const n = state.seats.length;
+        const perf = state.date ? CONFIG.getPerformance(state.date) : null;
+
+        $('seat-words').textContent = n ? describeSeats(state.seats)
+            : (state.date ? 'No seats chosen yet' : 'Choose a night first');
+        $('seat-count').textContent = n
+            ? `${n} ticket${n === 1 ? '' : 's'} · ${CONFIG.money(n * T.price)}`
+            : `Tap the seats you would like — up to ${state.max}.`;
+
+        $('sum-night').textContent = perf ? perf.label : '—';
+        $('sum-seats').textContent = n ? describeSeats(state.seats) : '—';
+        $('sum-qty').textContent   = n + (n === 1 ? ' ticket' : ' tickets');
+        $('sum-price').textContent = CONFIG.money(T.price);
+        $('sum-total').textContent = CONFIG.money(n * T.price);
+
+        const ready = state.date && n > 0;
+        $('pay-btn').disabled = !ready || state.submitting || state.seatsLoading;
+        $('pay-btn').innerHTML = !state.date
+            ? 'Choose a night to continue'
+            : !n ? 'Choose your seats to continue'
+            : `💳 Pay ${CONFIG.money(n * T.price)} by card`;
+    }
+
+    /* ---------------- other access needs ----------------
        Unticked means "nothing needed" — the commonest answer, and the one
        that costs the fewest taps. Ticking it reveals the list; unticking it
        clears whatever was chosen so nothing follows a change of mind
-       through to the booking.
+       through to the booking. Wheelchair spaces are not on this list: they
+       go through the accessible seating request, so the team can seat the
+       party.
        ---------------------------------------------------- */
-    $('access-grid').innerHTML = CONFIG.accessOptions.map(o => `
+    $('access-grid').innerHTML = CONFIG.accessOptions.filter(o => o.publicForm !== false).map(o => `
         <label class="check-label" for="access-${o.code}">
           <input type="checkbox" id="access-${o.code}" value="${o.code}" data-access>
           <span>${o.label}</span>
@@ -1126,6 +939,100 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
         row.classList.remove('hidden');
     }
 
+    /* ---------------- accessible seating request ----------------
+       Opened from the button by the plan, the link in step 4, or by
+       tapping an accessible seat. Nothing is booked: the request is stored,
+       the team is emailed, and they arrange the seats with the person. */
+    let accessOpener = null;
+    let accessOpenedAt = 0;
+
+    $('ar-night').innerHTML = CONFIG.performances.map(p => `<option value="${p.key}">${p.label}</option>`).join('');
+
+    function openAccess() {
+        accessOpener = document.activeElement;
+        accessOpenedAt = Date.now();
+        if (state.date) $('ar-night').value = state.date;
+        // carry over anything already typed in step 3
+        if (!$('ar-name').value)  $('ar-name').value  = $('customer-name').value.trim();
+        if (!$('ar-email').value) $('ar-email').value = $('customer-email').value.trim();
+        if (!$('ar-phone').value) $('ar-phone').value = $('customer-phone').value.trim();
+
+        $('access-alert').classList.add('hidden');
+        $('access-form-wrap').classList.remove('hidden');
+        $('access-done').classList.add('hidden');
+        $('access-modal').classList.add('visible');
+        document.body.style.overflow = 'hidden';
+        $('ar-night').focus();
+    }
+
+    function closeAccess() {
+        $('access-modal').classList.remove('visible');
+        document.body.style.overflow = '';
+        if (accessOpener && accessOpener.focus) accessOpener.focus();
+    }
+
+    $('access-open').addEventListener('click', openAccess);
+    $('access-open-2').addEventListener('click', e => { e.preventDefault(); openAccess(); });
+    $('access-close').addEventListener('click', closeAccess);
+    $('access-modal').addEventListener('keydown', e => { if (e.key === 'Escape') closeAccess(); });
+    $('access-modal').addEventListener('click', e => { if (e.target === $('access-modal')) closeAccess(); });
+
+    $('access-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const wheel = parseInt($('ar-wheel').value, 10);
+        const comp  = parseInt($('ar-companion').value, 10);
+        const fail = msg => {
+            const box = $('access-alert');
+            box.textContent = msg;
+            box.classList.remove('hidden');
+        };
+
+        if (!(wheel >= 0 && wheel <= 10)) return fail('Wheelchair spaces: a number from 0 to 10.');
+        if (!(comp >= 0 && comp <= 20))   return fail('Companion seats: a number from 0 to 20.');
+        if (wheel + comp < 1)             return fail('Please ask for at least one wheelchair space or seat.');
+        if ($('ar-name').value.trim().length < 2) return fail('Please enter your name.');
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test($('ar-email').value.trim())) return fail('Please enter a valid email address.');
+        if ($('ar-phone').value.replace(/\D/g, '').length < 7) return fail('Please enter a phone number, so the team can call you.');
+
+        $('ar-send').disabled = true;
+        $('ar-send').textContent = 'Sending…';
+        try {
+            const res = await fetch(CONFIG.api.accessRequest, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    performanceDate: $('ar-night').value,
+                    name: $('ar-name').value.trim(),
+                    email: $('ar-email').value.trim(),
+                    phone: $('ar-phone').value.trim(),
+                    wheelchairSpaces: wheel,
+                    companionSeats: comp,
+                    notes: $('ar-notes').value.trim(),
+                    website: $('ar-website').value,
+                    elapsed: Date.now() - accessOpenedAt
+                })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Your request could not be sent. Please try again.');
+
+            $('access-done-text').textContent =
+                `Thank you — your request${data.reference ? ' (' + data.reference + ')' : ''} has reached the team, ` +
+                'and they will be in touch to arrange your seats. ' +
+                (data.acknowledged
+                    ? 'A copy is on its way to your email.'
+                    : 'We could not email you a copy just now, but your request is saved.');
+            $('access-form-wrap').classList.add('hidden');
+            $('access-done').classList.remove('hidden');
+            $('access-close').focus();
+            $('access-form').reset();
+        } catch (err) {
+            fail(err.message);
+        } finally {
+            $('ar-send').disabled = false;
+            $('ar-send').textContent = 'Send request';
+        }
+    });
+
     /* ---------------- submit ---------------- */
     $('booking-form').addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -1136,25 +1043,25 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
         const phone = $('customer-phone').value.trim();
         const via   = $('booked-by').value.trim();
 
-        if (!state.date)                       return alertBox('Please choose a performance.');
-        if (state.seats.length !== state.qty)  return alertBox('Please choose one seat for each ticket.');
-        if (name.length < 2)                   return alertBox('Please enter your full name.');
+        if (!state.date)              return alertBox('Please choose a performance.');
+        if (!state.seats.length)      return alertBox('Please choose your seats on the plan.');
+        if (name.length < 2)          return alertBox('Please enter your full name.');
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return alertBox('Please enter a valid email address.');
 
         alertBox('');
         state.submitting = true;
         const btn = $('pay-btn');
         btn.disabled = true;
-        btn.textContent = 'Reserving your tickets…';
+        btn.textContent = 'Reserving your seats…';
 
         try {
+            // Seat ids only. The server counts them and sets the price.
             const res = await fetch(CONFIG.api.checkout, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     performanceDate: state.date,
-                    quantity: state.qty,
-                    seats: state.seats,
+                    seats: cleanSeats(state.seats),
                     customerName: name,
                     customerEmail: email,
                     customerPhone: phone,
@@ -1167,12 +1074,23 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
             const data = await res.json();
 
             if (!res.ok) {
-                // Somebody paid for one of these seats while this page was
-                // open. Grey them out and find the party somewhere else, so
-                // the next tap is on a seat that is genuinely free.
-                if (Array.isArray(data.seatsTaken) && data.seatsTaken.length) {
-                    cleanSeats(data.seatsTaken).forEach(id => state.taken.add(id));
-                    suggestSeats();
+                // Somebody got one of these seats first. Grey it out, keep
+                // the ones that are still free chosen, and take them back
+                // to the plan to pick again.
+                const gone = cleanSeats([...(data.seatsTaken || []), ...(data.seatsRestricted || [])]);
+                if (gone.length) {
+                    gone.forEach(id => state.unavailable.add(id));
+                    state.seats = state.seats.filter(id => !gone.includes(id));
+                    paintSeats();
+                    $('step-seats').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (gone[0]) plan.reveal(gone[0]);
+                    const msg = data.error || 'Some of those seats have just gone.';
+                    $('global-alert').className = 'alert alert-error';
+                    $('global-alert').textContent = msg;
+                    say(msg);
+                    loadSeats(state.date);           // and catch up on anything else that went
+                    refreshAvailability();
+                    return;
                 }
                 if (res.status === 409) await refreshAvailability();
                 throw new Error(data.error || 'Could not start the payment.');
@@ -1192,11 +1110,14 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
         }
     });
 
+    /** New figures for the night buttons, without touching the seats chosen. */
     async function refreshAvailability() {
         try {
             state.availability = await CONFIG.fetchAvailability();
             renderNights();
-            if (state.date) selectNight(state.date);
+            const left = state.date ? remainingFor(state.date) : null;
+            state.max = Math.max(1, Math.min(T.maxPerBooking, left === null ? T.maxPerBooking : left + state.seats.length));
+            fillHelper();
         } catch (_) { /* leave as-is */ }
     }
 
@@ -1245,7 +1166,7 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
         $('payment-modal').classList.remove('visible');
         document.body.style.overflow = '';
         stopHoldTimer();
-        alertBox('Payment cancelled. Your reservation expires by itself in a few minutes — you can start again any time.', 'info');
+        alertBox('Payment cancelled. Your seats are held for a few more minutes and then go back on sale — you can start again any time.', 'info');
         refreshAvailability();
     });
 
@@ -1260,7 +1181,7 @@ import { SEAT_MAP, allocateSeats, cleanSeats, describeSeats } from './seating.js
             }
             const m = Math.floor(ms / 60000), s = Math.floor(ms / 1000) % 60;
             $('hold-timer').innerHTML =
-                `Tickets reserved for <strong>${m}:${String(s).padStart(2, '0')}</strong>`;
+                `Seats held for <strong>${m}:${String(s).padStart(2, '0')}</strong>`;
         };
         tick();
         state.holdTimerId = setInterval(tick, 1000);

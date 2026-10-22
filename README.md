@@ -5,10 +5,12 @@ serverless functions for anything that touches money or data, Supabase for stora
 SumUp for card payments.
 
 **The run:** Thursday 28 and Friday 29 January 2027, doors 7:00 PM, curtain
-7:30 PM. €10 flat, 500 seats a night, at St Mary's Secondary School, Edenderry,
-Co. Offaly. Two acts, suitable for ages 13+ (PG-13). Tickets are unreserved —
-pick a night and a quantity, no seat map. Bookings are identified by a reference
-in the form `MM-XXXXXX`.
+7:30 PM. €10 flat, 504 seats a night, at St Mary's Secondary School, Edenderry,
+Co. Offaly. Two acts, suitable for ages 13+ (PG-13). **Seating is reserved** —
+pick a night, then pick your seats on the hall plan; the number of seats is the
+number of tickets. Bookings are identified by a reference in the form
+`MM-XXXXXX`. There are no refunds: a ticket that is not wanted can be passed on,
+and whoever comes gives the booking name or reference at the door.
 
 The Wednesday 27 January performance is a free schools matinee and is **not sold
 through this site**. It is deliberately absent from `CONFIG.performances` in
@@ -31,10 +33,13 @@ International (MTI)** — see *Licensing* below, which is not optional reading.
 > shows' bookings into one set of rows — wrong capacity counts, wrong door lists,
 > wrong money, and no clean way to untangle it afterwards. One show, one database.
 
-Two things this site deliberately does differently from older school booking sites:
+Three things this site deliberately does:
 
-* **No seat map.** Pick a night, pick a number of tickets, pay. Capacity is counted
-  per performance instead of per seat.
+* **Reserved seats, one plan.** The hall is described once, in `seating.js`, and
+  the booking page, the admin pages, `seating.html` and the server's checks are all
+  drawn from it. Two people can never hold the same seat: the database refuses it.
+* **Accessible seats are arranged, not sold.** Sixteen seats a night are kept for
+  people who need them. The public sends a request; the team books the seats.
 * **No database keys in the browser.** Every read and write goes through `/api/*`,
   which holds the secrets as Vercel environment variables. Payments are confirmed
   server-side against SumUp — the browser is never trusted to say it paid.
@@ -46,18 +51,21 @@ Two things this site deliberately does differently from older school booking sit
 ```
 index.html         Home — hero, countdown, live availability per night
 about.html         Story, song list, characters, credits
-booking.html       The booking flow (night → quantity → seats → details → SumUp)
+booking.html       The booking flow (night → seats on the plan → details → SumUp)
 success.html       Payment confirmation, booking reference, add-to-calendar
 cast.html          Cast & crew          (content in cast.js)
 photos.html        Gallery + lightbox   (content in photos.js)
 games.html         Arcade games
 quiz.html          Trivia bank, 10 questions per round
 wall.html          Public good-luck message wall (moderated)
-seating.html       The seating plan: the map, and the setting-out measurements
+seating.html       The hall plan, for the public — where everything is
 admin.html         Password-protected dashboard
 
-config.js          >>> Show dates, times, venue, price, capacity — edit this first
-seating.js         >>> The gym floor: hall size, rows, blocks, aisles — the 500 seats
+config.js          >>> Show dates, times, venue, price — edit this first
+seating.js         >>> The hall plan: rows, seats, aisles, stage, exits, toilets,
+                       accessible seats — the 504 seats, and the one copy of them
+seatplan.js        Draws the plan from seating.js (booking, admin, seating.html)
+seatplan.css       How the plan looks, on the theme's colours
 theme.css          Shared "Aegean whitewash" design system
 cast.js            Cast and crew list
 photos.js          Gallery image list
@@ -68,22 +76,25 @@ api/_supabase.js       Shared PostgREST helper (no npm dependencies)
 api/_email.js          Resend + Brevo senders, and the confirmation template
 api/_confirmations.js  The "has this already been sent?" rule, in one place
 api/_show.js           Show details the emails need (keep in sync with config.js)
-api/_seats.js          Re-seats a booking whose hold died before the money landed
-api/availability.js    GET  — aggregate ticket counts only, no customer data
-api/seats.js           GET  — which seats are gone for a night, and nothing else
-api/create-checkout.js POST — reserves tickets atomically, opens SumUp checkout
+api/_seats.js          Counts a night's seats: sold, held, free, accessible
+api/_access.js         The two emails an access request sends, claimed once each
+api/availability.js    GET  — aggregate seat counts only, no customer data
+api/seats.js           GET  — which seats are unavailable for a night, and nothing else
+api/access-request.js  POST — "Need accessible seating?": stores it, emails the team
+api/create-checkout.js POST — holds the chosen seats atomically, opens SumUp checkout
 api/verify-payment.js  POST — asks SumUp if it was paid, confirms, sends the email
 api/reconcile.js       CRON — rescues abandoned payments, retries unsent emails
 api/wall.js            GET/POST — message wall
 api/admin.js           POST — everything behind ADMIN_PASSWORD
 
-schema.sql         Run once in the Supabase SQL Editor
+schema.sql         Run first in the Supabase SQL Editor — the base tables
 schema-email.sql   Run second — email tracking and payment rescue
-schema-accessibility.sql
-                   Run third, only on a database created before the booking
-                   form started asking about access requirements
-schema-seating.sql Run fourth, only on a database created before seats were
-                   chosen at booking
+schema-seating.sql Run third — seats, holds, blocks, access requests. Every
+                   database needs it, including one that already has the
+                   first two. All three are safe to re-run.
+tests/seat-holds.sh
+                   Double-booking tests for schema-seating.sql, against a
+                   throwaway local Postgres
 vercel.json        Headers and routing
 .env.example       The environment variables you need to set
 ```
@@ -100,7 +111,10 @@ Everything marked `// TODO` needs your real values:
 * venue name
 * contact-form inbox (`ENQUIRIES_TO` in Vercel — defaults to smemammamia@proton.me)
 * ticket price (**must match `TICKET_PRICE` in Vercel** — the server decides the price)
-* capacity per night
+* the most seats in one booking (`maxPerBooking`, must match `MAX_PER_ORDER`)
+
+There is no capacity to type in: a night has the seats in `seating.js`, less the
+accessible seats not released, less any blocked in admin. See Step 3d.
 
 The performance `key` is the ISO date and is used in URLs, in the database and in
 `schema.sql`. Change it in all three or nowhere.
@@ -118,13 +132,15 @@ distinguishable from the school's other productions on a bank statement.
 1. Create a **new** Supabase project for Mamma Mia!. Do not reuse the Popstars
    project — the table names are identical and the two shows' bookings would land in
    the same rows. A fresh project is free and takes two minutes.
-2. Edit the seed block at the bottom of `schema.sql` so the dates and capacities
-   match `config.js`.
+2. Edit the seed block at the bottom of `schema.sql` so the dates match `config.js`.
 3. Paste the whole of `schema.sql` into **SQL Editor → New query** and run it.
+   Then `schema-email.sql`, then `schema-seating.sql`, the same way, in that order.
 4. **Settings → API** — copy the *Project URL* and the *service_role* key.
 
-A database created from the current `schema.sql` already stores the accessibility
-answers. An older one needs `schema-accessibility.sql` run once — see step 3c.
+`schema-seating.sql` also takes away the anon role's right to call the booking
+functions. Postgres lets everyone execute a new function unless told otherwise, and
+the older files only revoked the `anon` role by name — so before it is run, anyone
+holding the project's anon key could call `confirm_paid_booking` directly. Run it.
 
 The schema turns row level security on and revokes the anon role's access to
 everything, so the anon key is useless on its own. That's intentional.
@@ -210,77 +226,93 @@ day**, which is too slow while tickets are selling. Either:
 
 You can also hit **Run checks now** on the admin Overview tab any time.
 
-### Step 3c — Accessibility requests
+### Step 3c — Accessible seating
 
-Step 5 of the booking form asks whether anyone in the party needs accessible
-seating. The answers are stored on the booking, shown on the
-admin Overview, Bookings and Door list tabs, exported in the CSV, and echoed back
-in the confirmation email so a mistake can be corrected in good time.
+Sixteen seats a night — J1, J2, J13–J16, J27, J28 and the same in row K, either
+side of the cross aisle — are accessible seats. They are listed in `seating.js`
+(`accessibleSeats`) and drawn in their own colour everywhere.
 
-Nothing to configure. If the database was created before this existed, run
-**`schema-accessibility.sql`** once in the SQL editor — it adds the two columns and
-replaces `create_hold` with the version that stores them. Until it is run, every
-booking attempt fails with *Could not reserve your tickets*, because the site calls
-`create_hold` with the two new arguments.
+**They are not sold online.** Tapping one on the booking page, or the
+*Need accessible seating?* button beside the plan, opens a short form: name, email,
+phone, night, how many wheelchair spaces and how many companion seats, and notes.
+A request:
 
-The wording of the options lives in two places that must agree: `config.js` for the
-browser and `api/_show.js` for the server. Only the short codes
-(`wheelchair`, `aisle`, `hearing`, `other`)
-are stored, so the labels can be reworded at any time without touching bookings
-already taken. Anything the browser sends that is not on that list is dropped.
+* is stored in `access_requests`, before anything is emailed, so it is never lost;
+* emails the team (`ACCESS_REQUESTS_TO`, else `ENQUIRIES_TO`) with Reply-To set to
+  the person asking;
+* sends the person a short acknowledgement that the team will be in touch.
+
+Each of the two emails is claimed in the database before it is sent, so the
+reconciler can retry a failed one without anybody getting it twice.
+
+A wheelchair space takes the place of two seats with the chairs taken away, and a
+companion sits alongside. The team works that out with the person; the site only
+records which seats were used.
+
+**In admin:** the *Access requests* tab lists every request with its status
+(new, contacted, seated, closed) and a box for staff notes. *Book seats* opens Add
+booking with the request filled in; pick the accessible seats, choose cash, card on
+the door or complimentary, and the request is marked seated with the booking
+reference on it.
+
+**Releasing them.** On the *Seat plan* tab, *Release accessible seats to general
+sale* puts chosen accessible seats on public sale for that night. It is a manual
+switch — nothing releases them automatically — and it can be reversed for any seat
+nobody has bought or is holding.
+
+**Other access needs** — an aisle seat, hearing support — are still asked about on
+the booking form, stored on the booking as codes, and shown on the admin Overview,
+Bookings and Door list tabs, in the CSV and in the confirmation email. The wording
+lives in `config.js` (browser) and `api/_show.js` (server), which must agree.
+`wheelchair` stays a valid code for staff but is not offered on the public form
+(`publicForm: false`), because wheelchair spaces go through a request.
 
 ### Step 3d — The seating plan
 
-The gym floor is described once, in **`seating.js`**, and everything else is built
-from it: the map people click on, the seats the database hands out, the numbers on
-the confirmation email, the admin seat map, and the setting-out plan on
-`seating.html`. There is no second copy to keep in step.
-
-The plan as it stands — **20 rows of 25 seats, 500 a night**:
+The hall is described once, in **`seating.js`** (`PLAN`), and everything else is
+built from it: the plan people tap on, the seats the database will accept, the
+seat numbers in the confirmation email, the admin seat plan and picker, the printed
+plan, and `seating.html`. There is no second copy to keep in step.
 
 | | |
 |---|---|
-| Hall floor | 30.00 m × 18.00 m *(measure this and correct it)* |
-| Stage | 6.00 m deep across one end, 2.00 m clear in front of row A |
-| Rows | 20, at 0.85 m — lettered A to V, skipping I and O |
-| Seats across | 7 + 11 + 7, with two 1.20 m aisles |
-| Side gangways | 1.55 m at each wall |
-| Cross gangway | 1.20 m, after row K |
-| Behind the last row | 3.00 m to the exits |
-| Spare depth | 0.80 m |
+| Rows | 18, lettered A to T, skipping I and O. Row A is nearest the stage |
+| Seats | 28 a row, numbered 1–28 left to right as you face the stage; 1–14 left of the centre aisle, 15–28 right |
+| Seat ids | `A1` … `T28` — 504 a night |
+| Aisles | centre aisle full depth; cross aisle between J and K; side gangways both walls; front walkway; rear walkway |
+| Stage | full width at the top, about 22.5% of the hall's depth, backstage strip behind |
+| Exits | top wall right (backstage), bottom wall right corner, left wall near the back |
+| Toilets | outside the left wall: female just behind the cross aisle, male near the stage |
+| Accessible | 16 seats, J and K rows — see Step 3c |
 
-The block sizes are not arbitrary: nobody is more than 7 seats from an aisle where
-there is only one to reach, or 14 where there are aisles at both ends, and every
-gangway is at least 1.05 m. Four seats on the cross gangway (L1, L2, L24, L25) are
-wheelchair spaces — the chair is taken away rather than the seat deleted, so the
-count stays at 500 and the space can still be sold if nobody needs it.
+The drawing is schematic, not to scale. To change it, edit `PLAN` and reload: the
+booking page, admin and `seating.html` redraw, and the server validates against the
+new seats. **Do not re-draw the plan once seats are sold** — seat ids already on
+bookings are not moved, so dropping a row leaves somebody holding a seat that is no
+longer on the map.
 
-A seat is held the moment the tickets are — `create_hold` takes the ticket count and
-the seats in one transaction, under the same per-performance lock — so two people
-cannot be sold the same chair, and a booking can never end up with tickets but no
-seats. When a hold expires the seats go back on sale by themselves. The one case that
-needs care is a payment that lands after its hold died: the reconciler confirms the
-booking (the money is real) and `assign_seats` finds it new seats before the
-confirmation email goes out.
+**How a seat is held.** `create_hold` runs in one transaction under a
+per-night advisory lock. It sweeps expired holds, refuses blocked seats and
+unreleased accessible seats (for the public), refuses any seat already taken —
+naming it — and then inserts the booking and every seat together, or nothing. The
+primary key on `booking_seats (performance_date, seat_id)` is the last line: even if
+two calls ever got past the lock at once, the second insert would fail and its
+whole transaction would roll back. `tests/seat-holds.sh` races holds against each
+other to prove it.
 
-**To change the plan**, edit `LAYOUT` at the top of `seating.js` and reload. Row
-count, block sizes, chair width, row pitch, aisle widths and the hall size are all
-variables. `seating.html` re-draws itself, prints the new setting-out table, and
-tells you in red if the result no longer fits or breaks a gangway rule.
+**When a payment lands after its hold died.** The seats went back on sale at the
+fifteen-minute mark. `confirm_paid_booking` — used by the live verifier and the
+reconciler — gives the booking its own seats back if every one of them is still
+free. If any has gone, the booking is still confirmed (the money is real) but with
+no seats, and flagged as a **seat conflict**: it shows in red on the admin Overview
+with a *Reseat* button, its confirmation email says the box office will confirm the
+seats, and the door list says the same. Nobody is moved to different seats behind
+their back. After reseating, *Send updated seats* emails them the new ones.
 
-Two things to do after changing it:
-
-1. **Keep capacity in step.** `seating.js` and the `capacity` in `config.js` must
-   agree, or the last tickets cannot be seated (capacity too high) or the last seats
-   cannot be sold (too low). Change `config.js` too, then *Sync from config.js* on
-   the admin Settings tab.
-2. **Do not re-draw it once seats are sold.** Seat ids already on bookings
-   (`booking_seats`) are not moved by a change to the plan. Dropping a row or
-   narrowing a block would leave people holding seats that no longer exist on the map.
-
-If the database was created before this existed, run **`schema-seating.sql`** once in
-the SQL editor. Until it is run, every booking attempt fails with *Could not reserve
-your tickets*, because the site calls `create_hold` with the new `p_seats` argument.
+**Blocking seats.** On the *Seat plan* tab, *Block seats* takes seats off public
+sale for a night — the sound desk, house seats. The public sees them as unavailable;
+staff can still book them from Add booking (it asks first). A seat somebody has
+cannot be blocked.
 
 ### Step 4 — Vercel
 
@@ -306,9 +338,10 @@ under **Settings → Environment Variables**:
 | `CRON_SECRET` | protects `/api/reconcile` |
 | `SITE_URL` | your live URL, for links inside emails — e.g. `https://mammamiathemusical.ie` (an example, not a registered domain) |
 | `EMAIL_BCC` | optional, office copy of every confirmation |
+| `ACCESS_REQUESTS_TO` | optional, where accessible-seating requests go — defaults to `ENQUIRIES_TO` |
 | `TICKET_PRICE` | optional, defaults to 10 — must match `config.js` |
 | `HOLD_MINUTES` | optional, defaults to 15 |
-| `MAX_PER_ORDER` | optional, defaults to 10 |
+| `MAX_PER_ORDER` | optional, defaults to 10 — the most seats in one online booking; must match `maxPerBooking` in `config.js` |
 | `WALL_AUTO_APPROVE` | optional, `true` posts wall messages without moderation |
 | `SHOW_NAME` | optional, defaults to `Mamma Mia!` — shown in emails |
 | `SHOW_SCHOOL` | optional, defaults to `St Mary's Secondary School, Edenderry` |
@@ -323,7 +356,8 @@ Redeploy after adding them — Vercel only picks up new variables on a fresh bui
 
 ### Step 5 — Check it works
 
-1. Open `/api/availability` in a browser. You should see the ticket counts as JSON.
+1. Open `/api/availability` in a browser. You should see the seat counts as JSON —
+   488 on sale a night before anything is sold or released (504 less 16 accessible).
 2. Open `/admin.html`, sign in, and confirm the dashboard loads. The Overview tab
    tells you straight away whether email is configured.
 3. Make a real €10 booking with your own card, then refund it in SumUp. This is the
@@ -334,7 +368,26 @@ Redeploy after adding them — Vercel only picks up new variables on a fresh bui
 4. Test the rescue path, because it is the one nobody thinks to test: start a
    booking, pay, and **close the tab the instant the payment goes through**. The
    booking will sit as "held". Hit **Run checks now** on the admin Overview tab; it
-   should turn into a confirmed booking with the email sent.
+   should turn into a confirmed booking, on the seats chosen, with the email sent.
+5. Send yourself an accessible seating request from the booking page. The team
+   inbox and your own should each get one email, and the request should be on the
+   admin *Access requests* tab.
+
+### Step 6 — The double-booking tests
+
+`tests/seat-holds.sh` builds a throwaway database from the three schema files on a
+**local** Postgres (never the Supabase project) and checks the seat functions
+directly: 25 holds racing for one seat (exactly one wins), two overlapping holds with
+the first slow to commit (all or nothing, the loser told which seat), an expired hold
+taken over, the late payment on it honoured and flagged, a late payment whose seats
+are still free given them back, accessible and blocked seats, reseating, and that
+the anon role can call none of it.
+
+```
+PGHOST=/var/run/postgresql PGUSER=postgres tests/seat-holds.sh
+```
+
+Run it after any change to `schema-seating.sql`.
 
 ---
 
@@ -342,12 +395,14 @@ Redeploy after adding them — Vercel only picks up new variables on a fresh bui
 
 ```
 Browser                     /api/create-checkout            Supabase        SumUp
-   │  GET /api/seats?date=…  ── which seats are already gone ──>│             │
-   │  night + qty + seats + details  │                          │             │
+   │  GET /api/seats?date=…  ── which seats are unavailable ───>│             │
+   │  night + seat ids + details     │                          │             │
    ├────────────────────────────────>│                          │             │
    │                                 │  create_hold()           │             │
    │                                 ├─────────────────────────>│             │
-   │                                 │  (advisory lock, capacity AND seats)   │
+   │                                 │  (per-night lock: every seat free, not │
+   │                                 │   blocked, not kept-back accessible —  │
+   │                                 │   then all of them held, or none)      │
    │                                 │  <── booking, held 15 min │             │
    │                                 ├────────────────────────────────────────>│
    │  <── checkoutUrl ───────────────┤                          │  checkout    │
@@ -357,7 +412,9 @@ Browser                     /api/create-checkout            Supabase        SumU
    │                                                                          │
    │      /api/verify-payment                                                 │
    ├─────────────────────────────────> asks SumUp: was it actually paid? ────>│
-   │                                   if PAID → status = confirmed,          │
+   │                                   if PAID → confirm_paid_booking():      │
+   │                                             confirmed, seats kept or     │
+   │                                             given back, or flagged;      │
    │                                             confirmation email sent      │
 ```
 
@@ -373,12 +430,16 @@ ticket hold.
 
 Things worth knowing:
 
-* **The price is set on the server.** The browser sends a quantity, never an amount.
+* **The price is set on the server.** The browser sends seat ids, never an amount
+  and never a ticket count: the number of seats is the number of tickets.
 * **The booking reference is the thread through everything.** `MM-XXXXXX` is the
   SumUp `checkout_reference`, the database key the reconciler looks up, the subject
   line tag on the confirmation and what the customer quotes at the door.
-* **Holds expire by themselves.** An unpaid hold stops counting against capacity
-  after 15 minutes.
+* **Holds expire by themselves.** An unpaid hold stops blocking its seats after 15
+  minutes; the next booking for that night sweeps them back on sale.
+* **If somebody took a seat while the customer was deciding,** the booking page is
+  told which one, greys it out, keeps the seats that are still free selected, and
+  asks them to pick again.
 * **The confirmation email goes the moment the payment is confirmed.**
   `/api/verify-payment` waits for the email provider before it answers, so the
   customer normally has the email in hand while `success.html` is still on screen.
@@ -386,15 +447,16 @@ Things worth knowing:
 * **Exactly one email, however many times it is asked for.** `success.html` verifies
   up to four times, the reconciler runs on a schedule and an admin can hit resend —
   a database-level claim means the customer still gets exactly one email.
-* **Access requirements are asked for, not guessed at.** Step 4 of the form asks the
+* **Access requirements are asked for, not guessed at.** The details step asks the
   question, unticked by default. What comes back is on the booking from the moment
   the hold is created — so it survives an abandoned payment being rescued — and it
   is on the printed door list for front of house.
 * **A failed email never costs anyone their booking.** The booking is confirmed
   first; the email is attempted after, and retried until it goes.
-* **If SumUp took the money, the booking gets honoured** — even if the seats sold out
-  while the customer was away. Those bookings are flagged on the admin Overview so
-  the office can sort out seating rather than the customer discovering it at the door.
+* **If SumUp took the money, the booking gets honoured** — even if its seats were
+  taken while the customer was away. It is flagged as a seat conflict on the admin
+  Overview so the office can reseat the party, rather than the customer discovering
+  it at the door. See Step 3d.
 
 ---
 
@@ -402,24 +464,34 @@ Things worth knowing:
 
 **Before tickets go on sale**
 
-* Set the real dates and capacities in `config.js`, then hit *Sync from config.js*
-  on the admin Settings tab.
+* Set the real dates in `config.js`, then hit *Sync from config.js* on the admin
+  Settings tab.
+* Block the sound desk and any house seats on the *Seat plan* tab, for each night.
 * Put the cast into `cast.js` and rehearsal photos into `photos.js` and `/images`.
 
 **While selling**
 
-* *Overview* — how many sold, how much taken, and who sold them. A banner says how
-  many bookings each night have asked for access or seating help.
-* *Bookings → Access requests only* — the list to work from when planning seating:
-  wheelchair spaces, aisle seats and anything written in by the customer.
-* *Add booking* — for cash and door sales. Counts against capacity straight away, so
-  online buyers can't take a seat you've already sold in person.
-* *Settings* — change capacity, or close a night.
+* *Overview* — per night: seats sold, holding and free; accessible seats assigned
+  and still kept back; open access requests; and any **seat conflicts** in red, with
+  a *Reseat* button. Also how much is taken, by whom, and how many complimentary.
+* *Access requests* — work through them: call, note it, *Book seats*, mark the status.
+* *Bookings* — every booking with its seats. *Move* puts a party in other seats;
+  *Send updated seats* then emails them. *Cancel* is for mistakes — there are no
+  refunds, and cancelling something paid online asks you to confirm that.
+* *Add booking* — cash, card on the door, or complimentary, on any seat you pick:
+  accessible and blocked included. Confirmed at once, emailed if there is an address.
+* *Seat plan* — who is where; block or unblock seats; release accessible seats to
+  general sale or keep them back again.
+* *Settings* — the seats on sale per night, worked out from the plan; close a night.
 
 **On the night**
 
-* *Door list* — alphabetical by name, with a tick box, and an ♿ note against anyone
-  who asked for help. Print it and give front of house a look before doors.
+* *Door list* — alphabetical by name, with seats, a tick box, and an ♿ note against
+  anyone who asked for help. People who were passed a ticket give the booking name
+  or the reference.
+* *Seat plan → Print with names* — the whole hall on one landscape page with a
+  surname in every seat taken, and the full who-sits-where list on the next.
+  Print both before doors.
 * Make the no-recording announcement before curtain — it is a licence condition, not
   a courtesy.
 
@@ -486,16 +558,14 @@ the code, so the site runs — but each one needs a real answer from the school.
 | # | Item | Where it lives |
 |---|---|---|
 | 1 | **Doors and curtain times.** Currently 7:00 PM / 7:30 PM. | `config.js`, `api/_show.js` (and `SHOW_DOORS` / `SHOW_CURTAIN` if overridden) |
-| 2 | **500 capacity per night** — check it against the hall's fire cert before selling to it. | `config.js`, `seating.js`, the seed block in `schema.sql`, admin *Settings* |
-| 2a | **The gym's real measurements.** The plan assumes a 30.00 m × 18.00 m clear floor. Measure it, correct `LAYOUT.hall` in `seating.js`, and check `seating.html` still reports no problems. | `seating.js` |
-| 2b | **Fire officer sign-off on the seating plan.** Block sizes and gangway widths follow the usual guidance for temporary seating, but the sign-off is somebody else's. | `seating.html` (print it and bring it) |
+| 2 | **504 seats per night** — check it against the hall's fire cert before selling to it. | `seating.js` |
+| 2a | **Fire officer sign-off on the seating plan.** The plan on the site is schematic, not to scale; 14 seats between the centre aisle and a side gangway, a cross aisle after row J, exits as drawn. The sign-off is somebody else's. | `seating.js`, `seating.html` |
 | 3 | **SumUp merchant account** — reuse the school's existing one, or open a new one for this show? | `SUMUP_API_KEY`, `SUMUP_MERCHANT_CODE` in Vercel |
 | 4 | **Contact form.** Questions go through `contact.html` → `/api/enquiries`, emailed to `smemammamia@proton.me`. Needs email set up (Step 3) to work; shares the provider's daily sending cap with confirmations. | `ENQUIRIES_TO`, `EMAIL_REPLY_TO` in Vercel |
 | 5 | **Artwork and logo treatments.** Confirm with MTI exactly which artwork and logo treatments the school may use — the "Bride" art and the ABBA name are out, so check what is in. | `logo.svg`, `favicon.svg`, `/images`, and anything going to print |
 
-Items 1 and 2 are marked `// TODO` in `config.js`. Capacity changes made in
-`config.js` need *Sync from config.js* on the admin Settings tab to reach the
-database.
+Item 1 is marked `// TODO` in `config.js`. Date changes made in `config.js` need
+*Sync from config.js* on the admin Settings tab to reach the database.
 
 ---
 
@@ -509,13 +579,15 @@ database.
 * **Re-drawing the seating plan after tickets have sold.** Seat ids already on
   bookings are not moved. Take out a row and somebody is holding a seat that is no
   longer on the map, and will not find it on the night.
-* **Capacity and `seating.js` disagreeing.** Capacity above 500 sells tickets there
-  is nowhere to seat; below 500 leaves seats that cannot be sold.
+* **Not running `schema-seating.sql`.** Every booking fails with *Could not reserve
+  your tickets*, and the booking functions stay callable with the anon key.
+* **Leaving seat conflicts on the Overview.** Each one is a paid party with no
+  seats. Reseat them and press *Send updated seats* well before the night.
 * **Adding a performance date in `config.js` but not the database.** The night shows
   on the site, then booking fails with "that performance does not exist". Run *Sync
   from config.js*.
-* **Changing capacity below what's already sold.** Allowed, but the night goes
-  straight to sold out. The people who already booked keep their tickets.
+* **Blocking or keeping back seats somebody has.** Refused — move or cancel that
+  booking first.
 * **Dropping `hosted_checkout.enabled` from the SumUp payload.** Checkout creation
   still succeeds and still returns an id, so nothing looks wrong from here — but
   SumUp builds an API-only checkout with no payment page behind it, and the customer

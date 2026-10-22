@@ -1,14 +1,15 @@
 // GET /api/seats?date=2027-01-28
 //
-// Public endpoint: which seats are gone for that night, and nothing else.
-// Never the names attached to them — the booking page only needs to know
-// what it cannot offer.
+// Public endpoint: which seats the public cannot have that night, and which
+// accessible seats have been put on general sale. Never the names attached
+// to them, and never why a seat is unavailable — sold, held and blocked all
+// look the same from here.
 //
 // The plan itself is not sent: the browser has seating.js too, and builds
-// the same 500 ids from the same measurements.
+// the same seats from it.
 
-import { applyCors, sbSelect, supabaseConfigured } from './_supabase.js';
-import { SEAT_MAP } from '../seating.js';
+import { applyCors, supabaseConfigured } from './_supabase.js';
+import { loadSeatState, publicView, countNight } from './_seats.js';
 
 export default async function handler(req, res) {
     if (applyCors(req, res)) return;
@@ -27,22 +28,20 @@ export default async function handler(req, res) {
     }
 
     try {
-        const rows = await sbSelect(
-            `taken_seats?select=seat_id&performance_date=eq.${encodeURIComponent(date)}`
-        );
-
-        const taken = rows.map(r => r.seat_id);
+        const state = await loadSeatState(date);
+        const { unavailable, released } = publicView(state);
+        const counts = countNight(state);
 
         res.setHeader('Cache-Control', 'no-store, max-age=0');
         return res.status(200).json({
             date,
-            taken,
-            total: SEAT_MAP.total,
-            remaining: Math.max(SEAT_MAP.total - taken.length, 0)
+            unavailable,
+            released,
+            remaining: counts.free
         });
 
     } catch (err) {
         console.error('seats error:', err);
-        return res.status(500).json({ error: 'Could not load the seating map' });
+        return res.status(500).json({ error: 'Could not load the seating plan' });
     }
 }

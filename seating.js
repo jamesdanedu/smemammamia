@@ -1,96 +1,100 @@
 /* ==========================================================================
    MAMMA MIA! — St Mary's Edenderry
-   The seating plan: one description of the gym floor, used everywhere.
+   The hall plan: one description of the seats, used everywhere.
    ==========================================================================
 
-   The show is in the school gym, on the basketball court, with the stage
-   built across one end. Everything below is measured in metres so the plan
-   the caretaker sets the chairs out from and the map the audience clicks on
-   are the same plan — change a number here and both follow.
+   The booking page, the admin seat map and picker, the printed seat plan,
+   seating.html and the server-side checks are all built from this file.
+   Change a value in PLAN and every one of them follows.
 
-   >>> THE NUMBERS TO EDIT ARE ALL IN `LAYOUT`, DIRECTLY BELOW. <<<
+   >>> THE NUMBERS TO EDIT ARE ALL IN `PLAN`, DIRECTLY BELOW. <<<
 
    Loaded two ways, from this one file:
        browser   <script type="module"> import { SEAT_MAP } from './seating.js'
        server    import { SEAT_MAP } from '../seating.js'
    It also sets window.SEATING in a browser, for the console.
 
-   HOW THE 500 SEATS FIT
-   ---------------------
-   Across (18.00 m of hall):   7 + 11 + 7 seats at 0.50 m  = 12.50 m
-                               2 aisles at 1.20 m          =  2.40 m
-                               side gangways, 1.55 m each  =  3.10 m
-   Down   (30.00 m of hall):   stage 6.00 m, then 2.00 m to row A,
-                               20 rows at 0.85 m           = 17.00 m
-                               cross gangway after row K   =  1.20 m
-                               exit gangway behind row V    =  3.00 m
-                                                             (0.80 m spare)
-   20 rows x 25 seats = 500 seats a night.
+   The drawing is schematic, not to scale: every seat is one square, every
+   aisle and walkway a fixed fraction of one. The stage is sized against the
+   depth of the drawing so it reads about right.
 
-   The block sizes are deliberate: no more than 7 seats between a seated
-   person and an aisle where there is only one aisle to reach (the side
-   blocks), no more than 14 where there are aisles at both ends (the centre
-   block), and every gangway at least 1.05 m wide.
+   >>> Do not re-draw the plan once seats are sold. <<<
+   Seat ids already on bookings (booking_seats) are not moved by a change
+   here. Drop a row and somebody is holding a seat that is no longer on the
+   map — and will not find it on the night.
    ========================================================================== */
 
-export const LAYOUT = {
+export const PLAN = {
 
-    /* --- The room ------------------------------------------------------
-       Measure the clear floor, not the court markings — the chairs can
-       stand on the run-off either side of the lines.
-       ------------------------------------------------------------------ */
-    hall: {
-        lengthM: 30.0,        // TODO confirm by measuring — stage end to back wall
-        widthM:  18.0         // TODO confirm by measuring — side wall to side wall
-    },
-
-    /* --- The stage ------------------------------------------------------ */
-    stage: {
-        depthM:      6.0,     // how far the staging comes out from the end wall
-        heightM:     1.1,     // deck height above the floor; see sightlines() below
-        clearanceM:  2.0      // floor kept clear between the stage and row A
-    },
-
-    /* --- The chairs ----------------------------------------------------- */
-    seat: {
-        widthM: 0.50,         // a stacking chair, seat to seat
-        pitchM: 0.85          // front of one row to front of the next
-                              // (0.45 m chair + 0.40 m to get past — keep >= 0.75)
-    },
-
-    /* --- Rows and blocks ------------------------------------------------
-       Change the block sizes and the row count and everything else — the
-       map, the plan, the seat numbers — follows. Keep an eye on the
-       warnings from checkFit() if you do.
+    /* --- Rows ------------------------------------------------------------
+       Lettered from the stage back, skipping I and O (too easily read as
+       1 and 0 on a printed list). 18 rows runs A to T.
        ------------------------------------------------------------------- */
-    rows: 20,
+    rows: 18,
+    rowLetters: null,             // null = work them out: A, B, … skipping I and O
+
+    /* --- Seats across ----------------------------------------------------
+       Numbered 1 upwards from left to right as you face the stage, straight
+       across both blocks. The centre aisle runs between the blocks.
+       ------------------------------------------------------------------- */
     blocks: [
-        { id: 'L', name: 'Left',   seats: 7  },
-        { id: 'C', name: 'Centre', seats: 11 },
-        { id: 'R', name: 'Right',  seats: 7  }
+        { id: 'L', name: 'Left',  seats: 14 },    // seats 1–14
+        { id: 'R', name: 'Right', seats: 14 }     // seats 15–28
     ],
 
-    /* --- Gangways ------------------------------------------------------- */
-    aisleM:        1.20,      // between blocks
-    crossAisle:    { afterRow: 10, widthM: 1.20 },  // 0 = none
-    rearGangwayM:  3.00,      // behind the last row, to the exits
-
-    /* --- Seats kept for people who need them ----------------------------
-       Nothing is removed from the 500: a wheelchair bay is a chair that
-       gets taken away on the night, which is why the seat still has a
-       number and can still be booked by anyone if nobody needs it.
-
-       Both lists are seat ids. The defaults sit on a gangway: row A is off
-       the front clearance, row L is off the cross gangway, so neither
-       needs a squeeze past anybody else's knees.
+    /* --- Aisles and walkways --------------------------------------------
+       In seat-widths, for the drawing only. The cross aisle sits after the
+       row named; null for none.
        ------------------------------------------------------------------- */
-    wheelchairSeats: ['L1', 'L2', 'L24', 'L25'],
-    stepFreeSeats:   ['A1', 'A2', 'A24', 'A25', 'L7', 'L8', 'L18', 'L19'],
+    crossAisleAfter: 'J',         // between row J and row K
+    centreAisle:     1.0,
+    crossAisle:      1.0,
+    sideGangway:     1.0,         // along both side walls
+    frontWalkway:    1.2,         // between the stage and row A
+    rearWalkway:     1.2,         // behind the last row
 
-    /* --- Row letters ----------------------------------------------------
-       I and O are skipped: too easily read as 1 and 0 on a printed list.
+    /* --- Stage -----------------------------------------------------------
+       Full width of the hall, at the top of the plan. `depthShare` is the
+       share of the hall's depth the stage takes, backstage strip included.
        ------------------------------------------------------------------- */
-    rowLetters: null          // null = work them out (A, B, ... skipping I and O)
+    stage: {
+        depthShare:     0.225,
+        backstageShare: 0.25      // of the stage depth, behind the performing area
+    },
+
+    /* --- Accessible seating ---------------------------------------------
+       Not on public sale. Shown in their own colour; anyone who needs one
+       sends an access request and the team assigns seats. An admin can
+       release them to general sale, night by night.
+
+       A wheelchair space takes the place of two seats with the chairs
+       taken away, and a companion sits alongside. The team arranges that
+       when they assign seats — the site only records which seats are used.
+       ------------------------------------------------------------------- */
+    accessibleSeats: [
+        'J1', 'J2', 'J13', 'J14', 'J15', 'J16', 'J27', 'J28',
+        'K1', 'K2', 'K13', 'K14', 'K15', 'K16', 'K27', 'K28'
+    ],
+
+    /* --- Exits -----------------------------------------------------------
+       wall:  'top' (the stage end), 'bottom' (the back), 'left' or 'right'.
+       at:    on a top or bottom wall, 'left' or 'right' end;
+              on a side wall, a row letter or 'stage', 'front', 'cross', 'rear'.
+       ------------------------------------------------------------------- */
+    exits: [
+        { wall: 'top',    at: 'right', label: 'Exit (backstage)' },
+        { wall: 'bottom', at: 'right', label: 'Exit' },
+        { wall: 'left',   at: 'S',     label: 'Exit' }
+    ],
+
+    /* --- Toilets ---------------------------------------------------------
+       Drawn outside the side wall named, with a door mark on the wall.
+       `at` works as it does for exits on a side wall.
+       ------------------------------------------------------------------- */
+    toilets: [
+        { kind: 'female', wall: 'left', at: 'K',     label: 'Female toilets' },
+        { kind: 'male',   wall: 'left', at: 'front', label: 'Male toilets' }
+    ]
 };
 
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ';   // no I, no O
@@ -108,39 +112,24 @@ export function rowLetters(n) {
     return out;
 }
 
-/**
- * Turn the measurements above into every seat, with where it stands on the
- * floor in metres. x runs left to right as the audience faces the stage,
- * y runs back from the end wall the stage is built against.
- */
-export function buildSeatMap(layout = LAYOUT) {
-    const { hall, stage, seat, blocks, aisleM, crossAisle, rearGangwayM } = layout;
-
-    const letters      = layout.rowLetters || rowLetters(layout.rows);
-    const seatsPerRow  = blocks.reduce((t, b) => t + b.seats, 0);
-    const rowWidthM    = seatsPerRow * seat.widthM + (blocks.length - 1) * aisleM;
-    const sideGangwayM = (hall.widthM - rowWidthM) / 2;
-
-    const crossAfter   = crossAisle && crossAisle.afterRow > 0 ? crossAisle.afterRow : 0;
-    const crossWidthM  = crossAfter ? crossAisle.widthM : 0;
-    const firstRowY    = stage.depthM + stage.clearanceM;
-
-    const wheelchair = new Set(layout.wheelchairSeats || []);
-    const stepFree   = new Set(layout.stepFreeSeats   || []);
+/** Every seat, row by row, plus the lookups the rest of the site needs. */
+export function buildSeatMap(plan = PLAN) {
+    const letters     = plan.rowLetters || rowLetters(plan.rows);
+    const seatsPerRow = plan.blocks.reduce((t, b) => t + b.seats, 0);
+    const crossIndex  = plan.crossAisleAfter ? letters.indexOf(plan.crossAisleAfter) : -1;
+    const accessible  = new Set(plan.accessibleSeats || []);
 
     const rows = [];
     const seats = [];
     const byId = new Map();
 
-    for (let r = 0; r < layout.rows; r++) {
+    for (let r = 0; r < plan.rows; r++) {
         const letter = letters[r];
-        const y = firstRowY + r * seat.pitchM + (r >= crossAfter && crossAfter ? crossWidthM : 0);
-
+        const half = crossIndex >= 0 && r > crossIndex ? 'rear' : 'front';
         const rowSeats = [];
         let number = 0;
-        let x = sideGangwayM;
 
-        for (const block of blocks) {
+        plan.blocks.forEach((block, b) => {
             for (let i = 0; i < block.seats; i++) {
                 number += 1;
                 const id = letter + number;
@@ -150,155 +139,173 @@ export function buildSeatMap(layout = LAYOUT) {
                     rowIndex: r,
                     number,
                     blockId: block.id,
+                    blockIndex: b,
                     blockName: block.name,
                     seatInBlock: i + 1,
-                    // centre of the chair, in metres from the left wall / end wall
-                    x: Number((x + seat.widthM / 2).toFixed(3)),
-                    y: Number((y + seat.pitchM / 2).toFixed(3)),
-                    wheelchair: wheelchair.has(id),
-                    stepFree: wheelchair.has(id) || stepFree.has(id),
-                    // which side of the cross gangway you walk in from
-                    half: crossAfter && r >= crossAfter ? 'rear' : 'front'
+                    accessible: accessible.has(id),
+                    half
                 };
                 seats.push(s);
                 rowSeats.push(s);
                 byId.set(id, s);
-                x += seat.widthM;
             }
-            x += aisleM;   // trailing aisle on the last block is never drawn
-        }
-
-        rows.push({
-            letter,
-            index: r,
-            y: Number(y.toFixed(3)),
-            seats: rowSeats,
-            half: crossAfter && r >= crossAfter ? 'rear' : 'front',
-            // true for the row you reach straight off a gangway
-            offGangway: r === 0 || (crossAfter ? r === crossAfter : false)
         });
+
+        rows.push({ letter, index: r, seats: rowSeats, half });
     }
 
-    const depthUsedM = firstRowY + layout.rows * seat.pitchM + crossWidthM + rearGangwayM;
-
     return {
-        layout,
+        plan,
         rows,
         seats,
         byId,
-        blocks: blocks.map(b => ({ ...b })),
+        blocks: plan.blocks.map(b => ({ ...b })),
         letters,
         seatsPerRow,
+        crossIndex,
         total: seats.length,
-        geometry: {
-            rowWidthM:    Number(rowWidthM.toFixed(3)),
-            sideGangwayM: Number(sideGangwayM.toFixed(3)),
-            firstRowY:    Number(firstRowY.toFixed(3)),
-            crossAfter,
-            crossWidthM,
-            depthUsedM:   Number(depthUsedM.toFixed(3)),
-            spareDepthM:  Number((hall.lengthM - depthUsedM).toFixed(3))
-        }
+        accessibleIds: seats.filter(s => s.accessible).map(s => s.id)
     };
 }
 
 /**
- * Does the plan actually fit, and is it safe to walk out of?
- * Returns the numbers plus anything that wants looking at, so a change to
- * LAYOUT tells you what it broke instead of quietly drawing nonsense.
+ * Where everything goes on the drawing, as a grid of tracks.
  *
- * The thresholds are the ordinary ones for a temporary public seating
- * layout (1.05 m gangways; 7 seats to a single aisle, 14 between two).
- * They are a sanity check, not a substitute for the fire officer.
+ * Every page draws from this, so a change to PLAN moves the aisles, the
+ * stage, the exits and the toilets everywhere at once. Sizes are in
+ * seat-widths; the page decides how big a seat-width is.
+ *
+ *   cols  [toilets][wall][gangway][block][aisle][block]…[gangway][wall]
+ *   rows  [wall][backstage][stage][walkway][rows…][cross][rows…][walkway][wall]
  */
-export function checkFit(map = SEAT_MAP) {
-    const { layout, geometry, blocks } = map;
-    const problems = [];
-    const MIN_GANGWAY = 1.05;
+export function buildLayout(map = SEAT_MAP) {
+    const { plan } = map;
+    const WALL = 0.18;
+    const OUTSIDE = 2.2;               // room outside the wall for the toilet symbols
 
-    if (geometry.sideGangwayM < MIN_GANGWAY) {
-        problems.push(`Side gangways are ${geometry.sideGangwayM.toFixed(2)} m — under the 1.05 m minimum. ` +
-                      'Take a seat off each row, or narrow the aisles.');
-    }
-    if (layout.aisleM < MIN_GANGWAY) {
-        problems.push(`Aisles are ${layout.aisleM.toFixed(2)} m — under the 1.05 m minimum.`);
-    }
-    if (geometry.crossAfter && geometry.crossWidthM < MIN_GANGWAY) {
-        problems.push(`The cross gangway is ${geometry.crossWidthM.toFixed(2)} m — under the 1.05 m minimum.`);
-    }
-    if (layout.rearGangwayM < MIN_GANGWAY) {
-        problems.push(`The gangway behind the last row is ${layout.rearGangwayM.toFixed(2)} m — under the 1.05 m minimum.`);
-    }
-    if (geometry.spareDepthM < 0) {
-        problems.push(`The plan is ${Math.abs(geometry.spareDepthM).toFixed(2)} m longer than the hall. ` +
-                      'Drop a row, or shorten the stage.');
-    }
-    if (layout.seat.pitchM < 0.75) {
-        problems.push(`Rows are ${layout.seat.pitchM.toFixed(2)} m apart — too tight to get past seated people.`);
-    }
+    const cols = [];
+    const addCol = (kind, size, extra = {}) => { cols.push({ kind, size, ...extra }); return cols.length; };
 
-    blocks.forEach((b, i) => {
-        const aislesBothSides = i > 0 && i < blocks.length - 1;
-        const max = aislesBothSides ? 14 : 7;
-        if (b.seats > max) {
-            problems.push(`${b.name} block has ${b.seats} seats in a row; the limit with ` +
-                          `${aislesBothSides ? 'aisles both ends' : 'one aisle'} is ${max}.`);
+    const hasLeftToilets  = (plan.toilets || []).some(t => t.wall === 'left');
+    const hasRightToilets = (plan.toilets || []).some(t => t.wall === 'right');
+
+    const colOutsideLeft = addCol('outside', hasLeftToilets ? OUTSIDE : 0.6);
+    const colWallLeft    = addCol('wall', WALL);
+    const colGangLeft    = addCol('gangway', plan.sideGangway);
+
+    const seatCol = new Map();          // seat number -> grid column
+    let number = 0;
+    const blockSpans = [];
+    plan.blocks.forEach((block, b) => {
+        if (b > 0) addCol('aisle', plan.centreAisle);
+        const first = cols.length + 1;
+        for (let i = 0; i < block.seats; i++) {
+            number += 1;
+            seatCol.set(number, addCol('seat', 1, { number }));
         }
+        blockSpans.push({ id: block.id, from: first, to: cols.length + 1 });
+    });
+
+    const colGangRight    = addCol('gangway', plan.sideGangway);
+    const colWallRight    = addCol('wall', WALL);
+    const colOutsideRight = addCol('outside', hasRightToilets ? OUTSIDE : 0.6);
+
+    /* ---- rows ---- */
+    const seatArea = map.rows.length + plan.frontWalkway + plan.rearWalkway +
+                     (map.crossIndex >= 0 ? plan.crossAisle : 0);
+    // stage / (stage + seat area) = depthShare
+    const stageTotal = seatArea * plan.stage.depthShare / (1 - plan.stage.depthShare);
+    const backstage  = stageTotal * plan.stage.backstageShare;
+    const stage      = stageTotal - backstage;
+
+    const rowsOut = [];
+    const addRow = (kind, size, extra = {}) => { rowsOut.push({ kind, size, ...extra }); return rowsOut.length; };
+
+    const rowWallTop   = addRow('wall', WALL);
+    const rowBackstage = addRow('backstage', backstage);
+    const rowStage     = addRow('stage', stage);
+    const rowFront     = addRow('walkway', plan.frontWalkway, { name: 'front' });
+
+    const seatRow = new Map();          // row letter -> grid row
+    let rowCross = null;
+    map.rows.forEach(r => {
+        seatRow.set(r.letter, addRow('seats', 1, { letter: r.letter }));
+        if (r.index === map.crossIndex) rowCross = addRow('cross', plan.crossAisle, { name: 'cross' });
+    });
+
+    const rowRear       = addRow('walkway', plan.rearWalkway, { name: 'rear' });
+    const rowWallBottom = addRow('wall', WALL);
+
+    const lastCol = cols.length + 1;    // grid line after the last column
+    const lastRow = rowsOut.length + 1;
+
+    /** A side-wall position ('K', 'front', 'stage', 'cross', 'rear') -> grid row. */
+    const sideRow = at => {
+        if (seatRow.has(at)) return seatRow.get(at);
+        return { stage: rowStage, front: rowFront, cross: rowCross || rowFront, rear: rowRear }[at] || rowFront;
+    };
+
+    const exits = (plan.exits || []).map(e => {
+        if (e.wall === 'top' || e.wall === 'bottom') {
+            const row = e.wall === 'top' ? rowWallTop : rowWallBottom;
+            const col = e.at === 'left' ? colGangLeft : colGangRight;
+            return { ...e, row, col, orient: 'h' };
+        }
+        const col = e.wall === 'left' ? colWallLeft : colWallRight;
+        return { ...e, row: sideRow(e.at), col, orient: 'v' };
+    });
+
+    const toilets = (plan.toilets || []).map(t => {
+        const row = sideRow(t.at);
+        return {
+            ...t,
+            row,
+            col: t.wall === 'right' ? colOutsideRight : colOutsideLeft,
+            doorCol: t.wall === 'right' ? colWallRight : colWallLeft
+        };
     });
 
     return {
-        ok: problems.length === 0,
-        problems,
-        seats: map.total,
-        seatsPerRow: map.seatsPerRow,
-        rows: layout.rows,
-        widthUsedM:   geometry.rowWidthM,
-        depthUsedM:   geometry.depthUsedM,
-        sideGangwayM: geometry.sideGangwayM,
-        spareDepthM:  geometry.spareDepthM
-    };
-}
-
-/**
- * How high the stage needs to be for the back row to see the actors' feet
- * over the heads in front, on a flat floor. Rough, but it is the number
- * that decides whether the plan works on the night.
- */
-export function sightlines(map = SEAT_MAP) {
-    const { layout, geometry } = map;
-    const EYE = 1.20;                       // seated eye height
-    const rearY = geometry.firstRowY + (layout.rows - 1) * layout.seat.pitchM + geometry.crossWidthM;
-    return {
-        rearRowDistanceM: Number(rearY.toFixed(2)),
-        stageHeightM: layout.stage.heightM,
-        // with every head in the way, you need this much stage to clear them
-        clearHeadsHeightM: Number((EYE + 0.15).toFixed(2)),
-        // staggering the rows lets you look between two heads instead of at one
-        staggerRows: true,
-        note: 'Flat floor: offset every second row by half a seat (0.25 m) so ' +
-              'each person looks between the two heads in front, and keep the ' +
-              'stage at least 1.1 m high. Anything past about row N wants tiering.'
+        cols, rows: rowsOut, lastCol, lastRow,
+        seatCol, seatRow, blockSpans,
+        hall: { colFrom: colWallLeft, colTo: colWallRight + 1, rowFrom: rowWallTop, rowTo: rowWallBottom + 1 },
+        inside: { colFrom: colGangLeft, colTo: colGangRight + 1 },
+        stage: { row: rowStage, backstage: rowBackstage },
+        walkways: { front: rowFront, rear: rowRear, cross: rowCross },
+        gangways: { left: colGangLeft, right: colGangRight },
+        aisleCols: cols.map((c, i) => c.kind === 'aisle' ? i + 1 : null).filter(Boolean),
+        exits, toilets
     };
 }
 
 /* ------------------------------------------------------------- the map -- */
 
-export const SEAT_MAP = buildSeatMap(LAYOUT);
+export const SEAT_MAP = buildSeatMap(PLAN);
 
 /** Every seat id, in row then number order. */
 export const SEAT_IDS = SEAT_MAP.seats.map(s => s.id);
 
+/** The accessible seats, which are never on public sale unless released. */
+export const ACCESSIBLE_IDS = SEAT_MAP.accessibleIds;
+
 const SEAT_ID_SET = new Set(SEAT_IDS);
+const ACCESSIBLE_SET = new Set(ACCESSIBLE_IDS);
 
 /* --------------------------------------------------------------- tools -- */
 
+const norm = id => String(id || '').trim().toUpperCase();
+
 /** Is this a seat that exists? */
 export function isSeat(id) {
-    return SEAT_ID_SET.has(String(id || '').trim().toUpperCase());
+    return SEAT_ID_SET.has(norm(id));
 }
 
 export function getSeat(id) {
-    return SEAT_MAP.byId.get(String(id || '').trim().toUpperCase()) || null;
+    return SEAT_MAP.byId.get(norm(id)) || null;
+}
+
+export function isAccessible(id) {
+    return ACCESSIBLE_SET.has(norm(id));
 }
 
 /** Row letter then seat number — the order a door list wants to be read in. */
@@ -317,14 +324,14 @@ export function cleanSeats(list, { max = 0 } = {}) {
     const seen = new Set();
     const out = [];
     for (const item of raw) {
-        const id = String(item || '').trim().toUpperCase();
+        const id = norm(item);
         if (SEAT_ID_SET.has(id) && !seen.has(id)) { seen.add(id); out.push(id); }
     }
     out.sort(compareSeats);
     return max > 0 ? out.slice(0, max) : out;
 }
 
-/** 'A1,A2,A3' -> 'Row A, seats 1–3'. What goes on the ticket email. */
+/** 'K5,K6,K7,K8' -> 'Row K, seats 5–8'. What goes on the ticket email. */
 export function describeSeats(list) {
     const ids = cleanSeats(list);
     if (!ids.length) return '';
@@ -353,23 +360,40 @@ export function describeSeats(list) {
 }
 
 /**
+ * Seats a member of the public may not buy on a given night: the accessible
+ * seats that have not been released. The server passes this to create_hold,
+ * so the rule is enforced in the database from the one list in PLAN.
+ */
+export function restrictedSeats(releasedIds = []) {
+    const released = new Set(cleanSeats(releasedIds));
+    return ACCESSIBLE_IDS.filter(id => !released.has(id));
+}
+
+/** Seats on public sale for a night: everything, less accessible-not-released, less blocked. */
+export function sellableCount({ released = [], blocked = [] } = {}) {
+    const off = new Set([...restrictedSeats(released), ...cleanSeats(blocked)]);
+    return SEAT_MAP.total - off.size;
+}
+
+/**
  * Pick the best `quantity` free seats, keeping the party together.
  *
- * Used when nobody chose for themselves — a cash sale at the door, or the
- * suggestion the booking page starts you off with. Preferences, in order:
- * sit together in one block, near the middle of the row, a good way back
- * from the stage but not at the very back.
+ * Used for the "find me seats together" helper on the booking page and the
+ * admin picker. `unavailable` is everything the party cannot have — sold,
+ * held, blocked, and accessible seats unless the caller says otherwise.
+ * Preferences, in order: one row, one block, about a third of the way back,
+ * close to the centre aisle.
  *
- * Returns [] if it cannot seat the party at all; returns a split-up party
- * only when no single run is long enough anywhere.
+ * Returns [] if no run is long enough anywhere: the person picks by hand.
  */
-export function allocateSeats(quantity, takenIds = [], { preferBlock = null, map = SEAT_MAP } = {}) {
+export function allocateSeats(quantity, unavailable = [], { map = SEAT_MAP } = {}) {
     const qty = parseInt(quantity, 10);
     if (!Number.isInteger(qty) || qty < 1) return [];
 
-    const taken = takenIds instanceof Set ? takenIds : new Set(cleanSeats(takenIds));
-    const idealRow = Math.max(0, Math.round(map.layout.rows * 0.3) - 1);
-    const runs = [];
+    const taken = unavailable instanceof Set ? unavailable : new Set(cleanSeats(unavailable));
+    const idealRow = Math.max(0, Math.round(map.rows.length * 0.3) - 1);
+    const middle = (map.seatsPerRow + 1) / 2;
+    let best = null;
 
     for (const row of map.rows) {
         for (const block of map.blocks) {
@@ -379,44 +403,27 @@ export function allocateSeats(quantity, takenIds = [], { preferBlock = null, map
                 const run = inBlock.slice(start, start + qty);
                 if (run.some(s => taken.has(s.id))) continue;
 
-                // middle of the run against the middle of the whole row
                 const centre = (run[0].number + run[run.length - 1].number) / 2;
-                const rowCentre = (map.seatsPerRow + 1) / 2;
+                let score = Math.abs(row.index - idealRow) * 2 + Math.abs(centre - middle) * 0.5;
 
-                let score = Math.abs(row.index - idealRow) * 2
-                          + Math.abs(centre - rowCentre) * 0.6;
-                if (preferBlock && block.id !== preferBlock) score += 100;
-                else if (!preferBlock && block.id !== 'C') score += 3;
+                // leaving one seat stranded between the run and the end of the block wastes it
+                const before = inBlock[start - 1], after = inBlock[start + qty];
+                if (start === 1 && before && !taken.has(before.id)) score += 1.5;
+                if (start + qty === inBlock.length - 1 && after && !taken.has(after.id)) score += 1.5;
 
-                // leaving a single seat stranded beside the run wastes it
-                const before = inBlock[start - 1];
-                const after  = inBlock[start + qty];
-                if (before && !taken.has(before.id) && (start === 1)) score += 1.5;
-                if (after && !taken.has(after.id) && (start + qty === inBlock.length - 1)) score += 1.5;
-
-                runs.push({ score, ids: run.map(s => s.id) });
+                if (!best || score < best.score) best = { score, ids: run.map(s => s.id) };
             }
         }
     }
-
-    if (runs.length) {
-        runs.sort((a, b) => a.score - b.score);
-        return runs[0].ids;
-    }
-
-    // Nothing long enough left — take the best singles we can and say so by
-    // simply returning fewer than asked if the night is genuinely that full.
-    if (preferBlock) return allocateSeats(qty, taken, { map });
-
-    const free = map.seats.filter(s => !taken.has(s.id));
-    return free.slice(0, qty).map(s => s.id).sort(compareSeats);
+    return best ? best.ids : [];
 }
 
-/** Everything a page needs to draw the map, without importing the whole module. */
+/** Everything a page needs, without importing names one by one. */
 export const SEATING = {
-    LAYOUT, SEAT_MAP, SEAT_IDS,
-    buildSeatMap, rowLetters, checkFit, sightlines,
-    isSeat, getSeat, compareSeats, cleanSeats, describeSeats, allocateSeats
+    PLAN, SEAT_MAP, SEAT_IDS, ACCESSIBLE_IDS,
+    buildSeatMap, buildLayout, rowLetters,
+    isSeat, getSeat, isAccessible, compareSeats, cleanSeats, describeSeats,
+    restrictedSeats, sellableCount, allocateSeats
 };
 
 if (typeof window !== 'undefined') window.SEATING = SEATING;
