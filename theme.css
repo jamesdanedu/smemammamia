@@ -459,6 +459,46 @@ h1, h2, h3, h4 {
 
 .field .hint { font-size: 0.83rem; color: var(--text-faint); margin-top: 6px; }
 
+/* Tick boxes and radio buttons inside a field keep their own shape: the
+   text-box styling above is for typing into, and turned them into empty
+   rounded boxes. Their labels read as ordinary text, not field headings. */
+.field input[type="checkbox"],
+.field input[type="radio"] {
+    -webkit-appearance: auto;
+    appearance: auto;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    margin: 0;
+    flex: none;
+    border: none;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    accent-color: var(--cyan);
+    cursor: pointer;
+}
+
+.field input[type="checkbox"]:focus-visible,
+.field input[type="radio"]:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
+}
+
+.field label.check-label {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 36px;
+    margin-bottom: 2px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text);
+    cursor: pointer;
+}
+
 /* Badges / pills --------------------------------------------------------- */
 .pill {
     display: inline-flex;
