@@ -20,6 +20,10 @@ export const SHOW = {
  * The accessibility question asked at booking. Only these codes are ever
  * stored on a booking; anything else the browser sends is dropped.
  *
+ * 'wheelchair' is no longer offered on the public form — wheelchair spaces
+ * go through an access request, so the team can seat the party — but staff
+ * still use it on Add booking, so it stays a valid code.
+ *
  * ⚠️  KEEP IN SYNC WITH config.js — the browser renders that list, the
  *     server validates against this one.
  */
@@ -57,6 +61,12 @@ export function cleanAccessNeeds(codes) {
  */
 export const DEFAULT_ENQUIRIES_TO = 'smemammamia@proton.me';
 export const ENQUIRIES_TO = process.env.ENQUIRIES_TO || DEFAULT_ENQUIRIES_TO;
+
+/**
+ * Where requests for accessible seating go. Optional: unset, they go to the
+ * same inbox as the contact form.
+ */
+export const ACCESS_REQUESTS_TO = process.env.ACCESS_REQUESTS_TO || ENQUIRIES_TO;
 
 /** Public site URL, e.g. https://mammamiathemusical.ie — used for links in emails. */
 export function siteUrl(req) {

@@ -12,6 +12,7 @@ alter table public.bookings add column if not exists confirmation_sent_at    tim
 alter table public.bookings add column if not exists confirmation_claimed_at timestamptz;
 alter table public.bookings add column if not exists confirmation_attempts   integer not null default 0;
 alter table public.bookings add column if not exists last_email_error        text;
+-- Superseded by seat_conflict (schema-seating.sql); kept so nothing breaks.
 alter table public.bookings add column if not exists over_capacity           boolean not null default false;
 
 -- find the unsent ones fast
@@ -121,73 +122,19 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
--- 5. Confirm a booking that SumUp says was paid.
+-- 5. Confirming a paid booking
 --
---    Used by the reconciler when someone paid and then closed the tab before
---    the site could confirm.  Their tickets may have been resold in the
---    meantime.  We honour the payment anyway — being charged with no ticket
---    is far worse than the hall being two seats over — and flag the booking
---    so the office sees it.
+--    confirm_paid_booking lives in schema-seating.sql, because confirming a
+--    payment means giving the booking its seats back — or flagging it when
+--    they have gone. It used to be here; keeping one copy means re-running
+--    this file can never put the old, seat-blind version back.
 -- ---------------------------------------------------------------------------
-create or replace function public.confirm_paid_booking(
-    p_reference      text,
-    p_transaction_id text default null
-)
-returns public.bookings
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-    v_row       public.bookings;
-    v_capacity  integer;
-    v_taken     integer;
-begin
-    select * into v_row from public.bookings where booking_reference = p_reference;
-    if not found then
-        raise exception 'UNKNOWN_BOOKING';
-    end if;
-
-    if v_row.status = 'confirmed' then
-        return v_row;                       -- already done, nothing to do
-    end if;
-
-    perform pg_advisory_xact_lock(hashtext(v_row.performance_date::text));
-
-    select capacity into v_capacity from public.performances where key = v_row.performance_date;
-
-    select coalesce(sum(quantity), 0) into v_taken
-      from public.bookings
-     where performance_date = v_row.performance_date
-       and booking_reference <> p_reference
-       and (status = 'confirmed' or (status = 'held' and held_until > now()));
-
-    update public.bookings
-       set status               = 'confirmed',
-           payment_status       = 'paid',
-           payment_method       = 'sumup',
-           sumup_transaction_id = coalesce(p_transaction_id, sumup_transaction_id),
-           held_until           = null,
-           over_capacity        = (v_taken + v_row.quantity) > v_capacity,
-           notes                = case
-                                    when (v_taken + v_row.quantity) > v_capacity
-                                    then coalesce(notes || ' | ', '') ||
-                                         'Rescued by reconciler — puts this night over capacity, check with the office'
-                                    else coalesce(notes || ' | ', '') || 'Rescued by reconciler'
-                                  end
-     where booking_reference = p_reference
-    returning * into v_row;
-
-    return v_row;
-end;
-$$;
 
 -- ---------------------------------------------------------------------------
 -- 6. Lock the new function down
 -- ---------------------------------------------------------------------------
 revoke execute on function public.claim_confirmation_email(text, boolean)                    from anon, authenticated;
 revoke execute on function public.record_email_result(text, text, text, boolean, text, text, text) from anon, authenticated;
-revoke execute on function public.confirm_paid_booking(text, text)                            from anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Handy queries
@@ -201,5 +148,5 @@ revoke execute on function public.confirm_paid_booking(text, text)              
 -- Every send attempt for one booking:
 --     select * from public.email_log where booking_reference = 'MM-XXXXXX' order by created_at;
 --
--- Bookings rescued past capacity — check these before the night:
---     select * from public.bookings where over_capacity;
+-- Paid bookings whose seats went while the customer was away:
+--     select * from public.bookings where seat_conflict;

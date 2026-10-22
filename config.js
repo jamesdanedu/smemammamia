@@ -29,20 +29,27 @@ const CONFIG = {
     ticket: {
         price: 10,                    // euro, flat rate for every ticket
         currency: 'EUR',
-        maxPerBooking: 10,            // most tickets one person can buy at once
+        maxPerBooking: 10,            // most seats one person can pick in one booking
+                                      // (must match MAX_PER_ORDER in Vercel, default 10)
         holdMinutes: 15               // how long tickets are reserved during checkout
     },
 
     /* --- Accessibility --------------------------------------------------
-       The question asked at step 4 of booking.html. `code` is what gets
-       stored on the booking (never the label), so these labels can be
-       reworded without touching any data already taken.
+       The question asked at the details step of booking.html. `code` is
+       what gets stored on the booking (never the label), so these labels
+       can be reworded without touching any data already taken.
+
+       `publicForm: false` keeps an option off the public booking form but
+       on the admin Add booking form. Wheelchair spaces are arranged through
+       an access request instead ("Need accessible seating?" by the plan),
+       so the team can seat the party — the accessible seats themselves are
+       listed in seating.js.
 
        >>> KEEP IN SYNC WITH api/_show.js — the browser reads this list,
            the server validates against that one. <<<
        ------------------------------------------------------------------- */
     accessOptions: [
-        { code: 'wheelchair', label: 'Wheelchair space' },
+        { code: 'wheelchair', label: 'Wheelchair space', publicForm: false },
         { code: 'aisle',      label: 'Aisle seat or extra legroom' },
         { code: 'hearing',    label: 'Hearing support' },
         { code: 'other',      label: 'Something else' }
@@ -52,7 +59,9 @@ const CONFIG = {
        key       : ISO date, used in URLs (booking.html?date=...)
        label     : shown to the public
        short     : shown on compact cards
-       capacity  : total tickets on sale for that night
+
+       There is no capacity here: every night has the seats in seating.js,
+       less the accessible seats not released, less any blocked in admin.
 
        Only nights on public sale belong in this list — every page builds its
        dates from it.  See README.md for the full run.
@@ -61,14 +70,12 @@ const CONFIG = {
         {
             key: '2027-01-28',
             label: 'Thursday 28th January 2027',
-            short: 'Thu 28 Jan',
-            capacity: 500                                    // TODO confirm hall capacity
+            short: 'Thu 28 Jan'
         },
         {
             key: '2027-01-29',
             label: 'Friday 29th January 2027',
-            short: 'Fri 29 Jan',
-            capacity: 500                                    // TODO confirm hall capacity
+            short: 'Fri 29 Jan'
         }
     ],
 
@@ -100,6 +107,7 @@ const CONFIG = {
     api: {
         availability: '/api/availability',
         seats:        '/api/seats',
+        accessRequest: '/api/access-request',
         checkout:     '/api/create-checkout',
         verify:       '/api/verify-payment',
         wall:         '/api/wall',
@@ -147,10 +155,6 @@ CONFIG.accessLabels = function (codes) {
             const opt = CONFIG.accessOptions.find(o => o.code === c);
             return opt ? opt.label : c;
         });
-};
-
-CONFIG.totalCapacity = function () {
-    return CONFIG.performances.reduce((t, p) => t + p.capacity, 0);
 };
 
 /** Booking reference, e.g. MM-4F2K9A */

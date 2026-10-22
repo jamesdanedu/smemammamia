@@ -311,9 +311,12 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
     const paid = '€' + Number(booking.amount).toFixed(2).replace(/\.00$/, '');
     const ref = booking.booking_reference;
     const isCash = booking.payment_status === 'cash';
-    const isComp = booking.payment_status === 'refunded';
+    // 'refunded' is how complimentary tickets were stored before they had a
+    // status of their own; there are no refunds, so it can only mean that.
+    const isComp = booking.payment_status === 'comp' || booking.payment_status === 'refunded';
 
     const paidLine = isComp ? 'Complimentary' : isCash ? paid + ' (paid in cash)' : paid + ' (paid by card)';
+    const confirmedLine = isComp ? 'Your booking is confirmed.' : 'Your booking is confirmed and paid for.';
 
     // What they asked for at booking, echoed back so a mistake can be
     // corrected while there is still time to arrange the seats.
@@ -321,10 +324,12 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
     if (booking.access_notes) accessParts.push(String(booking.access_notes).trim());
     const accessLine = accessParts.join(' · ');
 
-    // The seats themselves, e.g. 'Row G, seats 12–14'. Bookings taken before
-    // the seating map existed have none, and simply lose the line.
+    // The seats themselves, e.g. 'Row K, seats 5–8'. A paid booking whose
+    // seats went while the customer was away has none yet: it says so, and
+    // the office reseats the party and sends the seats on.
     const seatIds   = cleanSeats((booking.booking_seats || []).map(s => s.seat_id));
-    const seatsLine = describeSeats(seatIds);
+    const conflict  = Boolean(booking.seat_conflict) && !seatIds.length;
+    const seatsLine = conflict ? 'To be confirmed by the box office' : describeSeats(seatIds);
 
     const subject = `Your tickets — ${SHOW.name}, ${dateLabel} [${ref}]`;
 
@@ -334,7 +339,7 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
         '',
         `Hello ${booking.customer_name},`,
         '',
-        'Your booking is confirmed and paid for. Here are the details:',
+        confirmedLine + ' Here are the details:',
         '',
         `  Booking reference : ${ref}`,
         `  Performance       : ${dateLabel}`,
@@ -350,11 +355,19 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
             'email and we will put it right.',
             ''
         ] : []),
+        ...(conflict ? [
+            'YOUR SEATS',
+            'Your payment arrived after the seats you chose had been released, and',
+            'some of them have since been booked by somebody else. Your booking',
+            'stands. The box office will choose seats together for your party and',
+            'send them to you well before the night.',
+            ''
+        ] : []),
         'ON THE NIGHT',
-        'There is no ticket to print. Give your name at the door and we will',
-        'find you on the list. Bring the reference above if you have it.',
-        ...(seatsLine
-            ? ['These seats are reserved in your name — nobody else can be sold them,',
+        'There is no ticket to print. Give the booking name or the reference',
+        'above at the door and we will find you on the list.',
+        ...(seatsLine && !conflict
+            ? ['These seats are reserved for you — nobody else can be sold them,',
                'so there is no need to arrive early to get a good spot. The row',
                'letter is on the end chair of every row.']
             : []),
@@ -418,8 +431,8 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
   <tr><td style="padding:26px 32px 4px;">
     <p style="margin:0 0 14px;font-family:Georgia,'Times New Roman',Times,serif;font-size:19px;color:#22333f;">Hello ${esc(booking.customer_name)},</p>
     <p style="margin:0 0 22px;font-size:15px;line-height:1.65;color:#5b6f7c;">
-      Your booking is confirmed and paid for. Everything you need is below —
-      keep this email, or simply give your name at the door.
+      ${esc(confirmedLine)} Everything you need is below —
+      keep this email, or simply give the booking name or reference at the door.
     </p>
   </td></tr>
 
@@ -471,9 +484,12 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
            style="background:#fdfaf3;border:1px solid #ecdfc4;border-radius:3px;">
       <tr><td style="padding:16px 18px;font-size:14px;line-height:1.65;color:#22333f;">
         <span style="color:#8a6414;text-transform:uppercase;letter-spacing:2px;font-size:11px;">On the night</span><br>
-        There is nothing to print. Give your name at the door and we will find you on the list.${seatsLine ? `
-        <br><br>Your seats are reserved in your name, so there is no need to arrive early for a good
-        spot — the row letter is on the end chair of every row.` : ''}
+        There is nothing to print. Give the booking name or reference at the door and we will find you on the list.${seatsLine && !conflict ? `
+        <br><br>Your seats are reserved for you, so there is no need to arrive early for a good
+        spot — the row letter is on the end chair of every row.` : ''}${conflict ? `
+        <br><br><strong>Your seats:</strong> your payment arrived after the seats you chose had been
+        released, and some have since been booked by somebody else. Your booking stands — the box
+        office will choose seats together for your party and send them to you well before the night.` : ''}
         <br><br>Doors open at ${esc(SHOW.doors)} — please be seated by ${esc(SHOW.curtain)}.${accessLine ? `
         <br><br>We have your access request and your seats will be kept for you. If anything above
         is wrong, reply to this email and we will put it right.` : ''}
@@ -525,4 +541,124 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
         text,
         attachments: ics ? [ics] : []
     };
+}
+
+/* ---------------------------------------------------- access requests */
+
+const LICENCE_TEXT = [
+    'Mamma Mia! is presented through special arrangement with Music Theatre',
+    'International (MTI). All authorized performance materials are also supplied',
+    'by MTI. 423 West 55th Street, New York, NY 10019.',
+    '',
+    'The videotaping or other video or audio recording of this production is',
+    'strictly prohibited.'
+];
+
+/** What was asked for, as label/value pairs both emails share. */
+function accessRequestRows(r, dateLabel) {
+    const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+    return [
+        ['Reference', r.reference],
+        ['Performance', dateLabel],
+        ['Wheelchair spaces', plural(r.wheelchair_spaces, 'space', 'spaces')],
+        ['Companion seats', plural(r.companion_seats, 'seat', 'seats')],
+        ['Name', r.name],
+        ['Email', r.email],
+        r.phone && ['Phone', r.phone],
+        r.notes && ['Notes', r.notes]
+    ].filter(Boolean);
+}
+
+function simpleHtml({ kicker, heading, intro, rows, outro, footer }) {
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(heading)}</title></head>
+<body style="margin:0;padding:24px 12px;background:#fbf9f5;font-family:Helvetica,Arial,sans-serif;color:#22333f;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e2eaef;border-radius:4px;">
+  <tr><td height="3" style="background:#7a5b8f;font-size:0;line-height:0;">&nbsp;</td></tr>
+  <tr><td style="padding:22px 26px 6px;">
+    <div style="font-size:11px;letter-spacing:2px;color:#5b6f7c;text-transform:uppercase;">${esc(kicker)}</div>
+    <div style="font-family:Georgia,'Times New Roman',Times,serif;font-size:22px;color:#1b6ca8;padding-top:6px;">${esc(heading)}</div>
+  </td></tr>
+  ${intro ? `<tr><td style="padding:8px 26px 0;font-size:15px;line-height:1.6;color:#22333f;">${intro}</td></tr>` : ''}
+  <tr><td style="padding:12px 26px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:14px;">
+      ${rows.map(([k, v]) => `<tr>
+        <td style="padding:7px 0;border-bottom:1px solid #e2eaef;color:#5b6f7c;width:150px;vertical-align:top;">${esc(k)}</td>
+        <td style="padding:7px 0;border-bottom:1px solid #e2eaef;white-space:pre-wrap;">${k === 'Email'
+            ? `<a href="mailto:${esc(v)}" style="color:#1b6ca8;">${esc(v)}</a>` : esc(v)}</td></tr>`).join('')}
+    </table>
+  </td></tr>
+  ${outro ? `<tr><td style="padding:6px 26px 18px;font-size:14px;line-height:1.6;color:#5b6f7c;">${outro}</td></tr>` : ''}
+  ${footer ? `<tr><td style="background:#f4f8fa;padding:16px 26px;text-align:center;border-top:1px solid #e2eaef;font-size:11px;line-height:1.6;color:#5b6f7c;">${footer}</td></tr>` : ''}
+</table>
+</body></html>`;
+}
+
+/**
+ * To the production team: somebody needs accessible seating. Reply-To is the
+ * person asking, so answering is just pressing Reply.
+ */
+export function buildAccessRequestForTeam(r, { to, performanceLabel, url } = {}) {
+    const dateLabel = formatPerformanceDate(r.performance_date, performanceLabel);
+    const rows = accessRequestRows(r, dateLabel);
+    const subject = `[${r.reference}] Accessible seating — ${r.name}, ${dateLabel}`;
+    const adminLine = url ? `Assign seats from the Access requests tab: ${url}/admin.html` : 'Assign seats from the Access requests tab in admin.';
+
+    const text = [
+        `${SHOW.name} — accessible seating request`,
+        '',
+        ...rows.map(([k, v]) => `${(k + ':').padEnd(19)} ${v}`),
+        '',
+        adminLine,
+        `Press Reply to answer ${r.name} directly.`
+    ].join('\n');
+
+    const html = simpleHtml({
+        kicker: `${SHOW.name} · accessible seating`,
+        heading: 'New access request',
+        rows,
+        outro: `${esc(adminLine)}<br>Press Reply to answer ${esc(r.name)} directly.`
+    });
+
+    return { to, subject, text, html, replyTo: r.email, bcc: false };
+}
+
+/** To the person who asked: we have it, and we will be in touch. */
+export function buildAccessRequestAck(r, { performanceLabel } = {}) {
+    const dateLabel = formatPerformanceDate(r.performance_date, performanceLabel);
+    const rows = accessRequestRows(r, dateLabel).filter(([k]) => k !== 'Email');
+    const subject = `We have your seating request — ${SHOW.name} [${r.reference}]`;
+
+    const text = [
+        `${SHOW.name.toUpperCase()} — ${SHOW.school}`,
+        '',
+        `Hello ${r.name},`,
+        '',
+        'Thank you — we have your request for accessible seating, and a member of',
+        'the team will be in touch to arrange your seats. Nothing has been booked',
+        'or charged yet; we will confirm the seats with you first.',
+        '',
+        ...rows.map(([k, v]) => `  ${(k + ':').padEnd(19)} ${v}`),
+        '',
+        `If anything above is wrong, reply to this email quoting ${r.reference}.`,
+        '',
+        SHOW.school,
+        '',
+        ...LICENCE_TEXT
+    ].join('\n');
+
+    const html = simpleHtml({
+        kicker: SHOW.school,
+        heading: 'We have your seating request',
+        intro: `Hello ${esc(r.name)},<br><br>Thank you — we have your request for accessible seating, and a
+                member of the team will be in touch to arrange your seats. Nothing has been booked or charged
+                yet; we will confirm the seats with you first.`,
+        rows,
+        outro: `If anything above is wrong, reply to this email quoting <strong>${esc(r.reference)}</strong>.`,
+        footer: `Mamma Mia! is presented through special arrangement with Music Theatre International (MTI).
+                 All authorized performance materials are also supplied by MTI.
+                 423 West 55th Street, New York, NY 10019.<br>
+                 The videotaping or other video or audio recording of this production is strictly prohibited.`
+    });
+
+    return { to: r.email, subject, text, html, bcc: false };
 }

@@ -12,13 +12,16 @@
 //     Covers provider outages, a function killed mid-send, and anything the
 //     browser never triggered.
 //
+//  3. ACCESS REQUESTS — the team email and the acknowledgement for any
+//     request whose email did not go when it was made.
+//
 // Run it on a schedule (see README). Nothing here depends on a webhook
 // arriving or a browser staying open.
 
-import { applyCors, sbSelect, sbRpc, supabaseConfigured } from './_supabase.js';
+import { applyCors, sbSelect, sbRpc, sbUpdate, supabaseConfigured } from './_supabase.js';
 import { sendConfirmationFor, isRealAddress } from './_confirmations.js';
 import { emailConfigured } from './_email.js';
-import { ensureSeats } from './_seats.js';
+import { sendAccessEmails } from './_access.js';
 import { siteUrl } from './_show.js';
 
 const MAX_RESCUE = 40;   // per run — keeps us inside the serverless time limit
@@ -90,8 +93,9 @@ export default async function handler(req, res) {
 export async function runReconcile(url = '') {
     const started = Date.now();
     const summary = {
-        rescue: { checked: 0, rescued: 0, stillUnpaid: 0, errors: 0, references: [] },
+        rescue: { checked: 0, rescued: 0, stillUnpaid: 0, seatConflicts: 0, errors: 0, references: [] },
         emails: { pending: 0, sent: 0, failed: 0, skipped: 0 },
+        accessEmails: { pending: 0, sent: 0, failed: 0 },
         emailConfigured: emailConfigured()
     };
 
@@ -106,7 +110,7 @@ export async function runReconcile(url = '') {
             // 'held', and is old enough that the customer has clearly gone.
             const cutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
             const stale = await sbSelect(
-                'bookings?select=booking_reference,amount,performance_date,quantity' +
+                'bookings?select=booking_reference,amount,performance_date,quantity,created_at' +
                 '&status=eq.held&sumup_checkout_id=not.is.null' +
                 `&created_at=lt.${encodeURIComponent(cutoff)}` +
                 `&order=created_at.asc&limit=${MAX_RESCUE}`
@@ -127,7 +131,20 @@ export async function runReconcile(url = '') {
                     const checkouts = await response.json();
                     const paid = Array.isArray(checkouts) ? checkouts.find(c => c.status === 'PAID') : null;
 
-                    if (!paid) { summary.rescue.stillUnpaid++; continue; }
+                    if (!paid) {
+                        summary.rescue.stillUnpaid++;
+                        // SumUp's payment page lasts 30 minutes. Two hours on,
+                        // unpaid means abandoned: mark it so it stops taking a
+                        // place in this queue, which would otherwise fill with
+                        // the same oldest 40 and never reach a real payment.
+                        if (new Date(booking.created_at) < new Date(Date.now() - 2 * 3600 * 1000)) {
+                            await sbUpdate('bookings',
+                                `booking_reference=eq.${encodeURIComponent(booking.booking_reference)}&status=eq.held`,
+                                { status: 'expired' }).catch(() => {});
+                            summary.rescue.expired = (summary.rescue.expired || 0) + 1;
+                        }
+                        continue;
+                    }
 
                     // Same amount guard as the live verifier
                     if (Number(paid.amount) + 0.001 < Number(booking.amount)) {
@@ -136,22 +153,19 @@ export async function runReconcile(url = '') {
                         continue;
                     }
 
-                    await sbRpc('confirm_paid_booking', {
+                    // Under the night's lock: gives back the seats the customer
+                    // chose if every one is still free, otherwise confirms with
+                    // no seats and flags a seat conflict for the office. The
+                    // payment is honoured either way.
+                    const row = await sbRpc('confirm_paid_booking', {
                         p_reference: booking.booking_reference,
                         p_transaction_id: paid.transaction_id || paid.transactions?.[0]?.id || null
                     });
 
-                    // The hold is long gone by the time we get here, so the
-                    // seats went back on sale. Seat them again — the email in
-                    // the next sweep re-reads the booking and picks them up.
-                    const reseated = await ensureSeats(
-                        booking.booking_reference, booking.performance_date, booking.quantity
-                    );
-                    if (reseated.seats.length) {
-                        console.log('reconcile: reseated', booking.booking_reference, 'as', reseated.label);
-                    } else {
-                        console.error('reconcile: could not reseat', booking.booking_reference, reseated.error);
-                        summary.rescue.unseated = (summary.rescue.unseated || 0) + 1;
+                    if (row?.seat_conflict) {
+                        summary.rescue.seatConflicts++;
+                        console.error('reconcile: rescued', booking.booking_reference,
+                                      'but its seats had gone — flagged as a seat conflict');
                     }
 
                     summary.rescue.rescued++;
@@ -196,6 +210,30 @@ export async function runReconcile(url = '') {
         } catch (err) {
             console.error('reconcile: email sweep failed', err.message);
             summary.emails.failed++;
+        }
+    }
+
+    /* =====================================================================
+       3. Access-request emails that did not go
+       ===================================================================== */
+    if (emailConfigured()) {
+        try {
+            const since = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString();
+            const pending = await sbSelect(
+                'access_requests?select=*&or=(team_emailed_at.is.null,ack_emailed_at.is.null)' +
+                `&created_at=gt.${encodeURIComponent(since)}&order=created_at.asc&limit=20`
+            );
+            summary.accessEmails.pending = pending.length;
+            for (const r of pending) {
+                const out = await sendAccessEmails(r, { url });
+                for (const one of [out.team, out.ack]) {
+                    if (one?.sent) summary.accessEmails.sent++;
+                    else if (one?.error) summary.accessEmails.failed++;
+                }
+            }
+        } catch (err) {
+            console.error('reconcile: access email sweep failed', err.message);
+            summary.accessEmails.failed++;
         }
     }
 

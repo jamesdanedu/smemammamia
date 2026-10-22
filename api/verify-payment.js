@@ -5,12 +5,11 @@
 
 import {
     applyCors, requireMethod, readBody,
-    sbSelect, sbUpdate, supabaseConfigured
+    sbSelect, sbRpc, supabaseConfigured
 } from './_supabase.js';
 import { sendConfirmationFor } from './_confirmations.js';
 import { siteUrl } from './_show.js';
 import { cleanSeats, describeSeats } from '../seating.js';
-import { ensureSeats } from './_seats.js';
 
 export default async function handler(req, res) {
     if (applyCors(req, res)) return;
@@ -42,9 +41,16 @@ export default async function handler(req, res) {
         }
 
         // Already settled — nothing to ask SumUp, but make sure the email went.
-        if (booking.status === 'confirmed' && ['paid', 'cash'].includes(booking.payment_status)) {
+        // Complimentary tickets land here too, from the link in their email.
+        if (booking.status === 'confirmed' && ['paid', 'cash', 'comp'].includes(booking.payment_status)) {
             const email = await confirmationAttempt(bookingRef, booking, req);
             return res.status(200).json({ paid: true, booking: publicView(booking), email });
+        }
+
+        // Cancelled by the office. There are no refunds, but a cancelled
+        // booking stays cancelled — refreshing this page must not revive it.
+        if (booking.status === 'cancelled') {
+            return res.status(200).json({ paid: false, status: 'CANCELLED', error: 'This booking was cancelled. Please contact us quoting the reference.' });
         }
 
         /* ---- ask SumUp ---- */
@@ -72,34 +78,22 @@ export default async function handler(req, res) {
             return res.status(409).json({ paid: false, error: 'Payment amount did not match the booking' });
         }
 
-        /* ---- confirm ---- */
-        const [updated] = await sbUpdate(
-            'bookings',
-            `booking_reference=eq.${encodeURIComponent(bookingRef)}`,
-            {
-                status: 'confirmed',
-                payment_status: 'paid',
-                payment_method: 'sumup',
-                sumup_transaction_id: paid.transaction_id || paid.transactions?.[0]?.id || null,
-                held_until: null
-            }
+        /* ---- confirm ----
+           confirm_paid_booking does this under the night's lock. A hold that
+           is still running keeps its seats. One that ran out first gets the
+           same seats back if every one is still free; if any has gone, the
+           booking is still confirmed — the money is real — and flagged as a
+           seat conflict for the office to reseat. Nobody is moved silently. */
+        await sbRpc('confirm_paid_booking', {
+            p_reference: bookingRef,
+            p_transaction_id: paid.transaction_id || paid.transactions?.[0]?.id || null
+        });
+
+        const [confirmed] = await sbSelect(
+            `bookings?select=*,booking_seats(seat_id)&booking_reference=eq.${encodeURIComponent(bookingRef)}&limit=1`
         );
-
-        // The PATCH comes back without the embedded seats, so carry them over
-        // from the row we already have.
-        const confirmed = updated ? { ...updated, booking_seats: booking.booking_seats } : booking;
-
-        // Paid, but the hold had already run out and the seats went back on
-        // sale. Seat them again before the confirmation email goes, so it
-        // leaves with seat numbers on it rather than none.
-        if (!seatIds(confirmed).length) {
-            const again = await ensureSeats(bookingRef, confirmed.performance_date, confirmed.quantity);
-            if (again.seats.length) {
-                confirmed.booking_seats = again.seats.map(seat_id => ({ seat_id }));
-                console.log('reseated', bookingRef, 'as', again.label);
-            } else {
-                console.error('could not reseat', bookingRef, again.error);
-            }
+        if (confirmed?.seat_conflict) {
+            console.error('paid booking', bookingRef, 'lost its seats while the customer was away — flagged for the office');
         }
 
         const email = await confirmationAttempt(bookingRef, confirmed, req);
@@ -177,7 +171,9 @@ function publicView(b) {
         accessNeeds: String(b.access_needs || '').split(',').filter(Boolean),
         accessNotes: b.access_notes || '',
         seats: seatIds(b),
-        seatsLabel: describeSeats(seatIds(b))
+        seatsLabel: describeSeats(seatIds(b)),
+        // paid, but the seats went while they were away: the office will be in touch
+        seatConflict: Boolean(b.seat_conflict)
     };
 }
 
