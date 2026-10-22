@@ -81,6 +81,7 @@ api/_access.js         The two emails an access request sends, claimed once each
 api/availability.js    GET  — aggregate seat counts only, no customer data
 api/seats.js           GET  — which seats are unavailable for a night, and nothing else
 api/access-request.js  POST — "Need accessible seating?": stores it, emails the team
+api/_sumup.js          Opens a SumUp hosted checkout — the website and staff card payments
 api/create-checkout.js POST — holds the chosen seats atomically, opens SumUp checkout
 api/verify-payment.js  POST — asks SumUp if it was paid, confirms, sends the email
 api/reconcile.js       CRON — rescues abandoned payments, retries unsent emails
@@ -251,9 +252,9 @@ records which seats were used.
 
 **In admin:** the *Access requests* tab lists every request with its status
 (new, contacted, seated, closed) and a box for staff notes. *Book seats* opens Add
-booking with the request filled in; pick the accessible seats, choose cash, card on
-the door or complimentary, and the request is marked seated with the booking
-reference on it.
+booking with the request filled in; pick the accessible seats, choose how it is
+paid (see *Add booking* under Running the show), and the request is marked seated
+with the booking reference on it.
 
 **Releasing them.** On the *Seat plan* tab, *Release accessible seats to general
 sale* puts chosen accessible seats on public sale for that night. It is a manual
@@ -478,8 +479,22 @@ Things worth knowing:
 * *Bookings* — every booking with its seats. *Move* puts a party in other seats;
   *Send updated seats* then emails them. *Cancel* is for mistakes — there are no
   refunds, and cancelling something paid online asks you to confirm that.
-* *Add booking* — cash, card on the door, or complimentary, on any seat you pick:
-  accessible and blocked included. Confirmed at once, emailed if there is an address.
+* *Add booking* — staff sales on any seat you pick, accessible and blocked included.
+  Four ways to pay:
+  * **Cash** — confirmed at once.
+  * **Card Swipe at SME Office** — a parent pays at school reception on the office
+    card machine. The site does not take the payment, it only records it, so take
+    it first. Confirmed at once; counted apart from online sales so the takings
+    match the machine's own totals.
+  * **Card payment (online)** — the site holds the seats for 30 minutes and opens
+    the same SumUp checkout the public booking page uses. *Open payment page* to pay
+    on the office computer, or *Copy link* to send it to the customer's phone. The
+    panel watches for the payment and the booking confirms itself (with the
+    confirmation email) when SumUp has the money; the reconciler catches it if
+    nobody is watching. *Cancel* puts the seats back if they do not pay.
+  * **Complimentary** — €0, confirmed at once.
+
+  Every confirmed booking is emailed if there is an address.
 * *Seat plan* — who is where; block or unblock seats; release accessible seats to
   general sale or keep them back again.
 * *Settings* — the seats on sale per night, worked out from the plan; close a night.
