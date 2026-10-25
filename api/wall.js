@@ -2,11 +2,9 @@
 // POST /api/wall  { author, body }  → submit a message (held for approval)
 
 import { applyCors, readBody, sbSelect, sbInsert, supabaseConfigured } from './_supabase.js';
+import { BLOCKED } from './_filter.js';
 
 const AUTO_APPROVE = process.env.WALL_AUTO_APPROVE === 'true';
-
-// light-touch filter — the admin page is the real moderation
-const BLOCKED = /\b(fuck|shit|bitch|cunt|bastard|wanker|slut|whore|nigg|fag)\b/i;
 
 export default async function handler(req, res) {
     if (applyCors(req, res)) return;

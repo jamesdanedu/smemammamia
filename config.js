@@ -112,14 +112,15 @@ const CONFIG = {
         verify:       '/api/verify-payment',
         wall:         '/api/wall',
         enquiries:    '/api/enquiries',
+        donna:        '/api/donna',
         admin:        '/api/admin'
     },
 
     /* --- Feature switches ---------------------------------------------- */
     features: {
         /* >>> BOOKING PAUSE — set back to true to reopen sales. <<<
-           There is a second switch that has to move with it: BOOKING_OPEN at
-           the top of api/create-checkout.js. This one closes the pages; that
+           There is a second switch that has to move with it: BOOKING_OPEN in
+           api/_show.js. This one closes the pages; that
            one closes the door behind them, so a page somebody already had
            open cannot still push a booking through.
 
@@ -131,7 +132,11 @@ const CONFIG = {
         showGames: true,
         showQuiz: true,
         showPhotos: true,
-        showCast: true
+        showCast: true,
+        /* "Ask Donna", the chat bubble (donna.js). Off until the school has
+           agreed to visitors' messages going to DeepSeek and DEEPSEEK_API_KEY
+           is set — see README, Step 3e. false hides it on every page. */
+        showDonna: false
     }
 };
 

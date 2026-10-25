@@ -2,6 +2,9 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": false,
   "trailingSlash": false,
+  "functions": {
+    "api/donna.js": { "maxDuration": 30 }
+  },
   "crons": [
     { "path": "/api/reconcile", "schedule": "0 * * * *" }
   ],

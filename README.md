@@ -59,6 +59,7 @@ games.html         Arcade games
 quiz.html          Trivia bank, 10 questions per round
 wall.html          Public good-luck message wall (moderated)
 seating.html       The hall plan, for the public — where everything is
+donna.js           "Ask Donna" chat bubble, on the public pages (styles in donna.css)
 admin.html         Password-protected dashboard
 
 config.js          >>> Show dates, times, venue, price — edit this first
@@ -86,6 +87,9 @@ api/create-checkout.js POST — holds the chosen seats atomically, opens SumUp c
 api/verify-payment.js  POST — asks SumUp if it was paid, confirms, sends the email
 api/reconcile.js       CRON — rescues abandoned payments, retries unsent emails
 api/wall.js            GET/POST — message wall
+api/donna.js           POST — Ask Donna: filters, scrub, DeepSeek, second-pass check
+api/_donna-prompt.js   Donna's character, rules and show facts (built from _show.js)
+api/_filter.js         Word lists, the distress check and the personal-detail scrub
 api/admin.js           POST — everything behind ADMIN_PASSWORD
 
 schema.sql         Run first in the Supabase SQL Editor — the base tables
@@ -93,6 +97,10 @@ schema-email.sql   Run second — email tracking and payment rescue
 schema-seating.sql Run third — seats, holds, blocks, access requests. Every
                    database needs it, including one that already has the
                    first two. All three are safe to re-run.
+schema-donna.sql   Run fourth, only if Donna is on — her rate-limit counters
+tests/donna.mjs    Offline tests for Donna's filters and API: node tests/donna.mjs
+tests/donna-live.mjs
+                   Red-team run against the real DeepSeek API (needs the key)
 tests/seat-holds.sh
                    Double-booking tests for schema-seating.sql, against a
                    throwaway local Postgres
@@ -135,7 +143,8 @@ distinguishable from the school's other productions on a bank statement.
    the same rows. A fresh project is free and takes two minutes.
 2. Edit the seed block at the bottom of `schema.sql` so the dates match `config.js`.
 3. Paste the whole of `schema.sql` into **SQL Editor → New query** and run it.
-   Then `schema-email.sql`, then `schema-seating.sql`, the same way, in that order.
+   Then `schema-email.sql`, then `schema-seating.sql`, the same way, in that order
+   (and `schema-donna.sql` if you are turning Donna on — Step 3e).
 4. **Settings → API** — copy the *Project URL* and the *service_role* key.
 
 `schema-seating.sql` also takes away the anon role's right to call the booking
@@ -315,6 +324,67 @@ sale for a night — the sound desk, house seats. The public sees them as unavai
 staff can still book them from Add booking (it asks first). A seat somebody has
 cannot be blocked.
 
+### Step 3e — Ask Donna (the chatbot)
+
+A chat bubble, bottom right of the public pages (home, about, cast, photos, quiz,
+wall, seating, contact — not booking, success, games or admin, where it would sit
+over buttons). Visitors talk to Donna Sheridan, in character, about the show:
+dates, tickets, the hall, accessible seating, the story. She runs on **DeepSeek**,
+called from `/api/donna`; the key never reaches the browser.
+
+**Before turning it on, the school needs to agree to it.** Everything a visitor
+types is sent to DeepSeek, whose servers are in China, and many visitors are
+under 18. The site takes out emails, phone numbers, Eircodes, booking references
+and "my name is…" before anything is sent, sends no IP or identifier, and tells
+visitors not to type anything personal — but the school, as data controller,
+should sign this off. The plan in `docs/donna-chatbot-plan.md` has the details.
+
+**Set up:**
+
+1. Run `schema-donna.sql` in the Supabase SQL Editor (safe to re-run).
+2. In Vercel add `DEEPSEEK_API_KEY` (and optionally the other `DEEPSEEK_*` and
+   `DONNA_*` settings in the table below), then redeploy.
+3. From your own machine, run the red-team cases against the real API:
+   `DEEPSEEK_API_KEY=sk-… node tests/donna-live.mjs`. Read the replies, not just
+   the pass count. If **every** reply comes back `<blocked>`, the model name is
+   wrong or the model is spending its tokens thinking: check the model list in
+   DeepSeek's docs and set `DEEPSEEK_MODEL`, or set `DEEPSEEK_EXTRA` to the JSON
+   that turns its reasoning mode off.
+4. Set a low-balance alert in the DeepSeek console.
+5. Set `showDonna: true` in `config.js` (it ships `false`) and deploy.
+
+**How she stays clean** — in order, each step cheaper than the next:
+
+* A visitor who sounds like they are in trouble (self-harm, being hurt, bullied)
+  gets a fixed, kind answer pointing to a trusted adult, Childline
+  (1800 66 66 66, text 50101) and 112/999. The model is never asked.
+* Swearing, explicit words and the usual disguises (`f*ck`, `sh1t`, `f u c k`)
+  get a fixed in-character brush-off. The model never sees them.
+* Personal details are scrubbed; a message that was nothing but details gets a
+  fixed "don't be telling me your number" line.
+* Donna's instructions (`api/_donna-prompt.js`) keep her family-friendly,
+  on-topic, off lyrics, off the cast's identities, and away from bookings.
+* Her reply goes through the word filter, a link check (only our own pages), and
+  a second DeepSeek call that sees only the reply and answers OK or BLOCK.
+  Anything but a clean OK — including a timeout — becomes a fixed line.
+* 20 messages per visitor per 10 minutes, 60 a day, and `DONNA_DAILY_CAP` for
+  the whole site.
+
+Nothing visitors type is stored anywhere: the conversation lives in their browser
+tab, and the database only holds counters keyed on a salted hash of the IP, which
+expire within a day. Donna's own earlier replies are signed, so a visitor cannot
+send back a fake "Donna said…" to talk her round.
+
+**Switching her off:** `DONNA_ENABLED=false` in Vercel stops her answering
+(redeploy to apply) — the bubble still shows and says she's having a lie-down.
+`features.showDonna: false` in `config.js` hides the bubble altogether.
+
+**Facts she knows** come from `api/_show.js`: the nights (`PERFORMANCES`), times,
+venue, price and the booking pause (`BOOKING_OPEN`, which also closes
+`/api/create-checkout`). When booking reopens, flip `BOOKING_OPEN` there and
+Donna stops telling people it's paused. Anything else she should know goes into
+`api/_donna-prompt.js`; run both test files after changing it.
+
 ### Step 4 — Vercel
 
 Push this folder to a **new** GitHub repo — `mamma-mia` reads well — and import it in
@@ -344,6 +414,13 @@ under **Settings → Environment Variables**:
 | `HOLD_MINUTES` | optional, defaults to 15 |
 | `MAX_PER_ORDER` | optional, defaults to 10 — the most seats in one online booking; must match `maxPerBooking` in `config.js` |
 | `WALL_AUTO_APPROVE` | optional, `true` posts wall messages without moderation |
+| `DEEPSEEK_API_KEY` | secret — Ask Donna. Without it the bubble shows but Donna is "having a lie-down" |
+| `DEEPSEEK_MODEL` | optional, defaults to `deepseek-v4-flash` — check DeepSeek's model list |
+| `DEEPSEEK_BASE_URL` | optional, defaults to `https://api.deepseek.com` |
+| `DEEPSEEK_EXTRA` | optional JSON merged into every request, e.g. to turn a reasoning mode off |
+| `DONNA_ENABLED` | optional, `false` stops Donna answering |
+| `DONNA_DAILY_CAP` | optional, defaults to 2000 — messages per day across the whole site |
+| `DONNA_SECRET` | optional, any long random string — signs Donna's replies and salts visitor hashes (defaults to the Supabase key) |
 | `SHOW_NAME` | optional, defaults to `Mamma Mia!` — shown in emails |
 | `SHOW_SCHOOL` | optional, defaults to `St Mary's Secondary School, Edenderry` |
 | `SHOW_VENUE` | optional, defaults to the school address with `Co. Offaly` |
@@ -632,5 +709,11 @@ Item 1 is marked `// TODO` in `config.js`. Date changes made in `config.js` need
 * **`SHOW_DOORS` / `SHOW_CURTAIN` drifting from `config.js`.** The website would show
   one time and the confirmation email another. `api/_show.js` carries the defaults —
   if you change times, change them in both places.
+* **Turning Donna on before the school has agreed to it.** Visitors' messages go to
+  DeepSeek in China. Get the sign-off first; leave `DEEPSEEK_API_KEY` unset until then.
+* **Changing Donna's prompt without re-running `tests/donna-live.mjs`.** A small
+  wording change can undo a rule. Run it, and read the replies.
+* **Flipping `bookingOpen` in `config.js` but not `BOOKING_OPEN` in `api/_show.js`.**
+  The pages say one thing, `/api/create-checkout` and Donna another.
 * **Printing anything before checking the billing sheet.** MTI specifies credit
   sizes; a poster that gets them wrong has to be reprinted.
