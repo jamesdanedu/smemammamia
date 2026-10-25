@@ -10,22 +10,12 @@ import {
     sbRpc, newBookingRef, supabaseConfigured
 } from './_supabase.js';
 import { openCheckout, baseUrlFor } from './_sumup.js';
-import { cleanAccessNeeds } from './_show.js';
+import { cleanAccessNeeds, BOOKING_OPEN } from './_show.js';
 import { cleanSeats, describeSeats, ACCESSIBLE_IDS } from '../seating.js';
 import { seatRefusal } from './_seats.js';
 
-/* >>> BOOKING PAUSE — set back to true to reopen sales. <<<
-   Moves together with CONFIG.features.bookingOpen in config.js. That one
-   closes the pages; this one closes the door behind them, so a page somebody
-   already had open — or anything posting straight at this endpoint — cannot
-   still push a booking through.
-
-   Deliberately NOT paused:
-     · /api/admin cash and door bookings — staff can still take a booking.
-     · /api/verify-payment and the reconciler — anyone who was mid-payment
-       when this went on must still be able to finish and be confirmed,
-       otherwise we would take the money and never issue the ticket. */
-const BOOKING_OPEN = false;
+/* The booking pause (BOOKING_OPEN) lives in api/_show.js, so Donna can
+   read the same switch. */
 
 const TICKET_PRICE   = Number(process.env.TICKET_PRICE || 10);
 // A hold with no expiry would be treated as already dead and its seats sold

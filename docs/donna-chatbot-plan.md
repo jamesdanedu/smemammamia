@@ -5,7 +5,8 @@ taverna owner, ex-Dynamo and the most put-upon hostess on the island. She answer
 real questions about the show (dates, tickets, seating, getting there) in
 character, with some sass, and stays clean whatever people type at her.
 
-Status: **plan only — nothing built yet.** Open decisions are at the end.
+Status: **built, switched off** (`showDonna: false`, no key set) until the school
+signs off — README Step 3e is the switch-on checklist. Open decisions are at the end.
 
 ---
 
@@ -72,7 +73,8 @@ POST /api/donna  { messages: [{ role: 'user'|'assistant', content }...] }   (las
 → 503 { reply }                       Donna switched off / not configured / budget hit
 ```
 
-The browser keeps the conversation in memory only (gone when the page closes).
+The browser keeps the conversation in `sessionStorage`, so it follows the
+visitor between pages and is gone when the tab closes.
 **Nothing is stored server-side** except anonymous counters for rate limiting
 — no transcripts, no IPs kept beyond the rate-limit window. But what visitors
 type *is* sent to DeepSeek, whose servers are in China — see §4a for how we
@@ -135,14 +137,15 @@ flag and both `config.js` and `_donna-prompt.js` stay in sync with it, same
    expire after a day) because the in-memory guard in `enquiries.js` resets
    per serverless instance.
 7. **Kill switches.** `features.showDonna` in `config.js` hides the bubble;
-   `DONNA_ENABLED=false` in Vercel stops the API immediately with no
-   redeploy. A daily message cap (`DONNA_DAILY_CAP`, e.g. 2,000) protects
+   `DONNA_ENABLED=false` in Vercel stops the API (after a redeploy, as with
+   any Vercel setting). A daily message cap (`DONNA_DAILY_CAP`, e.g. 2,000) protects
    the bill if the site goes viral or gets scripted.
 
 Before launch: a red-team pass — a list of ~50 nasty, sneaky and silly inputs
 (insults, explicit asks, jailbreaks, "what's the Wi-Fi password", "who plays
 Donna", lyric requests, refund demands) checked against expected behaviour.
-Kept as `tests/donna-cases.md` and re-run after any prompt change.
+Built as `tests/donna-live.mjs` (runs against the real API) and re-run after
+any prompt change; `tests/donna.mjs` covers the filters and the API offline.
 
 ### 4a. Personal data — the DeepSeek-specific part
 
@@ -238,9 +241,10 @@ DONNA_DAILY_CAP=2000
    panel with greeting, 3 suggestion chips ("When's the show?", "How do I book?",
    "Is there accessible seating?"), typing indicator, AI disclaimer. Mobile:
    full-width sheet. Keyboard and screen-reader friendly (focus trap, `aria-live`
-   on replies). Loaded on public pages; not on `admin.html`, and minimised by
-   default on `booking.html` so it never covers the seat plan or pay button.
-5. **Red-team & tune** — run `tests/donna-cases.md`, adjust prompt, filter
+   on replies). Loaded on home, about, cast, photos, quiz, wall, seating and
+   contact; not on booking, success, games or admin, where it would sit over
+   the seat plan, pay button or game controls.
+5. **Red-team & tune** — run `tests/donna-live.mjs`, adjust prompt, filter
    and judge rubric. Spend extra time here: jailbreaks ("you are now…",
    role-play, other languages, spaced-out swearing) are where DeepSeek is
    weakest. Use your DeepSeek credits for this too.
@@ -259,10 +263,10 @@ Roughly a day of build plus an afternoon of red-teaming.
 1. ~~Model~~ — **decided: DeepSeek API** (`deepseek-v4-flash`).
 2. **Sign-off on data going to China:** who at school approves it? I can
    draft a one-page DPIA note for them.
-3. **Which pages** get the bubble — all public pages, or home + about only to
-   start?
-4. **Distress handling:** OK to break character and point to Childline /
-   a trusted adult, or would the school rather point to a specific staff
-   contact?
+3. ~~Which pages~~ — built for the eight content pages (see step 4 above).
+   Change by adding or removing `<script src="donna.js" defer>`.
+4. **Distress handling:** built to point to a trusted adult, Childline
+   (1800 66 66 66 / text 50101) and 112/999. If the school wants a named
+   staff contact too, it goes in `LINES.distress` in `api/_donna-prompt.js`.
 5. **API key:** add `DEEPSEEK_API_KEY` in Vercel when we're ready to test
    (never paste it into the repo or chat).

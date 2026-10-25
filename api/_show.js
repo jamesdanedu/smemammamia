@@ -16,6 +16,31 @@ export const SHOW = {
     curtain:   process.env.SHOW_CURTAIN  || '7:30 PM'
 };
 
+/* >>> BOOKING PAUSE — set back to true to reopen sales. <<<
+   Moves together with CONFIG.features.bookingOpen in config.js. That one
+   closes the pages; this one closes the door behind them, so a page somebody
+   already had open — or anything posting straight at /api/create-checkout —
+   cannot still push a booking through. Donna reads it too, so she tells
+   people the truth about whether they can book.
+
+   Deliberately NOT paused:
+     · /api/admin cash and door bookings — staff can still take a booking.
+     · /api/verify-payment and the reconciler — anyone who was mid-payment
+       when this went on must still be able to finish and be confirmed,
+       otherwise we would take the money and never issue the ticket. */
+export const BOOKING_OPEN = false;
+
+/* The nights on public sale, as config.js lists them. Only Donna needs these
+   on the server; the booking functions take dates from the database.
+   ⚠️  KEEP IN SYNC WITH CONFIG.performances in config.js. */
+export const PERFORMANCES = [
+    { key: '2027-01-28', label: 'Thursday 28th January 2027' },
+    { key: '2027-01-29', label: 'Friday 29th January 2027' }
+];
+
+export const TICKET_PRICE  = Number(process.env.TICKET_PRICE || 10);
+export const MAX_PER_ORDER = Number(process.env.MAX_PER_ORDER || 10);
+
 /**
  * The accessibility question asked at booking. Only these codes are ever
  * stored on a booking; anything else the browser sends is dropped.
