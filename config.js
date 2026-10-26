@@ -133,10 +133,10 @@ const CONFIG = {
         showQuiz: true,
         showPhotos: true,
         showCast: true,
-        /* "Ask Donna", the chat bubble (donna.js). Off until the school has
-           agreed to visitors' messages going to DeepSeek and DEEPSEEK_API_KEY
-           is set — see README, Step 3e. false hides it on every page. */
-        showDonna: false
+        /* "Ask Donna", the chat bubble (donna.js). false hides it on every
+           page. To stop her answering but keep the bubble, set DONNA_ENABLED
+           to false in Vercel instead — see README, Step 3e. */
+        showDonna: true
     }
 };
 
