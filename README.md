@@ -351,7 +351,7 @@ should sign this off. The plan in `docs/donna-chatbot-plan.md` has the details.
    DeepSeek's docs and set `DEEPSEEK_MODEL`, or set `DEEPSEEK_EXTRA` to the JSON
    that turns its reasoning mode off.
 4. Set a low-balance alert in the DeepSeek console.
-5. Set `showDonna: true` in `config.js` (it ships `false`) and deploy.
+5. `showDonna` in `config.js` shows the bubble (`true` since launch).
 
 **How she stays clean** — in order, each step cheaper than the next:
 
