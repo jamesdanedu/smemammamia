@@ -162,9 +162,10 @@ a person goes to DeepSeek.**
 - **Send nothing else.** No IP, no user id, no cookies, no `user` field — the
   request is just the system prompt and the (scrubbed) recent turns.
 - **Tell people.** The panel says, before the first message: *"Donna is an
-  AI chatbot run by DeepSeek, a company based in China. Don't type your name,
-  phone, email or anything personal."* Plus a line in a short privacy note
-  linked from the panel.
+  AI chatbot. … Please don't type your name, phone, email or anything
+  personal."* (It named DeepSeek and China at first; that line was taken
+  out of the panel in October 2026. Where the messages go belongs in the
+  school's privacy notice instead.)
 - **School sign-off.** The school (as data controller) should approve this
   before launch — a short DPIA note is worth writing; I can draft it. If the
   answer is no, the provider is one env var away from changing (see §5).
@@ -219,7 +220,7 @@ DONNA_DAILY_CAP=2000
   anything ABBA, and uses our own artwork (no "Bride" key art).
 - Recording notice: if asked about filming the show, she gives the MTI
   "no recording" line.
-- Clear label on the panel: *"Donna is an AI chatbot run by DeepSeek. She can
+- Clear label on the panel: *"Donna is an AI chatbot. She can
   get things wrong — check the booking page for the final word. Don't share
   personal details."* Tell the principal/board it's there before launch;
   some schools have an AI policy, and some Irish public bodies have told

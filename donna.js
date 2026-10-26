@@ -60,7 +60,7 @@
           '<div class="donna-title"><strong>Donna Sheridan</strong><span>Taverna owner · ex-Dynamo · your host</span></div>' +
           '<button type="button" class="donna-close" aria-label="Close chat">×</button>' +
         '</div>' +
-        '<div class="donna-notice"><strong>Donna is an AI chatbot</strong> run by DeepSeek, a company based in China. ' +
+        '<div class="donna-notice"><strong>Donna is an AI chatbot.</strong> ' +
           'She can get things wrong — the booking page has the final word. ' +
           '<strong>Please don\'t type your name, phone, email or anything personal.</strong></div>' +
         '<div class="donna-log" role="log" aria-live="polite" aria-relevant="additions"></div>' +
