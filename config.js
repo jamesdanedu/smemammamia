@@ -111,6 +111,7 @@ const CONFIG = {
         checkout:     '/api/create-checkout',
         verify:       '/api/verify-payment',
         wall:         '/api/wall',
+        photos:       '/api/photos',
         enquiries:    '/api/enquiries',
         donna:        '/api/donna',
         admin:        '/api/admin'

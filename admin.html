@@ -466,6 +466,33 @@ input[type="checkbox"] {
     .who-list { font-size: 9pt; break-before: page; }
 }
 
+
+/* ---------------- photos tab ---------------- */
+.ph-drop {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 26px 18px; text-align: center; cursor: pointer;
+    border: 2px dashed var(--border-strong); border-radius: var(--radius);
+    background: var(--surface); transition: border-color 0.15s, background 0.15s;
+}
+.ph-drop:hover, .ph-drop.over { border-color: var(--cyan); background: var(--cyan-tint); }
+.ph-drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.ph-drop:focus-within { outline: 3px solid var(--cyan-tint); }
+.ph-drop-icon { font-size: 1.8rem; }
+.ph-progress { position: relative; height: 26px; margin-top: 12px; border-radius: 999px; background: var(--surface-2, #eef3f6); overflow: hidden; }
+.ph-progress > div { height: 100%; width: 0; background: var(--cyan); transition: width 0.2s; }
+.ph-progress span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 700; color: var(--text); }
+.ph-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-top: 18px; align-items: start; }
+.ph-card { border: 1px solid var(--border); border-radius: var(--radius); background: #fff; overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.ph-card.off { opacity: 0.55; }
+.ph-thumb { position: relative; aspect-ratio: 4 / 3; background: #eef3f6; overflow: hidden; }
+.ph-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.ph-num { position: absolute; top: 6px; left: 6px; background: rgba(19,38,51,0.65); color: #fff; font-size: 0.72rem; font-weight: 700; border-radius: 999px; padding: 2px 8px; }
+.ph-body { padding: 9px; display: flex; flex-direction: column; gap: 8px; }
+.ph-body input[type=text] { width: 100%; font-size: 0.84rem; padding: 7px 9px; }
+.ph-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+.ph-actions .mini-btn { padding: 5px 10px; }
+.ph-actions .mini-btn:disabled { opacity: 0.35; cursor: default; }
+.ph-saved { font-size: 0.72rem; color: var(--lime); min-height: 1em; }
 </style>
 </head>
 <body>
@@ -515,6 +542,7 @@ input[type="checkbox"] {
     <button class="tab" data-panel="seats">Seat plan</button>
     <button class="tab" data-panel="add">Add booking</button>
     <button class="tab" data-panel="wall">Message wall</button>
+    <button class="tab" data-panel="photos">Photos</button>
     <button class="tab" data-panel="settings">Settings</button>
   </div>
 
@@ -725,6 +753,24 @@ input[type="checkbox"] {
     </div>
   </section>
 
+  <!-- PHOTOS -->
+  <section class="panel" id="panel-photos">
+    <p class="dim mb-2" style="font-size:0.86rem">
+      Photos added here appear in the slideshow and grid on the public
+      <a href="photos.html" target="_blank" rel="noopener">Photos page</a>, in this order.
+      Large pictures are shrunk to 1600px before uploading, so phone photos are fine.
+    </p>
+    <label class="ph-drop" id="ph-drop">
+      <input type="file" id="ph-file" accept="image/webp,image/jpeg,image/png" multiple>
+      <span class="ph-drop-icon">📷</span>
+      <strong>Add photos</strong>
+      <span class="dim" style="font-size:0.84rem">Tap to choose, or drag pictures here — WEBP, JPEG or PNG</span>
+    </label>
+    <div id="ph-alert" class="alert hidden mt-2"></div>
+    <div class="ph-progress hidden" id="ph-progress"><div id="ph-bar"></div><span id="ph-progress-text"></span></div>
+    <div class="ph-grid" id="ph-grid"><p class="dim">Loading…</p></div>
+  </section>
+
   <!-- SETTINGS -->
   <section class="panel" id="panel-settings">
     <div class="card mb-3" style="max-width:680px">
@@ -866,6 +912,7 @@ import { drawSeatPlan } from './seatplan.js';
         document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.panel === name));
         document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
         if (name === 'wall') loadWall();
+        if (name === 'photos') loadPhotos();
         if (name === 'seats') loadSeatPlan();
         if (name === 'add') loadAddPlan();
         if (name === 'access') loadRequests();
@@ -1833,6 +1880,136 @@ import { drawSeatPlan } from './seatplan.js';
         try { await api('wall-moderate', { id, ...patch }); loadWall(); }
         catch (err) { note('dash-alert', err.message); }
     }
+
+    /* ---------------- photos ----------------
+       Files go straight from here to Supabase Storage through one-time
+       signed URLs from /api/admin; the API only stores caption and order. */
+    const PH_MAX = 1600;            // longest side after shrinking
+    let photos = [];
+
+    async function loadPhotos() {
+        try {
+            const data = await api('photos-list');
+            photos = data.photos || [];
+            renderPhotos();
+        } catch (err) { if (err.message !== 'unauthorised') note('ph-alert', err.message); }
+    }
+
+    function renderPhotos() {
+        const grid = $('ph-grid');
+        if (!photos.length) { grid.innerHTML = '<p class="dim">No photos yet — add some above.</p>'; return; }
+        grid.innerHTML = photos.map((p, i) => `
+            <div class="ph-card${p.visible ? '' : ' off'}" data-id="${p.id}">
+              <div class="ph-thumb">
+                <img src="${escapeHtml(p.url)}" alt="" loading="lazy">
+                <span class="ph-num">${i + 1}${p.visible ? '' : ' · hidden'}</span>
+              </div>
+              <div class="ph-body">
+                <input type="text" maxlength="160" placeholder="Caption (optional)" value="${escapeHtml(p.caption || '')}" data-cap>
+                <div class="ph-saved" data-saved></div>
+                <div class="ph-actions">
+                  <button class="mini-btn" data-move="-1" title="Move earlier" aria-label="Move earlier" ${i === 0 ? 'disabled' : ''}>◀</button>
+                  <button class="mini-btn" data-move="1" title="Move later" aria-label="Move later" ${i === photos.length - 1 ? 'disabled' : ''}>▶</button>
+                  <button class="mini-btn" data-vis>${p.visible ? 'Hide' : 'Show'}</button>
+                  <button class="mini-btn" data-del style="color:var(--pink)">Delete</button>
+                </div>
+              </div>
+            </div>`).join('');
+
+        grid.querySelectorAll('.ph-card').forEach(card => {
+            const id = Number(card.dataset.id);
+            const p = photos.find(x => x.id === id);
+            const cap = card.querySelector('[data-cap]');
+            cap.addEventListener('change', async () => {
+                try {
+                    await api('photos-update', { id, caption: cap.value });
+                    p.caption = cap.value.trim();
+                    card.querySelector('[data-saved]').textContent = 'Caption saved ✓';
+                } catch (err) { note('ph-alert', err.message); }
+            });
+            cap.addEventListener('keydown', e => { if (e.key === 'Enter') cap.blur(); });
+            card.querySelector('[data-vis]').addEventListener('click', async () => {
+                try { await api('photos-update', { id, visible: !p.visible }); p.visible = !p.visible; renderPhotos(); }
+                catch (err) { note('ph-alert', err.message); }
+            });
+            card.querySelector('[data-del]').addEventListener('click', async () => {
+                if (!confirm('Delete this photo for good? (Hide keeps it but takes it off the site.)')) return;
+                try { await api('photos-delete', { id }); photos = photos.filter(x => x.id !== id); renderPhotos(); }
+                catch (err) { note('ph-alert', err.message); }
+            });
+            card.querySelectorAll('[data-move]').forEach(btn => btn.addEventListener('click', async () => {
+                const from = photos.indexOf(p), to = from + Number(btn.dataset.move);
+                if (to < 0 || to >= photos.length) return;
+                [photos[from], photos[to]] = [photos[to], photos[from]];
+                renderPhotos();
+                try { await api('photos-reorder', { ids: photos.map(x => x.id) }); }
+                catch (err) { note('ph-alert', err.message); loadPhotos(); }
+            }));
+        });
+    }
+
+    /** Shrink to PH_MAX on the long side and re-encode as WEBP (JPEG where the
+        browser can't write WEBP). Small WEBPs are sent untouched. */
+    async function preparePhoto(file) {
+        const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+        const scale = Math.min(1, PH_MAX / Math.max(bmp.width, bmp.height));
+        const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
+        if (file.type === 'image/webp' && scale === 1 && file.size < 700 * 1024) {
+            bmp.close?.();
+            return { blob: file, type: 'image/webp', width: w, height: h };
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+        bmp.close?.();
+        const encode = (type, q) => new Promise(r => canvas.toBlob(r, type, q));
+        let blob = await encode('image/webp', 0.82);
+        if (!blob || blob.type !== 'image/webp') blob = await encode('image/jpeg', 0.85);
+        return { blob, type: blob.type, width: w, height: h };
+    }
+
+    async function uploadPhotos(fileList) {
+        const files = [...fileList].filter(f => /^image\//.test(f.type));
+        if (!files.length) return;
+        note('ph-alert', '');
+        const bar = $('ph-bar'), txt = $('ph-progress-text');
+        $('ph-progress').classList.remove('hidden');
+        const added = [], failed = [];
+        for (let i = 0; i < files.length; i++) {
+            const f = files[i];
+            txt.textContent = `Uploading ${i + 1} of ${files.length} — ${f.name}`;
+            bar.style.width = `${(i / files.length) * 100}%`;
+            try {
+                const prep = await preparePhoto(f);
+                const { uploads: [up] } = await api('photos-sign', { types: [prep.type] });
+                const put = await fetch(up.uploadUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': prep.type, 'cache-control': 'max-age=31536000' },
+                    body: prep.blob
+                });
+                if (!put.ok) throw new Error(`storage said ${put.status}`);
+                const { photos: saved } = await api('photos-add', {
+                    photos: [{ path: up.path, caption: '', width: prep.width, height: prep.height }]
+                });
+                added.push(...saved);
+            } catch (err) {
+                if (err.message === 'unauthorised') return;
+                failed.push(`${f.name} (${err.message})`);
+            }
+        }
+        bar.style.width = '100%';
+        setTimeout(() => $('ph-progress').classList.add('hidden'), 600);
+        $('ph-file').value = '';
+        if (failed.length) note('ph-alert', `Couldn't upload: ${failed.join(', ')}`);
+        else note('ph-alert', `${added.length} photo${added.length === 1 ? '' : 's'} added — type captions below if you like.`, 'success');
+        loadPhotos();
+    }
+
+    $('ph-file').addEventListener('change', e => uploadPhotos(e.target.files));
+    const drop = $('ph-drop');
+    ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+    drop.addEventListener('drop', e => uploadPhotos(e.dataTransfer.files));
 
     /* ---------------- settings ---------------- */
     function renderSettings() {

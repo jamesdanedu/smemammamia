@@ -65,6 +65,17 @@ export async function sbUpdate(table, filter, patch) {
     return text ? JSON.parse(text) : [];
 }
 
+/** DELETE /rest/v1/<table>?<filter> */
+export async function sbDelete(table, filter) {
+    const res = await fetch(`${BASE}/rest/v1/${table}?${filter}`, {
+        method: 'DELETE',
+        headers: headers({ Prefer: 'return=representation' })
+    });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`Supabase delete failed (${res.status}): ${text}`);
+    return text ? JSON.parse(text) : [];
+}
+
 /** POST /rest/v1/rpc/<fn> */
 export async function sbRpc(fn, args) {
     const res = await fetch(`${BASE}/rest/v1/rpc/${fn}`, {

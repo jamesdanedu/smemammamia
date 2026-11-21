@@ -91,6 +91,8 @@ api/donna.js           POST — Ask Donna: filters, scrub, DeepSeek, second-pass
 api/_donna-prompt.js   Donna's character, rules and show facts (built from _show.js)
 api/_filter.js         Word lists, the distress check and the personal-detail scrub
 api/admin.js           POST — everything behind ADMIN_PASSWORD
+api/photos.js          GET  — visible uploaded photos for the Photos page
+api/_photos.js         Supabase Storage helpers (signed uploads, delete)
 
 schema.sql         Run first in the Supabase SQL Editor — the base tables
 schema-email.sql   Run second — email tracking and payment rescue
@@ -98,6 +100,8 @@ schema-seating.sql Run third — seats, holds, blocks, access requests. Every
                    database needs it, including one that already has the
                    first two. All three are safe to re-run.
 schema-donna.sql   Run fourth, only if Donna is on — her rate-limit counters
+schema-photos.sql  Run any time after schema.sql — the photos table and the
+                   public "photos" storage bucket for admin uploads
 tests/donna.mjs    Offline tests for Donna's filters and API: node tests/donna.mjs
 tests/donna-live.mjs
                    Red-team run against the real DeepSeek API (needs the key)
@@ -145,6 +149,7 @@ distinguishable from the school's other productions on a bank statement.
 3. Paste the whole of `schema.sql` into **SQL Editor → New query** and run it.
    Then `schema-email.sql`, then `schema-seating.sql`, the same way, in that order
    (and `schema-donna.sql` if you are turning Donna on — Step 3e).
+   Run `schema-photos.sql` too if photos will be uploaded from the admin page.
 4. **Settings → API** — copy the *Project URL* and the *service_role* key.
 
 `schema-seating.sql` also takes away the anon role's right to call the booking
@@ -717,3 +722,15 @@ Item 1 is marked `// TODO` in `config.js`. Date changes made in `config.js` need
   The pages say one thing, `/api/create-checkout` and Donna another.
 * **Printing anything before checking the billing sheet.** MTI specifies credit
   sizes; a poster that gets them wrong has to be reprinted.
+
+
+## Photos
+
+The Photos page shows a slideshow and a grid. Pictures come from two places:
+
+1. **Admin → Photos tab** (normal way). Choose or drag in pictures; large ones are
+   shrunk to 1600px and turned into WEBP in the browser, then uploaded straight to
+   the `photos` bucket in Supabase Storage. Captions, order, hide and delete are on
+   the same tab. Changes show on the site at once — no GitHub commit or redeploy.
+   Needs `schema-photos.sql` run once. Supabase's free plan gives 1 GB of storage.
+2. **`photos.js` + `/images`**, as before. These show after the uploaded ones.
