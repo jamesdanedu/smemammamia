@@ -206,6 +206,171 @@
     line-height: 1.6;
 }
 
+
+/* ---- Carousel ---- */
+.carousel {
+    position: relative;
+    max-width: 980px;
+    margin: 0 auto 40px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-lg);
+    background: linear-gradient(180deg, #1b6ca8 0%, #134d78 100%);
+    aspect-ratio: 16 / 10;
+    isolation: isolate;
+}
+
+/* background: a blurred, enlarged copy of the current photo fills the frame,
+   so portrait and landscape shots both sit on something rich, never grey bars */
+.car-bg {
+    position: absolute;
+    inset: -40px;
+    background-size: cover;
+    background-position: center;
+    filter: blur(28px) saturate(1.25) brightness(0.8);
+    transform: scale(1.1);
+    transition: opacity 0.6s ease;
+    z-index: 0;
+}
+.car-bg.fade { opacity: 0; }
+
+/* Aegean wash over the blur keeps it on-theme */
+.carousel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(19, 38, 51, 0) 40%, rgba(19, 38, 51, 0.45) 100%),
+                linear-gradient(180deg, rgba(27, 108, 168, 0.18), rgba(19, 38, 51, 0.30));
+    z-index: 1;
+    pointer-events: none;
+}
+
+.car-track {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    height: 100%;
+    transition: transform 0.55s cubic-bezier(0.22, 0.7, 0.2, 1);
+    touch-action: pan-y;
+}
+
+.car-slide {
+    flex: 0 0 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 22px 70px 56px;
+    margin: 0;
+}
+
+.car-slide img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: var(--radius);
+    border: 4px solid #fff;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.35);
+    background: #fff;
+    cursor: zoom-in;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.car-caption {
+    position: absolute;
+    z-index: 3;
+    left: 50%;
+    bottom: 34px;
+    transform: translateX(-50%);
+    max-width: calc(100% - 40px);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 999px;
+    padding: 7px 18px;
+    box-shadow: var(--shadow);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.car-caption:empty { display: none; }
+
+.car-btn {
+    position: absolute;
+    z-index: 3;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--cyan);
+    font: 700 1.4rem/1 var(--font-body);
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.16s;
+}
+.car-btn:hover { background: #fff; }
+.car-btn:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.car-prev { left: 14px; }
+.car-next { right: 14px; }
+
+.car-dots {
+    position: absolute;
+    z-index: 3;
+    left: 0; right: 0; bottom: 12px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    padding: 0 60px;
+    pointer-events: none;   /* the row must not cover the arrow buttons */
+}
+.car-dots button {
+    width: 9px; height: 9px;
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    pointer-events: auto;
+    transition: background 0.2s, transform 0.2s;
+}
+.car-dots button[aria-current="true"] { background: #fff; transform: scale(1.35); }
+
+.car-count {
+    position: absolute;
+    z-index: 3;
+    top: 12px; right: 14px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #fff;
+    background: rgba(19, 38, 51, 0.45);
+    border-radius: 999px;
+    padding: 4px 10px;
+}
+
+.grid-head { text-align: center; margin: 0 0 18px; font-size: 1.25rem; }
+
+@media (max-width: 720px) {
+    .carousel { aspect-ratio: 4 / 5; border-radius: var(--radius); margin-bottom: 30px; }
+    .car-slide { padding: 14px 12px 60px; }
+    .car-btn { width: 40px; height: 40px; top: auto; bottom: 10px; transform: none; font-size: 1.2rem; }
+    .car-prev { left: 10px; }
+    .car-next { right: 10px; }
+    .car-dots { bottom: 24px; padding: 0 64px; }
+    .car-caption { bottom: auto; top: 12px; left: 12px; transform: none; max-width: calc(100% - 80px); font-size: 0.8rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .car-track, .car-bg { transition: none; }
+}
+
 @media (max-width: 720px) {
     .gallery { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px 14px; }
     .head-arch { width: min(320px, 80vw); height: 168px; }
@@ -244,6 +409,17 @@
 
 <section class="section" style="padding-top:30px">
   <div class="container">
+    <div class="carousel hidden" id="carousel" role="region" aria-roledescription="carousel" aria-label="Photo highlights">
+      <div class="car-bg" id="car-bg" aria-hidden="true"></div>
+      <div class="car-track" id="car-track" aria-live="polite"></div>
+      <div class="car-caption" id="car-caption"></div>
+      <div class="car-count" id="car-count"></div>
+      <button class="car-btn car-prev" id="car-prev" aria-label="Previous photo">‹</button>
+      <button class="car-btn car-next" id="car-next" aria-label="Next photo">›</button>
+      <div class="car-dots" id="car-dots"></div>
+    </div>
+
+    <h2 class="grid-head hidden" id="grid-head">All photos</h2>
     <div class="gallery" id="gallery"></div>
     <div class="empty hidden" id="empty">
       <div class="cam">📸</div>
@@ -303,6 +479,76 @@
             el.addEventListener('keypress', e => { if (e.key === 'Enter') open(parseInt(el.dataset.i, 10)); });
         });
     }
+
+
+    /* ---------------- Carousel ---------------- */
+    (function carousel() {
+        if (!PHOTOS.length) return;
+        const box = $('carousel'), track = $('car-track'), bg = $('car-bg');
+        box.classList.remove('hidden');
+        $('grid-head').classList.remove('hidden');
+
+        const src = p => 'images/' + encodeURI(p.file);
+        track.innerHTML = PHOTOS.map((p, i) => `
+            <figure class="car-slide" aria-roledescription="slide" aria-label="${i + 1} of ${PHOTOS.length}">
+              <img src="${src(p)}" alt="${escapeHtml(p.caption || '')}" ${i > 1 ? 'loading="lazy"' : ''} data-i="${i}" draggable="false">
+            </figure>`).join('');
+        $('car-dots').innerHTML = PHOTOS.map((_, i) =>
+            `<button aria-label="Show photo ${i + 1}" data-i="${i}"></button>`).join('');
+
+        if (PHOTOS.length < 2) {
+            ['car-prev', 'car-next', 'car-dots', 'car-count'].forEach(id => $(id).classList.add('hidden'));
+        }
+
+        let cur = 0, timer = null;
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const DELAY = 5000;
+
+        function go(i) {
+            cur = (i + PHOTOS.length) % PHOTOS.length;
+            track.style.transform = `translateX(${-cur * 100}%)`;
+            $('car-caption').textContent = PHOTOS[cur].caption || '';
+            $('car-count').textContent = `${cur + 1} / ${PHOTOS.length}`;
+            $('car-dots').querySelectorAll('button').forEach((b, j) =>
+                b.setAttribute('aria-current', j === cur ? 'true' : 'false'));
+            bg.classList.add('fade');
+            setTimeout(() => { bg.style.backgroundImage = `url("${src(PHOTOS[cur])}")`; bg.classList.remove('fade'); }, reduce ? 0 : 250);
+        }
+
+        function play() { stop(); if (!reduce && PHOTOS.length > 1) timer = setInterval(() => go(cur + 1), DELAY); }
+        function stop() { clearInterval(timer); timer = null; }
+
+        $('car-prev').addEventListener('click', () => { go(cur - 1); play(); });
+        $('car-next').addEventListener('click', () => { go(cur + 1); play(); });
+        $('car-dots').addEventListener('click', e => { if (e.target.dataset.i) { go(+e.target.dataset.i); play(); } });
+        track.addEventListener('click', e => { if (e.target.tagName === 'IMG') { stop(); open(+e.target.dataset.i); } });
+
+        box.addEventListener('mouseenter', stop);
+        box.addEventListener('mouseleave', play);
+        box.addEventListener('focusin', stop);
+        box.addEventListener('focusout', play);
+        document.addEventListener('visibilitychange', () => document.hidden ? stop() : play());
+
+        box.tabIndex = 0;
+        box.addEventListener('keydown', e => {
+            if ($('lightbox').classList.contains('open')) return;
+            if (e.key === 'ArrowLeft') { go(cur - 1); }
+            if (e.key === 'ArrowRight') { go(cur + 1); }
+        });
+
+        // swipe
+        let x0 = null;
+        track.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; stop(); }, { passive: true });
+        track.addEventListener('touchend', e => {
+            if (x0 === null) return;
+            const dx = e.changedTouches[0].clientX - x0;
+            if (Math.abs(dx) > 40) go(cur + (dx < 0 ? 1 : -1));
+            x0 = null; play();
+        });
+
+        go(0);
+        play();
+    })();
 
     function open(i) {
         index = i;
