@@ -6,8 +6,9 @@
 import crypto from 'node:crypto';
 import {
     applyCors, requireMethod, readBody,
-    sbSelect, sbSelectAll, sbUpdate, sbRpc, sbInsert, newBookingRef, supabaseConfigured
+    sbSelect, sbSelectAll, sbUpdate, sbRpc, sbInsert, sbDelete, newBookingRef, supabaseConfigured
 } from './_supabase.js';
+import { PHOTO_TYPES, PATH_RE, newPhotoPath, signedUploadUrl, removeObjects, publicUrl } from './_photos.js';
 import { sendConfirmationFor } from './_confirmations.js';
 import {
     emailConfigured, configuredProviders, emailConfigProblem,
@@ -556,6 +557,71 @@ export default async function handler(req, res) {
                 if (body.hidden   !== undefined) patch.hidden   = Boolean(body.hidden);
                 const [row] = await sbUpdate('messages', `id=eq.${enc(body.id)}`, patch);
                 return res.status(200).json({ message: row });
+            }
+
+            /* ---------------- photos ----------------
+               Files go browser → Storage via signed URLs; only the rows
+               (caption, order, shown/hidden) pass through here. */
+            case 'photos-list': {
+                const rows = await sbSelect('photos?select=*&order=sort_order.asc,id.asc&limit=1000');
+                return res.status(200).json({ photos: rows.map(r => ({ ...r, url: publicUrl(r.path) })) });
+            }
+
+            case 'photos-sign': {
+                const types = Array.isArray(body.types) ? body.types.slice(0, 30) : [];
+                if (!types.length) return res.status(400).json({ error: 'types array required' });
+                if (types.some(t => !PHOTO_TYPES[t])) {
+                    return res.status(400).json({ error: 'Only WEBP, JPEG and PNG images can be uploaded' });
+                }
+                const uploads = await Promise.all(types.map(async type => {
+                    const path = newPhotoPath(type);
+                    return { path, uploadUrl: await signedUploadUrl(path) };
+                }));
+                return res.status(200).json({ uploads });
+            }
+
+            case 'photos-add': {
+                const items = Array.isArray(body.photos) ? body.photos.slice(0, 30) : [];
+                if (!items.length || items.some(p => !PATH_RE.test(String(p.path || '')))) {
+                    return res.status(400).json({ error: 'photos array with valid paths required' });
+                }
+                const [last] = await sbSelect('photos?select=sort_order&order=sort_order.desc&limit=1');
+                let next = (last?.sort_order ?? -1) + 1;
+                const int = v => (Number.isInteger(v) && v > 0 && v < 20000 ? v : null);
+                const rows = items.map(p => ({
+                    path: p.path,
+                    caption: String(p.caption || '').trim().slice(0, 160),
+                    width: int(p.width),
+                    height: int(p.height),
+                    sort_order: next++
+                }));
+                const saved = await sbInsert('photos', rows);
+                return res.status(200).json({ photos: saved });
+            }
+
+            case 'photos-update': {
+                if (!body.id) return res.status(400).json({ error: 'id required' });
+                const patch = {};
+                if (body.caption !== undefined) patch.caption = String(body.caption).trim().slice(0, 160);
+                if (body.visible !== undefined) patch.visible = Boolean(body.visible);
+                const [row] = await sbUpdate('photos', `id=eq.${enc(body.id)}`, patch);
+                return res.status(200).json({ photo: row });
+            }
+
+            case 'photos-reorder': {
+                const ids = Array.isArray(body.ids) ? body.ids.map(Number).filter(Number.isInteger) : [];
+                if (!ids.length) return res.status(400).json({ error: 'ids array required' });
+                await Promise.all(ids.map((id, i) => sbUpdate('photos', `id=eq.${id}`, { sort_order: i })));
+                return res.status(200).json({ ok: true });
+            }
+
+            case 'photos-delete': {
+                if (!body.id) return res.status(400).json({ error: 'id required' });
+                const [row] = await sbSelect(`photos?select=id,path&id=eq.${enc(body.id)}`);
+                if (!row) return res.status(404).json({ error: 'Photo not found' });
+                await removeObjects([row.path]);
+                await sbDelete('photos', `id=eq.${enc(row.id)}`);
+                return res.status(200).json({ ok: true });
             }
 
             /* ---------------- seed performances from the site config -------

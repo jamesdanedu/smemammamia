@@ -465,12 +465,29 @@
     const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-    if (!PHOTOS.length) {
-        $('empty').classList.remove('hidden');
-    } else {
-        $('gallery').innerHTML = PHOTOS.map((p, i) => `
+    /* Photos come from two places, shown in this order:
+       1. uploaded on the admin page (Supabase, via /api/photos)
+       2. listed in photos.js with the file in /images
+       Either can be empty. */
+    let ITEMS = (window.PHOTOS || []).map(p => ({ src: 'images/' + encodeURI(p.file), caption: p.caption || '' }));
+
+    async function loadUploaded() {
+        try {
+            const ctrl = new AbortController();
+            const t = setTimeout(() => ctrl.abort(), 5000);
+            const res = await fetch(CONFIG.api.photos, { signal: ctrl.signal });
+            clearTimeout(t);
+            if (!res.ok) return [];
+            const data = await res.json();
+            return (data.photos || []).map(p => ({ src: p.url, caption: p.caption || '' }));
+        } catch { return []; }
+    }
+
+    function renderGrid() {
+        if (!ITEMS.length) { $('empty').classList.remove('hidden'); return; }
+        $('gallery').innerHTML = ITEMS.map((p, i) => `
             <figure class="shot" data-i="${i}" role="button" tabindex="0">
-              <img src="images/${encodeURI(p.file)}" alt="${escapeHtml(p.caption || '')}" loading="lazy">
+              <img src="${escapeHtml(p.src)}" alt="${escapeHtml(p.caption)}" loading="lazy">
               ${p.caption ? `<figcaption>${escapeHtml(p.caption)}</figcaption>` : ''}
             </figure>`).join('');
 
@@ -480,23 +497,27 @@
         });
     }
 
+    loadUploaded().then(uploaded => {
+        ITEMS = uploaded.concat(ITEMS);
+        renderGrid();
+        carousel();
+    });
 
     /* ---------------- Carousel ---------------- */
-    (function carousel() {
-        if (!PHOTOS.length) return;
+    function carousel() {
+        if (!ITEMS.length) return;
         const box = $('carousel'), track = $('car-track'), bg = $('car-bg');
         box.classList.remove('hidden');
         $('grid-head').classList.remove('hidden');
 
-        const src = p => 'images/' + encodeURI(p.file);
-        track.innerHTML = PHOTOS.map((p, i) => `
-            <figure class="car-slide" aria-roledescription="slide" aria-label="${i + 1} of ${PHOTOS.length}">
-              <img src="${src(p)}" alt="${escapeHtml(p.caption || '')}" ${i > 1 ? 'loading="lazy"' : ''} data-i="${i}" draggable="false">
+        track.innerHTML = ITEMS.map((p, i) => `
+            <figure class="car-slide" aria-roledescription="slide" aria-label="${i + 1} of ${ITEMS.length}">
+              <img src="${escapeHtml(p.src)}" alt="${escapeHtml(p.caption || '')}" ${i > 1 ? 'loading="lazy"' : ''} data-i="${i}" draggable="false">
             </figure>`).join('');
-        $('car-dots').innerHTML = PHOTOS.map((_, i) =>
+        $('car-dots').innerHTML = ITEMS.map((_, i) =>
             `<button aria-label="Show photo ${i + 1}" data-i="${i}"></button>`).join('');
 
-        if (PHOTOS.length < 2) {
+        if (ITEMS.length < 2) {
             ['car-prev', 'car-next', 'car-dots', 'car-count'].forEach(id => $(id).classList.add('hidden'));
         }
 
@@ -505,17 +526,17 @@
         const DELAY = 5000;
 
         function go(i) {
-            cur = (i + PHOTOS.length) % PHOTOS.length;
+            cur = (i + ITEMS.length) % ITEMS.length;
             track.style.transform = `translateX(${-cur * 100}%)`;
-            $('car-caption').textContent = PHOTOS[cur].caption || '';
-            $('car-count').textContent = `${cur + 1} / ${PHOTOS.length}`;
+            $('car-caption').textContent = ITEMS[cur].caption || '';
+            $('car-count').textContent = `${cur + 1} / ${ITEMS.length}`;
             $('car-dots').querySelectorAll('button').forEach((b, j) =>
                 b.setAttribute('aria-current', j === cur ? 'true' : 'false'));
             bg.classList.add('fade');
-            setTimeout(() => { bg.style.backgroundImage = `url("${src(PHOTOS[cur])}")`; bg.classList.remove('fade'); }, reduce ? 0 : 250);
+            setTimeout(() => { bg.style.backgroundImage = `url("${ITEMS[cur].src.replace(/"/g, '%22')}")`; bg.classList.remove('fade'); }, reduce ? 0 : 250);
         }
 
-        function play() { stop(); if (!reduce && PHOTOS.length > 1) timer = setInterval(() => go(cur + 1), DELAY); }
+        function play() { stop(); if (!reduce && ITEMS.length > 1) timer = setInterval(() => go(cur + 1), DELAY); }
         function stop() { clearInterval(timer); timer = null; }
 
         $('car-prev').addEventListener('click', () => { go(cur - 1); play(); });
@@ -548,12 +569,12 @@
 
         go(0);
         play();
-    })();
+    }
 
     function open(i) {
         index = i;
-        const p = PHOTOS[index];
-        $('lb-img').src = 'images/' + encodeURI(p.file);
+        const p = ITEMS[index];
+        $('lb-img').src = p.src;
         $('lb-caption').textContent = p.caption || '';
         $('lightbox').classList.add('open');
         document.body.style.overflow = 'hidden';
@@ -565,8 +586,8 @@
     }
 
     function step(n) {
-        if (!PHOTOS.length) return;
-        open((index + n + PHOTOS.length) % PHOTOS.length);
+        if (!ITEMS.length) return;
+        open((index + n + ITEMS.length) % ITEMS.length);
     }
 
     document.querySelector('.lb-close').addEventListener('click', close);
