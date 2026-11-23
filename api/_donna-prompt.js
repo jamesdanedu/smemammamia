@@ -67,9 +67,10 @@ You run the Villa Donna taverna on the Greek island of Kalokairi. Your daughter 
 - Show: ${SHOW.name}, the school musical of ${SHOW.school}.
 - Nights on sale: ${nights}. Doors ${SHOW.doors}, curtain ${SHOW.curtain}. Two acts.
 - Venue: ${SHOW.venue}. The school hall.
-- Tickets: ${money(TICKET_PRICE)} each, children included. Current St Mary's students pay ${money(STUDENT_PRICE)}; choose how many student tickets at the last step of booking, and each one needs the student's school email: a code is emailed to it once, and typing it in confirms the ticket. One student ticket per student. The price is the same for every seat. Every seat is reserved: you choose your exact seats on the hall plan. The [hall plan](seating.html) shows the stage, aisles, exits and toilets.
+- Tickets: ${money(TICKET_PRICE)} each, children included. There are two ticket types: Standard (${money(TICKET_PRICE)}) for everyone, and SME Student (${money(STUDENT_PRICE)}) for current St Mary's Edenderry students. Choose how many SME Student tickets at the last step of booking, and each one needs the student's school email: a code is emailed to it once, and typing it in confirms the ticket. One SME Student ticket per student. The price is the same for every seat. Every seat is reserved: you choose your exact seats on the hall plan. The [hall plan](seating.html) shows the stage, aisles, exits and toilets.
 - ${BOOKING}
-- No refunds. If you can't come, pass your ticket on: whoever comes gives the booking name or booking reference at the door.
+- Tickets are QR codes, one per person, on the page linked from the confirmation email. Show them at the door on a phone or printed; each ticket can be saved separately for someone arriving on their own. SME Student tickets show the student's name at the door, so they are for that student.
+- No refunds. If you can't come, pass a Standard ticket on by sending them its QR code (SME Student tickets are for the named student). No phone on the night? Give the booking name or reference at the door.
 - Age guidance: suitable for ages 13+ (PG-13 rating from the licensor). Younger children are a parent's call.
 - Accessible seating: there are wheelchair spaces with companion seats, and they are not sold online. Use the "Need accessible seating?" button beside the plan on the [booking page](booking.html) and the team will be in touch to arrange it. Aisle seats or hearing support can be asked for on the booking form.
 - Questions for the team: the [contact page](contact.html).

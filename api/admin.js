@@ -15,8 +15,9 @@ import {
     maskAddress, parseAddressList, sendEmail
 } from './_email.js';
 import { runReconcile } from './reconcile.js';
+import { parseTicketCode, ticketsFor } from './_tickets.js';
 import { openCheckout, baseUrlFor } from './_sumup.js';
-import { siteUrl, SHOW, ENQUIRIES_TO, cleanAccessNeeds, priceFor, cleanStudentCount } from './_show.js';
+import { siteUrl, SHOW, ENQUIRIES_TO, cleanAccessNeeds, accessLabels, priceFor, cleanStudentCount } from './_show.js';
 import { accessTeamAddresses, sendAccessEmails } from './_access.js';
 import { loadSeatState, countNight, seatRefusal } from './_seats.js';
 import { cleanSeats, describeSeats, isAccessible, ACCESSIBLE_IDS, SEAT_MAP } from '../seating.js';
@@ -64,8 +65,12 @@ function seatProblem(err) {
         : `Not on sale: ${refused.seats.join(', ')}.`;
 }
 
-function passwordOk(supplied) {
-    const expected = process.env.ADMIN_PASSWORD;
+/* The door scanner can use its own password (DOOR_PASSWORD), so the people on
+   the door do not need the admin one. It only opens these actions. */
+const DOOR_ACTIONS = new Set(['scan', 'checkin-stats', 'door-whoami']);
+
+function passwordOk(supplied, envName = 'ADMIN_PASSWORD') {
+    const expected = process.env[envName];
     if (!expected) return false;
     const a = Buffer.from(String(supplied || ''));
     const b = Buffer.from(expected);
@@ -83,7 +88,9 @@ export default async function handler(req, res) {
 
     const body = readBody(req);
 
-    if (!passwordOk(body.password)) {
+    const isAdmin = passwordOk(body.password);
+    const isDoor  = !isAdmin && DOOR_ACTIONS.has(body.action) && passwordOk(body.password, 'DOOR_PASSWORD');
+    if (!isAdmin && !isDoor) {
         await new Promise(r => setTimeout(r, 400)); // slow down guessing
         return res.status(401).json({ error: 'Incorrect password' });
     }
@@ -191,6 +198,70 @@ export default async function handler(req, res) {
                 if (body.status)          filters.push(`status=eq.${enc(body.status)}`);
                 const rows = await sbSelectAll('bookings?' + filters.join('&'));
                 return res.status(200).json({ bookings: rows.map(withSeats) });
+            }
+
+            /* ---------------- door: scan a QR ticket ----------------
+               { code, performanceDate, device } — the first scan of a ticket
+               lets it in; any later scan says when and where it got in. A
+               ticket for the other night, or a cancelled booking, is refused
+               without being checked in. */
+            case 'door-whoami':
+                return res.status(200).json({ ok: true, role: isAdmin ? 'admin' : 'door' });
+
+            case 'scan': {
+                const parsed = parseTicketCode(body.code);
+                if (!parsed) return res.status(200).json({ result: 'invalid', message: 'Not a Mamma Mia! ticket.' });
+                if (!isDate(body.performanceDate)) return res.status(400).json({ error: 'Choose tonight\'s performance.' });
+
+                const [b] = await sbSelect(
+                    'bookings?select=id,booking_reference,performance_date,quantity,student_quantity,status,' +
+                    'customer_name,payment_status,access_needs,access_notes,booking_seats(seat_id),booking_students(email,student_name)' +
+                    `&booking_reference=eq.${enc(parsed.ref)}&limit=1`
+                );
+                if (!b) return res.status(200).json({ result: 'invalid', message: 'No booking with that reference.' });
+
+                const ticket = ticketsFor(b).find(t => t.n === parsed.n);
+                const base = {
+                    reference: b.booking_reference,
+                    bookingName: b.customer_name,
+                    performanceDate: b.performance_date,
+                    ticket: ticket ? { n: ticket.n, of: ticket.of, kind: ticket.kind, name: ticket.name,
+                                       email: ticket.email, seatLabel: ticket.seatLabel } : null,
+                    access: [...accessLabels(b.access_needs), b.access_notes].filter(Boolean).join(' · ')
+                };
+                if (!ticket) return res.status(200).json({ ...base, result: 'invalid', message: 'That ticket is not on the booking any more.' });
+                if (b.status !== 'confirmed') {
+                    return res.status(200).json({ ...base, result: 'refused', message: b.status === 'cancelled' ? 'This booking was cancelled.' : 'This booking was never paid for.' });
+                }
+                if (b.performance_date !== body.performanceDate) {
+                    return res.status(200).json({ ...base, result: 'wrong-night', message: 'This ticket is for a different night.' });
+                }
+
+                const [c] = await sbRpc('check_in_ticket', {
+                    p_booking: b.id,
+                    p_ticket:  ticket.n,
+                    p_date:    b.performance_date,
+                    p_by:      String(body.device || '').trim().slice(0, 40)
+                });
+                return res.status(200).json({
+                    ...base,
+                    result: c.first_scan ? 'ok' : 'already',
+                    scannedAt: c.scanned_at,
+                    scannedBy: c.scanned_by
+                });
+            }
+
+            case 'checkin-stats': {
+                if (!isDate(body.performanceDate)) return res.status(400).json({ error: 'performanceDate required' });
+                const [rows, checked] = await Promise.all([
+                    sbSelectAll(`bookings?select=quantity,student_quantity&performance_date=eq.${enc(body.performanceDate)}&status=eq.confirmed`),
+                    sbSelectAll(`ticket_checkins?select=ticket_no&performance_date=eq.${enc(body.performanceDate)}`)
+                ]);
+                return res.status(200).json({
+                    tickets: rows.reduce((t, b) => t + b.quantity, 0),
+                    studentTickets: rows.reduce((t, b) => t + (b.student_quantity || 0), 0),
+                    checkedIn: checked.length
+                });
             }
 
             /* ---------------- door list ---------------- */

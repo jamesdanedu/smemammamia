@@ -191,7 +191,19 @@ q "$(hold_sql MM-STU009 "array['H15','H16']" ", p_student_quantity => 2, p_staff
 check "staff can sell student tickets without addresses" 2 \
       "$(q "select student_quantity from bookings where booking_reference = 'MM-STU009'")"
 
-echo "12. the anon key can call nothing"
+echo "12. door check-in"
+BID=$(q "select id from bookings where booking_reference = 'MM-STU007'")
+check "the first scan lets the ticket in" t "$(q "select first_scan from check_in_ticket('$BID', 1, $NIGHT, 'iPad 1')")"
+check "a second scan says it is already in, and where" "false|iPad 1" \
+      "$(q "select first_scan::text || '|' || scanned_by from check_in_ticket('$BID', 1, $NIGHT, 'iPad 2')")"
+for i in 1 2 3 4 5 6 7 8; do
+    ( "${PSQL[@]}" -d "$DB" -c "select first_scan from check_in_ticket('$BID', 2, $NIGHT, 'race')" ) &
+done > /tmp/mm_scan.$$ ; wait
+check "eight iPads scanning one ticket at once: exactly one lets it in" 1 "$(grep -c '^t$' /tmp/mm_scan.$$)"
+rm -f /tmp/mm_scan.$$
+
+echo "13. the anon key can call nothing"
+check "anon cannot check a ticket in" f "$(q "select has_function_privilege('anon', 'public.check_in_ticket(uuid, integer, date, text)', 'execute')")"
 check "anon cannot create a hold" f \
       "$(q "select has_function_privilege('anon', 'public.create_hold(text, date, text[], numeric, text, text, text, text, integer, text, text, text[], boolean, boolean, text, text, text, uuid, integer, jsonb)', 'execute')")"
 check "anon cannot confirm a payment" f "$(q "select has_function_privilege('anon', 'public.confirm_paid_booking(text, text)', 'execute')")"

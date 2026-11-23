@@ -30,6 +30,9 @@ const CONFIG = {
         price: 15,                    // euro, full price
         studentPrice: 10,             // euro, St Mary's students
         studentLabel: "St Mary's student",
+        // The two ticket types, as printed on tickets and the booking summary.
+        types: { student: 'SME Student', standard: 'Standard' },
+        qrLogo: 'images/crest-qr.png',  // shown in the middle of every QR ticket
         studentDomain: 'stmarysedenderry.ie', // student tickets need a school email here
                                       // (STUDENT_EMAIL_DOMAIN in Vercel, if set)
                                       // both must match TICKET_PRICE / STUDENT_PRICE
@@ -164,12 +167,13 @@ CONFIG.priceFor = function (quantity, students = 0) {
     return (quantity - students) * T.price + students * T.studentPrice;
 };
 
-/** '3 tickets (1 student)' */
+/** '3 tickets (1 SME Student)' */
 CONFIG.ticketWords = function (quantity, students = 0) {
     const base = quantity + (quantity === 1 ? ' ticket' : ' tickets');
     if (!students) return base;
-    if (students === quantity) return base + (quantity === 1 ? ' (student)' : ' (all student)');
-    return `${base} (${students} student)`;
+    const S = CONFIG.ticket.types.student;
+    if (students === quantity) return base + (quantity === 1 ? ` (${S})` : ` (all ${S})`);
+    return `${base} (${students} ${S})`;
 };
 
 /** '€15 · €10 for St Mary's students' */

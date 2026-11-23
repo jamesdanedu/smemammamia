@@ -297,11 +297,11 @@
         ['When is it on?', nights + '<br>Doors ' + S.doorsTime + ', curtain up ' + S.startTime + '.'],
         ['How much are tickets?', CONFIG.money(T.price) + ' each, or ' + CONFIG.money(T.studentPrice) + ' for current St Mary\'s students. Same price for every seat and both nights.'],
         ['Where is it?', S.venue + ', ' + S.venueLine2 + '. <a href="' + S.venueMapUrl + '" target="_blank" rel="noopener">Map</a>.'],
-        ['Do I need to print anything?', 'No. Your booking is on the door list — just give the booking name or reference at the door.'],
+        ['Do I need to print anything?', 'No. Your confirmation email links to your tickets: one QR code per person. Show them on your phone at the door, or print them if you prefer. No phone? Give the booking name or reference and we will find you.'],
         ['Are seats reserved?', 'Yes. You choose your seats on the <a href="seating.html">plan</a> when you book, and they are yours — no need to come early.'],
         ['I need a wheelchair space or step-free seat.', 'Accessible seats are arranged with you rather than sold online. Use <strong>Need accessible seating?</strong> on the <a href="booking.html">booking page</a> and the team will be in touch.'],
         ['Can I buy on the night?', 'If the night has not sold out. Booking ahead is safer — <a href="booking.html">book online</a>.'],
-        ['Can I get a refund?', 'Tickets are not refundable, but you are welcome to pass yours on — whoever comes just gives your booking name or reference at the door.'],
+        ['Can I get a refund?', 'Tickets are not refundable, but you are welcome to pass yours on — just send them their QR ticket from your tickets page (each one can be saved separately).'],
         ['Something wrong with my booking?', 'Send us the question below with your booking reference and we will sort it out.']
     ].map(([q, a]) => `<div class="faq-item"><div class="faq-q">${q}</div><div class="faq-a">${a}</div></div>`).join('');
 

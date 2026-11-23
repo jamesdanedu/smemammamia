@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Door scanner — Mamma Mia! | St Mary's Edenderry</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Karla:wght@400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* ==========================================================================
+   Door scanner. Made for an iPad or phone held by somebody in a queue:
+   one big camera, one big answer, nothing else to tap.
+   ========================================================================== */
+body { padding-top: 0; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 16px 16px 40px; }
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.bar h1 { font-family: var(--font-display); font-size: 1.3rem; margin: 0; }
+.bar .count { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text-dim); }
+.settings { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.settings .field { margin-bottom: 0; }
+
+.camera {
+    position: relative; background: #0d1a24; border-radius: 16px; overflow: hidden;
+    aspect-ratio: 4 / 3; display: grid; place-items: center;
+}
+.camera video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.camera .frame {
+    position: absolute; inset: 18% 24%; border: 3px solid rgba(255,255,255,0.85); border-radius: 18px;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.25); pointer-events: none;
+}
+.camera .start { position: absolute; }
+
+.result {
+    margin-top: 14px; border-radius: 16px; padding: 18px 20px; min-height: 150px;
+    background: var(--surface-2); border: 2px solid var(--border);
+}
+.result .big { font-family: var(--font-display); font-size: 2rem; font-weight: 800; line-height: 1.1; }
+.result .who { font-size: 1.5rem; font-weight: 800; margin-top: 6px; }
+.result .line { margin-top: 4px; font-size: 1rem; }
+.result .badge {
+    display: inline-block; margin-top: 8px; padding: 4px 12px; border-radius: 999px;
+    font-weight: 800; letter-spacing: 0.1em; font-size: 0.8rem; text-transform: uppercase;
+    background: #fff; color: var(--text);
+}
+.result.ok      { background: #e4f4e0; border-color: #6f8b4e; color: #2f4a1c; }
+.result.student { background: #fff3d1; border-color: #e0a020; color: #5c3d00; }
+.result.already { background: #fde9d3; border-color: #c2663f; color: #6b2e12; }
+.result.bad     { background: #fbe1e8; border-color: #c2356b; color: #7a1336; }
+.result .access { margin-top: 8px; font-weight: 700; }
+
+.manual { display: flex; gap: 8px; margin-top: 14px; }
+.manual input {
+    flex: 1; min-width: 0; padding: 12px 14px; font-size: 16px; font-family: inherit;
+    border: 1px solid var(--border-strong); border-radius: 10px; background: #fff; color: var(--text);
+}
+.faint-note { font-size: 0.85rem; color: var(--text-faint); margin-top: 10px; }
+@media (max-width: 520px) { .settings { grid-template-columns: 1fr; } .result .big { font-size: 1.6rem; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <!-- sign in -->
+  <section id="gate" class="card" style="max-width:420px;margin:40px auto">
+    <h1 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:10px">Door scanner</h1>
+    <div class="field">
+      <label for="pw">Door password</label>
+      <input type="password" id="pw" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary btn-block" id="gate-btn">Sign in</button>
+    <div class="alert alert-error hidden mt-2" id="gate-alert"></div>
+  </section>
+
+  <!-- scanner -->
+  <section id="scanner" class="hidden">
+    <div class="bar">
+      <h1>Mamma Mia! door</h1>
+      <span class="count" id="count">—</span>
+    </div>
+
+    <div class="settings">
+      <div class="field"><label for="night">Tonight</label><select id="night"></select></div>
+      <div class="field"><label for="device">This device</label><input type="text" id="device" maxlength="40" placeholder="Door 1"></div>
+    </div>
+
+    <div class="camera" id="camera">
+      <video id="video" playsinline muted></video>
+      <div class="frame hidden" id="frame"></div>
+      <button class="btn btn-primary start" id="start-btn">📷 Start scanning</button>
+    </div>
+
+    <div class="result" id="result" aria-live="assertive">
+      <div class="big">Ready</div>
+      <div class="line">Point the camera at a ticket's QR code.</div>
+    </div>
+
+    <form class="manual" id="manual">
+      <input type="text" id="manual-code" placeholder="Or type a ticket code" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="btn btn-ghost" type="submit">Check</button>
+    </form>
+    <p class="faint-note">
+      No QR code? Find them by name on the admin Door list. A green screen lets them in.
+      A yellow <strong>SME Student</strong> screen: check the name is the student in front of you.
+      Orange means the ticket has already been used.
+    </p>
+  </section>
+</main>
+
+<canvas id="grab" hidden></canvas>
+
+<script src="config.js"></script>
+<script src="vendor/jsQR.min.js"></script>
+<script>
+(function () {
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const KEY = 'mm_door_pw';
+    let pw = sessionStorage.getItem(KEY) || '';
+
+    async function api(action, extra = {}) {
+        const res = await fetch(CONFIG.api.admin, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pw, action, ...extra })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) { signOut(); throw new Error('unauthorised'); }
+        if (!res.ok) throw new Error(data.error || 'Request failed');
+        return data;
+    }
+
+    /* ---------------- sign in ---------------- */
+    async function signIn() {
+        pw = $('pw').value;
+        if (!pw) return;
+        $('gate-btn').disabled = true;
+        try {
+            await api('door-whoami');
+            sessionStorage.setItem(KEY, pw);
+            open();
+        } catch (err) {
+            const box = $('gate-alert');
+            box.textContent = err.message === 'unauthorised' ? 'Incorrect password.' : err.message;
+            box.classList.remove('hidden');
+        } finally {
+            $('gate-btn').disabled = false;
+        }
+    }
+    function signOut() {
+        sessionStorage.removeItem(KEY);
+        pw = '';
+        stopCamera();
+        $('scanner').classList.add('hidden');
+        $('gate').classList.remove('hidden');
+    }
+    $('gate-btn').addEventListener('click', signIn);
+    $('pw').addEventListener('keydown', e => { if (e.key === 'Enter') signIn(); });
+
+    /* ---------------- settings ---------------- */
+    function open() {
+        $('gate').classList.add('hidden');
+        $('scanner').classList.remove('hidden');
+        const today = new Date().toISOString().slice(0, 10);
+        $('night').innerHTML = CONFIG.performances
+            .map(p => `<option value="${p.key}">${p.label}</option>`).join('');
+        const saved = localStorage.getItem('mm_door_night');
+        $('night').value = CONFIG.performances.some(p => p.key === today) ? today
+            : (CONFIG.performances.some(p => p.key === saved) ? saved : CONFIG.performances[0].key);
+        try { $('device').value = localStorage.getItem('mm_door_device') || ''; } catch (_) {}
+        refreshCount();
+    }
+    $('night').addEventListener('change', () => {
+        try { localStorage.setItem('mm_door_night', $('night').value); } catch (_) {}
+        refreshCount();
+    });
+    $('device').addEventListener('change', () => {
+        try { localStorage.setItem('mm_door_device', $('device').value.trim()); } catch (_) {}
+    });
+
+    async function refreshCount() {
+        try {
+            const s = await api('checkin-stats', { performanceDate: $('night').value });
+            $('count').textContent = `${s.checkedIn} / ${s.tickets} in`;
+        } catch (_) { /* keep the last figure */ }
+    }
+    setInterval(() => { if (pw && !document.hidden) refreshCount(); }, 20000);
+
+    /* ---------------- camera ----------------
+       jsQR reads frames from the video about eight times a second. It works
+       in Safari on iPad, which has no built-in barcode reader. */
+    let stream = null, timer = null, busy = false, lastCode = '', lastAt = 0;
+    const video = $('video'), grab = $('grab'), ctx = grab.getContext('2d', { willReadFrequently: true });
+
+    async function startCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false
+            });
+        } catch (err) {
+            show('bad', 'No camera', 'Allow camera access for this page, or type the code below.');
+            return;
+        }
+        video.srcObject = stream;
+        await video.play();
+        $('start-btn').classList.add('hidden');
+        $('frame').classList.remove('hidden');
+        timer = setInterval(tick, 125);
+    }
+    function stopCamera() {
+        clearInterval(timer);
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        stream = null;
+        $('start-btn').classList.remove('hidden');
+        $('frame').classList.add('hidden');
+    }
+    $('start-btn').addEventListener('click', startCamera);
+
+    function tick() {
+        if (busy || !video.videoWidth) return;
+        // Read the middle of the picture, where the frame is drawn, at a size
+        // jsQR gets through quickly.
+        const side = Math.min(video.videoWidth, video.videoHeight) * 0.8;
+        const sx = (video.videoWidth - side) / 2, sy = (video.videoHeight - side) / 2;
+        grab.width = grab.height = 480;
+        ctx.drawImage(video, sx, sy, side, side, 0, 0, 480, 480);
+        const img = ctx.getImageData(0, 0, 480, 480);
+        const hit = jsQR(img.data, 480, 480, { inversionAttempts: 'dontInvert' });
+        if (hit && hit.data) check(hit.data);
+    }
+
+    $('manual').addEventListener('submit', e => {
+        e.preventDefault();
+        const code = $('manual-code').value.trim();
+        if (code) check(code, true);
+    });
+
+    /* ---------------- check a ticket ---------------- */
+    async function check(code, typed = false) {
+        const now = Date.now();
+        // The same code held in front of the camera: answer once.
+        if (!typed && code === lastCode && now - lastAt < 4000) return;
+        lastCode = code; lastAt = now;
+        busy = true;
+        show('', 'Checking…', '');
+        try {
+            const r = await api('scan', {
+                code,
+                performanceDate: $('night').value,
+                device: $('device').value.trim()
+            });
+            render(r);
+            if (typed) $('manual-code').value = '';
+            refreshCount();
+        } catch (err) {
+            if (err.message !== 'unauthorised') show('bad', 'Could not check', 'No connection? Use the printed door list. (' + err.message + ')');
+        } finally {
+            setTimeout(() => { busy = false; }, 1200);
+        }
+    }
+
+    const time = iso => new Date(iso).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' });
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function render(r) {
+        const t = r.ticket;
+        const seat = t && t.seatLabel ? esc(t.seatLabel) : 'Seat to be confirmed — send them to the box office';
+        const ticketLine = t ? `Ticket ${t.n} of ${t.of} · booking ${esc(r.bookingName)} · ${esc(r.reference)}` : '';
+        const access = r.access ? `<div class="access">♿ ${esc(r.access)}</div>` : '';
+
+        if (r.result === 'ok' && t.kind === 'student') {
+            buzz([60, 60, 60]); beep(880);
+            return paint('student',
+                `<div class="big">✓ In — ${esc(CONFIG.ticket.types.student.toUpperCase())}</div>
+                 <div class="who">${esc(t.name)}</div>
+                 <div class="line">Check this is the student in front of you.${t.email ? ' (' + esc(t.email) + ')' : ''}</div>
+                 <div class="line">${seat}</div><div class="line">${ticketLine}</div>${access}`);
+        }
+        if (r.result === 'ok') {
+            buzz(80); beep(880);
+            return paint('ok',
+                `<div class="big">✓ In</div>
+                 <div class="who">${esc(t.name)}</div><span class="badge">${esc(CONFIG.ticket.types.standard)}</span>
+                 <div class="line">${seat}</div><div class="line">${ticketLine}</div>${access}`);
+        }
+        buzz([200, 80, 200]); beep(220);
+        if (r.result === 'already') {
+            return paint('already',
+                `<div class="big">Already scanned</div>
+                 <div class="who">${esc(t.name)}${t.kind === 'student' ? ' (' + esc(CONFIG.ticket.types.student) + ')' : ''}</div>
+                 <div class="line">Came in at ${time(r.scannedAt)}${r.scannedBy ? ' on ' + esc(r.scannedBy) : ''}.</div>
+                 <div class="line">${seat}</div><div class="line">${ticketLine}</div>`);
+        }
+        if (r.result === 'wrong-night') {
+            const p = CONFIG.getPerformance(r.performanceDate);
+            return paint('bad',
+                `<div class="big">Wrong night</div>
+                 <div class="line">This ticket is for <strong>${esc(p ? p.label : r.performanceDate)}</strong>.</div>
+                 <div class="line">${t ? esc(t.name) + ' · ' : ''}${ticketLine}</div>`);
+        }
+        return paint('bad',
+            `<div class="big">Not valid</div>
+             <div class="line">${esc(r.message || 'This is not a ticket for tonight.')}</div>
+             ${ticketLine ? `<div class="line">${ticketLine}</div>` : ''}`);
+    }
+
+    function show(kind, big, line) {
+        paint(kind, `<div class="big">${esc(big)}</div>${line ? `<div class="line">${esc(line)}</div>` : ''}`);
+    }
+    function paint(kind, html) {
+        const box = $('result');
+        box.className = 'result' + (kind ? ' ' + kind : '');
+        box.innerHTML = html;
+    }
+
+    function buzz(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (_) {} }
+    let audio = null;
+    function beep(freq) {
+        try {
+            audio ||= new (window.AudioContext || window.webkitAudioContext)();
+            const o = audio.createOscillator(), g = audio.createGain();
+            o.frequency.value = freq; g.gain.value = 0.15;
+            o.connect(g); g.connect(audio.destination);
+            o.start(); o.stop(audio.currentTime + 0.15);
+        } catch (_) {}
+    }
+
+    if (pw) api('door-whoami').then(open).catch(() => {});
+})();
+</script>
+</body>
+</html>

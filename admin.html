@@ -502,6 +502,7 @@ input[type="checkbox"] {
   <div class="bar-actions">
     <button class="mini-btn" id="refresh-btn" style="display:none">↻ Refresh</button>
     <button class="mini-btn" id="logout-btn" style="display:none">Sign out</button>
+    <a class="mini-btn" href="scanner.html" style="text-decoration:none">📷 Door scanner</a>
     <a class="mini-btn" href="index.html" style="text-decoration:none">← Site</a>
   </div>
 </div>
@@ -721,7 +722,7 @@ input[type="checkbox"] {
         <div class="field"><label for="add-email">Email <span class="faint" style="text-transform:none">(optional — they get a confirmation)</span></label><input type="email" id="add-email"></div>
         <div class="field"><label for="add-phone">Phone <span class="faint" style="text-transform:none">(optional)</span></label><input type="tel" id="add-phone"></div>
         <div class="field">
-          <label for="add-students">Student tickets <span class="faint" style="text-transform:none">(St Mary's students, charged at the student price)</span></label>
+          <label for="add-students">SME Student tickets <span class="faint" style="text-transform:none">(St Mary's Edenderry students, at the student price; the rest are Standard)</span></label>
           <input type="number" id="add-students" min="0" max="20" step="1" value="0" inputmode="numeric" style="max-width:120px">
         </div>
         <div class="field">
@@ -976,7 +977,7 @@ import { drawSeatPlan } from './seatplan.js';
             [t.cashTickets, 'Cash'],
             [t.cardDoorTickets, 'Card swipe (office)'],
             [t.compTickets, 'Complimentary'],
-            [t.studentTickets || 0, 'Student tickets']
+            [t.studentTickets || 0, 'SME Student tickets']
         ].map(([n, l, cls]) => `<div class="stat ${cls || ''}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
 
         $('perf-cards').innerHTML = (s.performances || []).map(p => {
@@ -1166,7 +1167,7 @@ import { drawSeatPlan } from './seatplan.js';
                 <td><strong>${escapeHtml(b.customer_name)}</strong></td>
                 <td>${escapeHtml(b.customer_email || '')}<br><span class="faint">${escapeHtml(b.customer_phone || '')}</span></td>
                 <td class="night">${perfShort(b.performance_date)}</td>
-                <td><strong>${b.quantity}</strong>${b.student_quantity ? `<br><span class="faint">${b.student_quantity} student${
+                <td><strong>${b.quantity}</strong>${b.student_quantity ? `<br><span class="faint">${b.student_quantity} SME Student${
                     (b.booking_students || []).length ? ': ' + escapeHtml(b.booking_students.map(x => x.student_name).join(', ')) : ''}</span>` : ''}</td>
                 <td class="seats-cell">${b.seatsLabel ? escapeHtml(b.seatsLabel) : b.seat_conflict ? '<strong style="color:var(--pink)">To assign</strong>' : '<span class="faint">—</span>'}</td>
                 <td>${CONFIG.money(b.amount)}</td>
@@ -1253,7 +1254,7 @@ import { drawSeatPlan } from './seatplan.js';
     /* ---------------- CSV ---------------- */
     $('csv-btn').addEventListener('click', () => {
         const rows = filteredBookings();
-        const header = ['Reference', 'Name', 'Email', 'Phone', 'Performance', 'Tickets', 'Student tickets', 'Students', 'Seats', 'Seats (ids)', 'Amount',
+        const header = ['Reference', 'Name', 'Email', 'Phone', 'Performance', 'Tickets', 'SME Student tickets', 'SME Students', 'Seats', 'Seats (ids)', 'Amount',
                         'Status', 'Payment', 'Payment method', 'Seat conflict', 'Access', 'Access notes', 'Sold by',
                         'Booked at', 'Confirmation sent', 'Email error'];
         const body = rows.map(b => [
@@ -1358,7 +1359,7 @@ import { drawSeatPlan } from './seatplan.js';
                 <tr>
                   <td style="font-size:1.1rem">☐</td>
                   <td><strong>${escapeHtml(b.customer_name)}</strong></td>
-                  <td><strong>${b.quantity}</strong>${b.student_quantity ? `<br><span class="faint">${b.student_quantity} student${
+                  <td><strong>${b.quantity}</strong>${b.student_quantity ? `<br><span class="faint">${b.student_quantity} SME Student${
                     (b.booking_students || []).length ? ': ' + escapeHtml(b.booking_students.map(x => x.student_name).join(', ')) : ''}</span>` : ''}</td>
                   <td class="seats-cell">${b.seatsLabel ? escapeHtml(b.seatsLabel) : b.seat_conflict ? '<strong>⚠ Seats to be assigned — see the office</strong>' : ''}</td>
                   <td class="ref">${b.booking_reference}</td>

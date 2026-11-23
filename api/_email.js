@@ -346,7 +346,7 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
         `  Performance       : ${dateLabel}`,
         `  Doors / curtain   : ${SHOW.doors} / ${SHOW.curtain}`,
         `  Tickets           : ${qty}`,
-        ...(studentNames ? [`  Student tickets   : ${studentNames}`] : []),
+        ...(studentNames ? [`  SME Student       : ${studentNames}`] : []),
         ...(seatsLine ? [`  Your seats        : ${seatsLine}`] : []),
         `  Paid              : ${paidLine}`,
         `  Venue             : ${SHOW.venue}`,
@@ -366,8 +366,9 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
             ''
         ] : []),
         'ON THE NIGHT',
-        'There is no ticket to print. Give the booking name or the reference',
-        'above at the door and we will find you on the list.',
+        'Your tickets are QR codes — one per person. Open the link below and',
+        'show them at the door on your phone, or print them. Can\'t open them on',
+        'the night? Give the booking name or reference and we will find you.',
         ...(seatsLine && !conflict
             ? ['These seats are reserved for you — nobody else can be sold them,',
                'so there is no need to arrive early to get a good spot. The row',
@@ -375,7 +376,7 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
             : []),
         'Doors open at ' + SHOW.doors + ' — please be seated by ' + SHOW.curtain + '.',
         '',
-        url ? 'Booking details: ' + url + '/success.html?ref=' + encodeURIComponent(ref) : '',
+        url ? 'Your QR tickets (show them at the door): ' + url + '/success.html?ref=' + encodeURIComponent(ref) : '',
         '',
         'Questions, or need to change something? Reply to this email' +
             (url ? ' or use the contact form: ' + url + '/contact.html?topic=booking&ref=' + encodeURIComponent(ref) : '') +
@@ -463,7 +464,7 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
         <td style="padding:11px 0;border-bottom:1px solid #e2eaef;text-align:right;">${esc(qty)}</td>
       </tr>
       ${studentNames ? `<tr>
-        <td style="padding:11px 0;border-bottom:1px solid #e2eaef;color:#5b6f7c;vertical-align:top;">Student tickets</td>
+        <td style="padding:11px 0;border-bottom:1px solid #e2eaef;color:#5b6f7c;vertical-align:top;">SME Student tickets</td>
         <td style="padding:11px 0;border-bottom:1px solid #e2eaef;text-align:right;">${esc(studentNames)}</td>
       </tr>` : ''}
       ${seatsLine ? `<tr>
@@ -490,7 +491,8 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
            style="background:#fdfaf3;border:1px solid #ecdfc4;border-radius:3px;">
       <tr><td style="padding:16px 18px;font-size:14px;line-height:1.65;color:#22333f;">
         <span style="color:#8a6414;text-transform:uppercase;letter-spacing:2px;font-size:11px;">On the night</span><br>
-        There is nothing to print. Give the booking name or reference at the door and we will find you on the list.${seatsLine && !conflict ? `
+        Your tickets are QR codes, one per person: press <strong>Show my QR tickets</strong> below and show them
+        at the door on your phone, or print them. No phone on the night? Give the booking name or reference and we will find you.${seatsLine && !conflict ? `
         <br><br>Your seats are reserved for you, so there is no need to arrive early for a good
         spot — the row letter is on the end chair of every row.` : ''}${conflict ? `
         <br><br><strong>Your seats:</strong> your payment arrived after the seats you chose had been
@@ -509,7 +511,7 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
         <a href="${esc(url)}/success.html?ref=${encodeURIComponent(ref)}"
            style="display:inline-block;color:#ffffff;text-decoration:none;padding:13px 30px;
                   font-size:15px;letter-spacing:1px;
-                  font-family:Helvetica,Arial,sans-serif;">View your booking</a>
+                  font-family:Helvetica,Arial,sans-serif;">Show my QR tickets</a>
       </td></tr>
     </table>
   </td></tr>` : ''}
