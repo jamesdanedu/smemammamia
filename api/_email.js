@@ -7,7 +7,7 @@
 // Everything here throws on failure so the caller can log it and let the
 // reconciler retry. A booking is never lost because an email bounced.
 
-import { SHOW, formatPerformanceDate, to24, accessLabels } from './_show.js';
+import { SHOW, formatPerformanceDate, to24, accessLabels, ticketWords } from './_show.js';
 import { describeSeats, cleanSeats } from '../seating.js';
 
 /* Environment values arrive verbatim. A line copied out of .env.example keeps
@@ -307,7 +307,8 @@ function icsAttachment(booking, dateLabel, url) {
  */
 export function buildConfirmation(booking, { performanceLabel, url } = {}) {
     const dateLabel = formatPerformanceDate(booking.performance_date, performanceLabel);
-    const qty = booking.quantity + (booking.quantity === 1 ? ' ticket' : ' tickets');
+    const qty = ticketWords(booking.quantity, booking.student_quantity || 0);
+    const studentNames = (booking.booking_students || []).map(st => st.student_name).filter(Boolean).join(', ');
     const paid = '€' + Number(booking.amount).toFixed(2).replace(/\.00$/, '');
     const ref = booking.booking_reference;
     const isCash = booking.payment_status === 'cash';
@@ -345,6 +346,7 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
         `  Performance       : ${dateLabel}`,
         `  Doors / curtain   : ${SHOW.doors} / ${SHOW.curtain}`,
         `  Tickets           : ${qty}`,
+        ...(studentNames ? [`  Student tickets   : ${studentNames}`] : []),
         ...(seatsLine ? [`  Your seats        : ${seatsLine}`] : []),
         `  Paid              : ${paidLine}`,
         `  Venue             : ${SHOW.venue}`,
@@ -460,6 +462,10 @@ export function buildConfirmation(booking, { performanceLabel, url } = {}) {
         <td style="padding:11px 0;border-bottom:1px solid #e2eaef;color:#5b6f7c;">Tickets</td>
         <td style="padding:11px 0;border-bottom:1px solid #e2eaef;text-align:right;">${esc(qty)}</td>
       </tr>
+      ${studentNames ? `<tr>
+        <td style="padding:11px 0;border-bottom:1px solid #e2eaef;color:#5b6f7c;vertical-align:top;">Student tickets</td>
+        <td style="padding:11px 0;border-bottom:1px solid #e2eaef;text-align:right;">${esc(studentNames)}</td>
+      </tr>` : ''}
       ${seatsLine ? `<tr>
         <td style="padding:11px 0;border-bottom:1px solid #e2eaef;color:#5b6f7c;vertical-align:top;">Your seats</td>
         <td style="padding:11px 0;border-bottom:1px solid #e2eaef;text-align:right;"><strong>${esc(seatsLine)}</strong></td>
@@ -620,6 +626,37 @@ export function buildAccessRequestForTeam(r, { to, performanceLabel, url } = {})
     });
 
     return { to, subject, text, html, replyTo: r.email, bcc: false };
+}
+
+/** The 6-digit code that proves a student ticket belongs to a St Mary's student. */
+export function buildStudentCode({ to, name, code }) {
+    const subject = `${code} is your ${SHOW.name} student ticket code`;
+    const text = [
+        `${SHOW.name.toUpperCase()} — ${SHOW.school}`,
+        '',
+        `Hello ${name},`,
+        '',
+        `Your code for a student ticket is: ${code}`,
+        '',
+        'Type it into the booking page. Keep this email: this is the only code',
+        'we send to this address, and it works until your student ticket is paid for.',
+        'If you did not ask for this, ignore this email: nothing has been booked.',
+        '',
+        SHOW.school
+    ].join('\n');
+
+    const html = simpleHtml({
+        kicker: `${SHOW.name} · student ticket`,
+        heading: 'Your student ticket code',
+        intro: `Hello ${esc(name)},<br><br>Type this code into the booking page:
+                <div style="font-size:32px;font-weight:bold;letter-spacing:6px;margin:18px 0;color:#22333f;">${esc(code)}</div>
+                Keep this email: this is the only code we send to this address, and it works
+                until your student ticket is paid for.`,
+        rows: [],
+        outro: 'If you did not ask for this, ignore this email: nothing has been booked.'
+    });
+
+    return { to, subject, text, html, bcc: false };
 }
 
 /** To the person who asked: we have it, and we will be in touch. */

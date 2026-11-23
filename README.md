@@ -5,7 +5,7 @@ serverless functions for anything that touches money or data, Supabase for stora
 SumUp for card payments.
 
 **The run:** Thursday 28 and Friday 29 January 2027, doors 7:00 PM, curtain
-7:30 PM. €10 flat, 504 seats a night, at St Mary's Secondary School, Edenderry,
+7:30 PM. €15 a ticket, €10 for St Mary's students, 504 seats a night, at St Mary's Secondary School, Edenderry,
 Co. Offaly. Two acts, suitable for ages 13+ (PG-13). **Seating is reserved** —
 pick a night, then pick your seats on the hall plan; the number of seats is the
 number of tickets. Bookings are identified by a reference in the form
@@ -83,6 +83,8 @@ api/availability.js    GET  — aggregate seat counts only, no customer data
 api/seats.js           GET  — which seats are unavailable for a night, and nothing else
 api/access-request.js  POST — "Need accessible seating?": stores it, emails the team
 api/_sumup.js          Opens a SumUp hosted checkout — the website and staff card payments
+api/_students.js       Student tickets: school-email check, code and token hashing
+api/student-code.js    POST — emails a student's one code, and checks it when typed in
 api/create-checkout.js POST — holds the chosen seats atomically, opens SumUp checkout
 api/verify-payment.js  POST — asks SumUp if it was paid, confirms, sends the email
 api/reconcile.js       CRON — rescues abandoned payments, retries unsent emails
@@ -123,7 +125,7 @@ Everything marked `// TODO` needs your real values:
 * show dates, times and year
 * venue name
 * contact-form inbox (`ENQUIRIES_TO` in Vercel — defaults to smemammamia@proton.me)
-* ticket price (**must match `TICKET_PRICE` in Vercel** — the server decides the price)
+* ticket prices — full and student (**must match `TICKET_PRICE` and `STUDENT_PRICE` in Vercel** — the server decides the price)
 * the most seats in one booking (`maxPerBooking`, must match `MAX_PER_ORDER`)
 
 There is no capacity to type in: a night has the seats in `seating.js`, less the
@@ -415,7 +417,8 @@ under **Settings → Environment Variables**:
 | `SITE_URL` | your live URL, for links inside emails — e.g. `https://mammamiathemusical.ie` (an example, not a registered domain) |
 | `EMAIL_BCC` | optional, office copy of every confirmation |
 | `ACCESS_REQUESTS_TO` | optional, where accessible-seating requests go — defaults to `ENQUIRIES_TO` |
-| `TICKET_PRICE` | optional, defaults to 10 — must match `config.js` |
+| `TICKET_PRICE` | optional, full price, defaults to 15 — must match `config.js` |
+| `STUDENT_PRICE` | optional, St Mary's student price, defaults to 10 — must match `config.js` |
 | `HOLD_MINUTES` | optional, defaults to 15 |
 | `MAX_PER_ORDER` | optional, defaults to 10 — the most seats in one online booking; must match `maxPerBooking` in `config.js` |
 | `WALL_AUTO_APPROVE` | optional, `true` posts wall messages without moderation |
@@ -443,7 +446,7 @@ Redeploy after adding them — Vercel only picks up new variables on a fresh bui
    488 on sale a night before anything is sold or released (504 less 16 accessible).
 2. Open `/admin.html`, sign in, and confirm the dashboard loads. The Overview tab
    tells you straight away whether email is configured.
-3. Make a real €10 booking with your own card, then refund it in SumUp. This is the
+3. Make a real €10 (student) booking with your own card, then refund it in SumUp. This is the
    only way to be sure the whole chain works before you tell people to buy tickets.
    Check that the confirmation lands in your **inbox**, not spam — and try a Gmail
    address, a Hotmail address and a school address, because they filter differently.
@@ -513,8 +516,20 @@ ticket hold.
 
 Things worth knowing:
 
-* **The price is set on the server.** The browser sends seat ids, never an amount
-  and never a ticket count: the number of seats is the number of tickets.
+* **The price is set on the server.** The browser sends seat ids and how many of
+  them are student tickets, never an amount and never a ticket count: the number of
+  seats is the number of tickets. Full price is `TICKET_PRICE`, student tickets are
+  `STUDENT_PRICE`; the split is stored on the booking as `student_quantity`.
+* **Student tickets are proved by school email.** Each one needs an
+  `@stmarysedenderry.ie` address. `/api/student-code` emails ONE 6-digit code per
+  address, ever — asking again is refused, so no address gets a second email. The
+  code keeps working until it is on a paid booking, so an abandoned payment is
+  just typed in again. Typing it in returns a token; `/api/create-checkout` only
+  charges the student price for valid tokens, and `create_hold` refuses an address
+  already on a confirmed booking or a live hold (one student ticket per student,
+  across both nights). Five wrong guesses lock the address: to unlock it, delete
+  its row in `student_codes` in Supabase. Staff and students share the domain, so
+  a staff member could claim one — accepted, it is €5.
 * **The booking reference is the thread through everything.** `MM-XXXXXX` is the
   SumUp `checkout_reference`, the database key the reconciler looks up, the subject
   line tag on the confirmation and what the customer quotes at the door.
@@ -671,7 +686,7 @@ Item 1 is marked `// TODO` in `config.js`. Date changes made in `config.js` need
 * **Pointing this deployment at the other show's Supabase project.** Same table names,
   two shows, one set of rows — capacity, door lists and takings all wrong, and no
   clean way back. Separate repo, separate Vercel project, separate database.
-* **`TICKET_PRICE` and `config.js` disagreeing.** The page shows one price, the
+* **`TICKET_PRICE` / `STUDENT_PRICE` and `config.js` disagreeing.** The page shows one price, the
   server charges another. Set both.
 * **Re-drawing the seating plan after tickets have sold.** Seat ids already on
   bookings are not moved. Take out a row and somebody is holding a seat that is no

@@ -16,12 +16,11 @@ import {
 } from './_email.js';
 import { runReconcile } from './reconcile.js';
 import { openCheckout, baseUrlFor } from './_sumup.js';
-import { siteUrl, SHOW, ENQUIRIES_TO, cleanAccessNeeds } from './_show.js';
+import { siteUrl, SHOW, ENQUIRIES_TO, cleanAccessNeeds, priceFor, cleanStudentCount } from './_show.js';
 import { accessTeamAddresses, sendAccessEmails } from './_access.js';
 import { loadSeatState, countNight, seatRefusal } from './_seats.js';
 import { cleanSeats, describeSeats, isAccessible, ACCESSIBLE_IDS, SEAT_MAP } from '../seating.js';
 
-const TICKET_PRICE = Number(process.env.TICKET_PRICE || 10);
 const MAX_STAFF_SEATS = 40;
 
 const enc = encodeURIComponent;
@@ -102,7 +101,7 @@ export default async function handler(req, res) {
                     sbSelect('performances?select=key,label,on_sale&order=key.asc'),
                     sbSelectAll('bookings?select=booking_reference,performance_date,quantity,amount,status,' +
                              'payment_status,payment_method,booked_by,customer_name,confirmation_sent_at,' +
-                             'last_email_error,seat_conflict,seats_requested,access_needs,access_notes' +
+                             'last_email_error,seat_conflict,seats_requested,access_needs,access_notes,student_quantity' +
                              '&status=eq.confirmed&order=created_at.asc'),
                     sbSelect('access_requests?select=id,reference,performance_date,name,wheelchair_spaces,' +
                              'companion_seats,status,team_emailed_at,ack_emailed_at,created_at&order=created_at.asc')
@@ -153,6 +152,7 @@ export default async function handler(req, res) {
                         cashTickets:    tickets(b => b.payment_status === 'cash'),
                         cardDoorTickets: tickets(b => b.payment_method === 'card_door'),
                         compTickets:    tickets(isComp),
+                        studentTickets: confirmed.reduce((t, b) => t + (b.student_quantity || 0), 0),
                         compByNight
                     },
                     bySeller,
@@ -186,7 +186,7 @@ export default async function handler(req, res) {
 
             /* ---------------- booking list ---------------- */
             case 'list': {
-                const filters = ['select=*,booking_seats(seat_id)', 'order=created_at.desc'];
+                const filters = ['select=*,booking_seats(seat_id),booking_students(email,student_name)', 'order=created_at.desc'];
                 if (body.performanceDate) filters.push(`performance_date=eq.${enc(body.performanceDate)}`);
                 if (body.status)          filters.push(`status=eq.${enc(body.status)}`);
                 const rows = await sbSelectAll('bookings?' + filters.join('&'));
@@ -243,8 +243,13 @@ export default async function handler(req, res) {
                     return res.status(400).json({ error: `No more than ${MAX_STAFF_SEATS} seats in one booking — split it up.` });
                 }
 
+                const students = cleanStudentCount(body.studentTickets, seats.length);
+                if (students === null) {
+                    return res.status(400).json({ error: 'Student tickets must be between 0 and the number of seats.' });
+                }
+
                 const payment = STAFF_PAYMENTS[body.payment] || (body.free ? STAFF_PAYMENTS.comp : STAFF_PAYMENTS.cash);
-                const amount = payment.free ? 0 : Number((seats.length * TICKET_PRICE).toFixed(2));
+                const amount = payment.free ? 0 : priceFor(seats.length, students);
                 const reference = newBookingRef();
 
                 let accessRequestId = null;
@@ -277,7 +282,8 @@ export default async function handler(req, res) {
                         p_payment_status: payment.status,
                         p_payment_method: payment.method,
                         p_notes:          String(body.notes || '').trim().slice(0, 300),
-                        p_access_request: accessRequestId
+                        p_access_request: accessRequestId,
+                        p_student_quantity: students
                     });
                 } catch (err) {
                     const problem = seatProblem(err);
@@ -295,6 +301,7 @@ export default async function handler(req, res) {
                         reference,
                         amount,
                         quantity: seats.length,
+                        students,
                         performanceDate: body.performanceDate,
                         baseUrl: baseUrlFor(req)
                     });

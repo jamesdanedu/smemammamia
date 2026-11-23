@@ -300,7 +300,7 @@
         $('d-night').textContent   = perf ? perf.label : b.performanceDate;
         $('d-time').textContent    = S.doorsTime + ' / ' + S.startTime;
         $('d-venue').textContent   = S.venue;
-        $('d-qty').textContent     = b.quantity + (b.quantity === 1 ? ' ticket' : ' tickets');
+        $('d-qty').textContent     = CONFIG.ticketWords(b.quantity, b.studentTickets || 0);
         const comp = b.paymentStatus === 'comp' || b.paymentStatus === 'refunded';
         $('d-amount').textContent  = comp ? 'Complimentary' : CONFIG.money(b.amount);
         if (comp) $('going-line').textContent = 'Your tickets are booked. See you on the island.';

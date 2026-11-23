@@ -30,7 +30,7 @@ export async function sendConfirmationFor(reference, { force = false, kind = 'co
 
     /* --- look before claiming, so a door sale never burns an attempt --- */
     const [booking] = await sbSelect(
-        `bookings?select=*,booking_seats(seat_id)&booking_reference=eq.${encodeURIComponent(reference)}&limit=1`
+        `bookings?select=*,booking_seats(seat_id),booking_students(email,student_name)&booking_reference=eq.${encodeURIComponent(reference)}&limit=1`
     );
 
     if (!booking)                       return { sent: false, skipped: 'booking not found' };

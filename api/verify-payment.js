@@ -163,6 +163,7 @@ function publicView(b) {
         reference: b.booking_reference,
         performanceDate: b.performance_date,
         quantity: b.quantity,
+        studentTickets: b.student_quantity || 0,
         amount: Number(b.amount),
         customerName: b.customer_name,
         customerEmail: maskEmail(b.customer_email),
