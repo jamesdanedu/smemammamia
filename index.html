@@ -325,6 +325,31 @@
     .sme-form { grid-template-columns: 1fr; text-align: left; }
 }
 
+/* SME badge that pops in at the top of the page and links to the code form */
+.sme-pop {
+    position: absolute; top: 18px; left: 4%; z-index: 6;
+    width: 104px; height: 104px; display: block; border-radius: 50%;
+    filter: drop-shadow(0 6px 14px rgba(20, 39, 58, 0.28));
+    transform: rotate(-10deg);
+    animation: sme-pop-in 0.7s cubic-bezier(.2, 1.6, .4, 1) 0.4s both, sme-wobble 5s ease-in-out 2s infinite;
+}
+.sme-pop svg { width: 100%; height: 100%; display: block; }
+.sme-pop:hover, .sme-pop:focus-visible { animation-play-state: paused; transform: rotate(-4deg) scale(1.08); }
+@keyframes sme-pop-in {
+    from { transform: rotate(-30deg) scale(0); opacity: 0; }
+    to   { transform: rotate(-10deg) scale(1); opacity: 1; }
+}
+@keyframes sme-wobble {
+    0%, 86%, 100% { transform: rotate(-10deg) scale(1); }
+    90% { transform: rotate(-4deg) scale(1.07); }
+    94% { transform: rotate(-14deg) scale(1.03); }
+}
+@media (max-width: 720px) {
+    .sme-pop { top: 12px; left: 12px; width: 78px; height: 78px; }
+    .hero { padding-top: 104px; }   /* room for the badge above the eyebrow */
+}
+@media (prefers-reduced-motion: reduce) { .sme-pop { animation: none; } }
+
 .info-tile {
     text-align: center;
     padding: 26px 18px;
@@ -425,6 +450,16 @@
 
 <!-- ============================ HERO ============================ -->
 <header class="hero">
+  <a class="sme-pop" href="#student-discount" aria-label="SME students: €10 tickets — get your discount code">
+    <svg viewBox="0 0 160 160" aria-hidden="true">
+      <circle cx="80" cy="80" r="76" fill="#c8102e"/>
+      <circle cx="80" cy="80" r="66" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="4 5"/>
+      <text x="80" y="54" text-anchor="middle" fill="#fff" font-family="Georgia, serif" font-size="20" font-weight="700" letter-spacing="3">SME</text>
+      <text x="80" y="91" text-anchor="middle" fill="#ffd84d" font-family="Georgia, serif" font-size="36" font-weight="700" class="sme-pop-price">€10</text>
+      <text x="80" y="111" text-anchor="middle" fill="#fff" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="700" letter-spacing="2">STUDENT</text>
+      <text x="80" y="124" text-anchor="middle" fill="#fff" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="700" letter-spacing="2">DISCOUNT</text>
+    </svg>
+  </a>
   <div class="sky-air" aria-hidden="true"></div>
   <div class="sky-sun" aria-hidden="true"></div>
   <div class="sky-sea" aria-hidden="true"></div>
@@ -679,8 +714,11 @@
        Students get their one code ahead of booking. The booking page takes
        the same code: they type it in against their school email there. */
     document.getElementById('sme-badge-price').textContent = CONFIG.money(T.studentPrice);
+    document.querySelector('.sme-pop-price').textContent = CONFIG.money(T.studentPrice);
+    document.querySelector('.sme-pop').setAttribute('aria-label',
+        `SME students: ${CONFIG.money(T.studentPrice)} tickets — get your discount code`);
     document.getElementById('sme-intro').textContent =
-        `St Mary's students pay ${CONFIG.money(T.studentPrice)} instead of ${CONFIG.money(T.price)} — one student ticket each. ` +
+        `SME students (St Mary's Edenderry) pay ${CONFIG.money(T.studentPrice)} instead of ${CONFIG.money(T.price)} — one SME Student ticket each. ` +
         `Enter your school email and we'll send your code now. Keep the email: we only send it once, ` +
         `and you type the code in when you (or your parents) book.`;
     document.getElementById('sme-email').placeholder = 'name@' + T.studentDomain;
@@ -716,7 +754,7 @@
         ['📅', dates],
         ['🕢', S.startTime],
         ['📍', S.venue],
-        ['🎟️', CONFIG.money(T.price) + ' / ' + CONFIG.money(T.studentPrice) + ' students']
+        ['🎟️', CONFIG.money(T.price) + ' / ' + CONFIG.money(T.studentPrice) + ' SME students']
     ].map(([icon, text]) => `<span class="fact">${icon} ${text}</span>`).join('');
 
     /* ---------- Info tiles ---------- */
@@ -793,7 +831,7 @@
           <div class="perf-date">${rest.join(' ')} · ${CONFIG.show.startTime}</div>
           ${pill}
           <div class="perf-meta">
-            <span class="perf-price">${CONFIG.money(CONFIG.ticket.price)} · students ${CONFIG.money(CONFIG.ticket.studentPrice)}</span>
+            <span class="perf-price">${CONFIG.money(CONFIG.ticket.price)} · SME students ${CONFIG.money(CONFIG.ticket.studentPrice)}</span>
             <span class="perf-go">${go}</span>
           </div>
         </a>`;

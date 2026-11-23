@@ -29,7 +29,7 @@ const CONFIG = {
     ticket: {
         price: 15,                    // euro, full price
         studentPrice: 10,             // euro, St Mary's students
-        studentLabel: "St Mary's student",
+        studentLabel: 'SME student',      // in price lines: '€10 for SME students'
         // The two ticket types, as printed on tickets and the booking summary.
         types: { student: 'SME Student', standard: 'Standard' },
         qrLogo: 'images/crest-qr.png',  // shown in the middle of every QR ticket
