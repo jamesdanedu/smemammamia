@@ -18,6 +18,7 @@
 #    7. blocked seats refused to the public, allowed to staff
 #    8. un-releasing an accessible seat somebody bought is refused
 #    9. reseating clears a conflict; the primary key still refuses a duplicate
+#   11. student ticket counts are stored and kept within the seat count
 # ===========================================================================
 set -euo pipefail
 
@@ -160,9 +161,39 @@ check "confirm_paid_booking leaves a cancelled booking cancelled" "cancelled" \
       "$(q "select status from bookings where booking_reference = 'MM-CAN001'")"
 check "and does not take back the seat sold since" "MM-CAN002" "$(q "select booking_reference from taken_seats where seat_id = 'G21'")"
 
-echo "11. the anon key can call nothing"
+echo "11. student tickets"
+STU() { echo ", p_student_quantity => $1, p_students => '$2'::jsonb"; }
+AMY='[{"email":"amy@stmarysedenderry.ie","name":"Amy C"}]'
+q "$(hold_sql MM-STU001 "array['H1','H2','H3']" "$(STU 1 "$AMY")")" >/dev/null
+check "a hold records how many are student tickets" 1 \
+      "$(q "select student_quantity from bookings where booking_reference = 'MM-STU001'")"
+check "and whose they are" "amy@stmarysedenderry.ie|Amy C" \
+      "$(q "select email || '|' || student_name from booking_students bs join bookings b on b.id = bs.booking_id where b.booking_reference = 'MM-STU001'")"
+q "$(hold_sql MM-STU002 "array['H5']")" >/dev/null
+check "no student count means none" 0 "$(q "select student_quantity from bookings where booking_reference = 'MM-STU002'")"
+OUT=$(q "$(hold_sql MM-STU003 "array['H7','H8']" ", p_student_quantity => 3")" 2>&1 || true)
+check "more student tickets than seats is refused" "BAD_STUDENT_QUANTITY" "$(grep -o 'BAD_STUDENT_QUANTITY' <<<"$OUT")"
+check "and holds nothing" 0 "$(q "select count(*) from booking_seats where seat_id in ('H7','H8')")"
+OUT=$(q "$(hold_sql MM-STU004 "array['H9']" ", p_student_quantity => 1")" 2>&1 || true)
+check "the public cannot have a student ticket without a school address" "STUDENT_NOT_VERIFIED" "$(grep -o 'STUDENT_NOT_VERIFIED' <<<"$OUT")"
+OUT=$(q "$(hold_sql MM-STU005 "array['H10']" "$(STU 1 '[{"email":"AMY@stmarysedenderry.ie","name":"x"}]')")" 2>&1 || true)
+check "an address on a live hold cannot be used again, any case" "STUDENT_USED" "$(grep -o 'STUDENT_USED' <<<"$OUT")"
+OUT=$(q "$(hold_sql MM-STU006 "array['H11','H12']" "$(STU 2 '[{"email":"bo@stmarysedenderry.ie","name":"B"},{"email":"bo@stmarysedenderry.ie","name":"B"}]')")" 2>&1 || true)
+check "the same address twice in one booking is refused" "STUDENT_DUPLICATE" "$(grep -o 'STUDENT_DUPLICATE' <<<"$OUT")"
+q "update bookings set held_until = now() - interval '1 minute' where booking_reference = 'MM-STU001'"
+q "$(hold_sql MM-STU007 "array['H13']" "$(STU 1 "$AMY")")" >/dev/null
+check "once the hold dies the address is free again" 1 \
+      "$(q "select count(*) from bookings where booking_reference = 'MM-STU007'")"
+q "update bookings set status = 'confirmed', held_until = null where booking_reference = 'MM-STU007'"
+OUT=$(q "$(hold_sql MM-STU008 "array['H14']" "$(STU 1 "$AMY")")" 2>&1 || true)
+check "an address on a confirmed booking cannot be used again" "STUDENT_USED" "$(grep -o 'STUDENT_USED' <<<"$OUT")"
+q "$(hold_sql MM-STU009 "array['H15','H16']" ", p_student_quantity => 2, p_staff => true")" >/dev/null
+check "staff can sell student tickets without addresses" 2 \
+      "$(q "select student_quantity from bookings where booking_reference = 'MM-STU009'")"
+
+echo "12. the anon key can call nothing"
 check "anon cannot create a hold" f \
-      "$(q "select has_function_privilege('anon', 'public.create_hold(text, date, text[], numeric, text, text, text, text, integer, text, text, text[], boolean, boolean, text, text, text, uuid)', 'execute')")"
+      "$(q "select has_function_privilege('anon', 'public.create_hold(text, date, text[], numeric, text, text, text, text, integer, text, text, text[], boolean, boolean, text, text, text, uuid, integer, jsonb)', 'execute')")"
 check "anon cannot confirm a payment" f "$(q "select has_function_privilege('anon', 'public.confirm_paid_booking(text, text)', 'execute')")"
 check "service_role can" t "$(q "select has_function_privilege('service_role', 'public.confirm_paid_booking(text, text)', 'execute')")"
 

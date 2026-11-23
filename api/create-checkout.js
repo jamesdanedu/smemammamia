@@ -2,26 +2,27 @@
 // 1. Holds the seats the customer picked — all of them or none
 // 2. Opens a SumUp checkout for the correct amount
 //
-// The browser sends seat ids, never an amount and never a ticket count: the
-// number of tickets is the number of seats, and the price is decided here.
+// The browser sends seat ids and one verified token per student ticket (from
+// /api/student-code), never an amount: the number of tickets is the number of
+// seats, the number of student tickets is the number of valid tokens, and the
+// price is decided here.
 
 import {
     applyCors, requireMethod, readBody,
     sbRpc, newBookingRef, supabaseConfigured
 } from './_supabase.js';
 import { openCheckout, baseUrlFor } from './_sumup.js';
-import { cleanAccessNeeds, BOOKING_OPEN } from './_show.js';
+import { cleanAccessNeeds, BOOKING_OPEN, MAX_PER_ORDER, priceFor, cleanStudentCount } from './_show.js';
 import { cleanSeats, describeSeats, ACCESSIBLE_IDS } from '../seating.js';
 import { seatRefusal } from './_seats.js';
+import { studentsForTokens } from './_students.js';
 
 /* The booking pause (BOOKING_OPEN) lives in api/_show.js, so Donna can
    read the same switch. */
 
-const TICKET_PRICE   = Number(process.env.TICKET_PRICE || 10);
 // A hold with no expiry would be treated as already dead and its seats sold
 // twice, so anything odd in the setting falls back to 15.
 const HOLD_MINUTES   = Math.min(60, Math.max(5, parseInt(process.env.HOLD_MINUTES, 10) || 15));
-const MAX_PER_ORDER  = Number(process.env.MAX_PER_ORDER || 10);
 
 const isEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v || '').trim());
 const clean   = (v, max = 120) => String(v ?? '').trim().slice(0, max);
@@ -58,6 +59,8 @@ export default async function handler(req, res) {
     const asked           = Array.isArray(body.seats) ? body.seats.length : 0;
     const seats           = cleanSeats(body.seats);
     const quantity        = seats.length;
+    const studentTokens   = Array.isArray(body.students) ? body.students.slice(0, 50) : [];
+    const students        = cleanStudentCount(studentTokens.length, quantity);
 
     /* ---------------- validation ---------------- */
     if (!/^\d{4}-\d{2}-\d{2}$/.test(performanceDate)) {
@@ -71,6 +74,9 @@ export default async function handler(req, res) {
     }
     if (quantity > MAX_PER_ORDER) {
         return res.status(400).json({ error: `Please choose no more than ${MAX_PER_ORDER} seats in one booking.` });
+    }
+    if (students === null) {
+        return res.status(400).json({ error: 'The number of student tickets must be between 0 and the number of seats.' });
     }
     if (customerName.length < 2) {
         return res.status(400).json({ error: 'Please enter your name.' });
@@ -87,7 +93,13 @@ export default async function handler(req, res) {
         return res.status(503).json({ error: 'Payment system not configured' });
     }
 
-    const amount = Number((quantity * TICKET_PRICE).toFixed(2));
+    // Every student ticket must come with a verified school address.
+    const verified = await studentsForTokens(studentTokens);
+    if (!verified.ok) {
+        return res.status(400).json({ error: verified.error, studentProblem: true });
+    }
+
+    const amount = priceFor(quantity, students);
     const bookingRef = newBookingRef();
 
     /* ---------------- 1. hold the seats ----------------
@@ -109,7 +121,9 @@ export default async function handler(req, res) {
             p_hold_minutes: HOLD_MINUTES,
             p_access_needs: accessNeeds,
             p_access_notes: accessNotes,
-            p_restricted:   ACCESSIBLE_IDS
+            p_restricted:   ACCESSIBLE_IDS,
+            p_student_quantity: students,
+            p_students:     verified.students
         });
     } catch (err) {
         const msg = err.pgMessage || err.message || '';
@@ -136,6 +150,19 @@ export default async function handler(req, res) {
         if (msg.includes('DUPLICATE_SEATS') || msg.includes('NO_SEATS')) {
             return res.status(400).json({ error: 'Please choose your seats on the plan.' });
         }
+        if (msg.includes('STUDENT_USED')) {
+            const who = (msg.split('STUDENT_USED:')[1] || '').trim();
+            return res.status(409).json({
+                error: `${who || 'One of those school emails'} has already been used for a student ticket.`,
+                studentProblem: true
+            });
+        }
+        if (msg.includes('STUDENT_DUPLICATE')) {
+            return res.status(400).json({ error: 'Each student ticket needs a different school email.', studentProblem: true });
+        }
+        if (msg.includes('BAD_STUDENT_QUANTITY') || msg.includes('STUDENT_NOT_VERIFIED')) {
+            return res.status(400).json({ error: 'The number of student tickets must be between 0 and the number of seats.' });
+        }
         if (msg.includes('NOT_ON_SALE')) {
             return res.status(409).json({ error: 'Tickets for that night are not on sale.' });
         }
@@ -152,6 +179,7 @@ export default async function handler(req, res) {
         reference: bookingRef,
         amount,
         quantity,
+        students,
         performanceDate,
         baseUrl: baseUrlFor(req)
     });
@@ -168,6 +196,7 @@ export default async function handler(req, res) {
         checkoutUrl: opened.checkoutUrl,
         amount,
         quantity,
+        studentTickets: students,
         seats,
         seatsLabel: describeSeats(seats),
         performanceDate,

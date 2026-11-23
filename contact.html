@@ -295,7 +295,7 @@
     const nights = CONFIG.performances.map(p => p.label).join('<br>');
     $('faq').innerHTML = [
         ['When is it on?', nights + '<br>Doors ' + S.doorsTime + ', curtain up ' + S.startTime + '.'],
-        ['How much are tickets?', CONFIG.money(T.price) + ' each, same price for every seat and every night.'],
+        ['How much are tickets?', CONFIG.money(T.price) + ' each, or ' + CONFIG.money(T.studentPrice) + ' for current St Mary\'s students. Same price for every seat and both nights.'],
         ['Where is it?', S.venue + ', ' + S.venueLine2 + '. <a href="' + S.venueMapUrl + '" target="_blank" rel="noopener">Map</a>.'],
         ['Do I need to print anything?', 'No. Your booking is on the door list — just give the booking name or reference at the door.'],
         ['Are seats reserved?', 'Yes. You choose your seats on the <a href="seating.html">plan</a> when you book, and they are yours — no need to come early.'],

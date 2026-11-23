@@ -38,8 +38,37 @@ export const PERFORMANCES = [
     { key: '2027-01-29', label: 'Friday 29th January 2027' }
 ];
 
-export const TICKET_PRICE  = Number(process.env.TICKET_PRICE || 10);
+/* Two prices: full price for everyone, and a lower price for St Mary's
+   students. ⚠️  KEEP IN SYNC WITH CONFIG.ticket in config.js — the browser
+   shows those, the server charges these. */
+export const TICKET_PRICE  = Number(process.env.TICKET_PRICE  || 15);
+export const STUDENT_PRICE = Number(process.env.STUDENT_PRICE || 10);
 export const MAX_PER_ORDER = Number(process.env.MAX_PER_ORDER || 10);
+
+/** Amount in euro for `quantity` tickets, `students` of them student tickets. */
+export function priceFor(quantity, students = 0) {
+    const full = quantity - students;
+    return Number((full * TICKET_PRICE + students * STUDENT_PRICE).toFixed(2));
+}
+
+/**
+ * How many student tickets the request asked for, or null if the answer is
+ * not a whole number between 0 and the number of seats.
+ */
+export function cleanStudentCount(value, quantity) {
+    if (value === undefined || value === null || value === '') return 0;
+    const n = Number(value);
+    if (!Number.isInteger(n) || n < 0 || n > quantity) return null;
+    return n;
+}
+
+/** '3 tickets (1 student)' — for emails and payment descriptions. */
+export function ticketWords(quantity, students = 0) {
+    const base = quantity + (quantity === 1 ? ' ticket' : ' tickets');
+    if (!students) return base;
+    if (students === quantity) return base + (quantity === 1 ? ' (student)' : ' (all student)');
+    return `${base} (${students} student)`;
+}
 
 /**
  * The accessibility question asked at booking. Only these codes are ever

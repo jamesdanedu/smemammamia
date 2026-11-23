@@ -27,7 +27,13 @@ const CONFIG = {
 
     /* --- Tickets ------------------------------------------------------- */
     ticket: {
-        price: 10,                    // euro, flat rate for every ticket
+        price: 15,                    // euro, full price
+        studentPrice: 10,             // euro, St Mary's students
+        studentLabel: "St Mary's student",
+        studentDomain: 'stmarysedenderry.ie', // student tickets need a school email here
+                                      // (STUDENT_EMAIL_DOMAIN in Vercel, if set)
+                                      // both must match TICKET_PRICE / STUDENT_PRICE
+                                      // in api/_show.js (and Vercel, if set there)
         currency: 'EUR',
         maxPerBooking: 10,            // most seats one person can pick in one booking
                                       // (must match MAX_PER_ORDER in Vercel, default 10)
@@ -109,6 +115,7 @@ const CONFIG = {
         seats:        '/api/seats',
         accessRequest: '/api/access-request',
         checkout:     '/api/create-checkout',
+        studentCode:  '/api/student-code',
         verify:       '/api/verify-payment',
         wall:         '/api/wall',
         photos:       '/api/photos',
@@ -149,6 +156,26 @@ CONFIG.getPerformance = function (key) {
 
 CONFIG.money = function (n) {
     return '€' + Number(n).toFixed(2).replace(/\.00$/, '');
+};
+
+/** What `quantity` tickets cost when `students` of them are student tickets. */
+CONFIG.priceFor = function (quantity, students = 0) {
+    const T = CONFIG.ticket;
+    return (quantity - students) * T.price + students * T.studentPrice;
+};
+
+/** '3 tickets (1 student)' */
+CONFIG.ticketWords = function (quantity, students = 0) {
+    const base = quantity + (quantity === 1 ? ' ticket' : ' tickets');
+    if (!students) return base;
+    if (students === quantity) return base + (quantity === 1 ? ' (student)' : ' (all student)');
+    return `${base} (${students} student)`;
+};
+
+/** '€15 · €10 for St Mary's students' */
+CONFIG.priceLine = function () {
+    const T = CONFIG.ticket;
+    return `${CONFIG.money(T.price)} · ${CONFIG.money(T.studentPrice)} for ${T.studentLabel}s`;
 };
 
 /** Turn stored access codes ('wheelchair,aisle') into readable labels. */

@@ -721,6 +721,10 @@ input[type="checkbox"] {
         <div class="field"><label for="add-email">Email <span class="faint" style="text-transform:none">(optional — they get a confirmation)</span></label><input type="email" id="add-email"></div>
         <div class="field"><label for="add-phone">Phone <span class="faint" style="text-transform:none">(optional)</span></label><input type="tel" id="add-phone"></div>
         <div class="field">
+          <label for="add-students">Student tickets <span class="faint" style="text-transform:none">(St Mary's students, charged at the student price)</span></label>
+          <input type="number" id="add-students" min="0" max="20" step="1" value="0" inputmode="numeric" style="max-width:120px">
+        </div>
+        <div class="field">
           <label>Payment</label>
           <div class="pay-choice">
             <label class="check-label"><input type="radio" name="add-pay" value="cash" checked> Cash</label>
@@ -971,7 +975,8 @@ import { drawSeatPlan } from './seatplan.js';
             [t.onlineTickets, 'Card online'],
             [t.cashTickets, 'Cash'],
             [t.cardDoorTickets, 'Card swipe (office)'],
-            [t.compTickets, 'Complimentary']
+            [t.compTickets, 'Complimentary'],
+            [t.studentTickets || 0, 'Student tickets']
         ].map(([n, l, cls]) => `<div class="stat ${cls || ''}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
 
         $('perf-cards').innerHTML = (s.performances || []).map(p => {
@@ -1161,7 +1166,8 @@ import { drawSeatPlan } from './seatplan.js';
                 <td><strong>${escapeHtml(b.customer_name)}</strong></td>
                 <td>${escapeHtml(b.customer_email || '')}<br><span class="faint">${escapeHtml(b.customer_phone || '')}</span></td>
                 <td class="night">${perfShort(b.performance_date)}</td>
-                <td><strong>${b.quantity}</strong></td>
+                <td><strong>${b.quantity}</strong>${b.student_quantity ? `<br><span class="faint">${b.student_quantity} student${
+                    (b.booking_students || []).length ? ': ' + escapeHtml(b.booking_students.map(x => x.student_name).join(', ')) : ''}</span>` : ''}</td>
                 <td class="seats-cell">${b.seatsLabel ? escapeHtml(b.seatsLabel) : b.seat_conflict ? '<strong style="color:var(--pink)">To assign</strong>' : '<span class="faint">—</span>'}</td>
                 <td>${CONFIG.money(b.amount)}</td>
                 <td>${statusTag}${payTag}${conflictTag}</td>
@@ -1247,12 +1253,13 @@ import { drawSeatPlan } from './seatplan.js';
     /* ---------------- CSV ---------------- */
     $('csv-btn').addEventListener('click', () => {
         const rows = filteredBookings();
-        const header = ['Reference', 'Name', 'Email', 'Phone', 'Performance', 'Tickets', 'Seats', 'Seats (ids)', 'Amount',
+        const header = ['Reference', 'Name', 'Email', 'Phone', 'Performance', 'Tickets', 'Student tickets', 'Students', 'Seats', 'Seats (ids)', 'Amount',
                         'Status', 'Payment', 'Payment method', 'Seat conflict', 'Access', 'Access notes', 'Sold by',
                         'Booked at', 'Confirmation sent', 'Email error'];
         const body = rows.map(b => [
             b.booking_reference, b.customer_name, b.customer_email, b.customer_phone || '',
-            b.performance_date, b.quantity, b.seatsLabel || '', (b.seats || []).join(' '), b.amount, b.status,
+            b.performance_date, b.quantity, b.student_quantity || 0,
+            (b.booking_students || []).map(x => `${x.student_name} <${x.email}>`).join('; '), b.seatsLabel || '', (b.seats || []).join(' '), b.amount, b.status,
             isComp(b) ? 'comp' : b.payment_status, b.payment_method || '', b.seat_conflict ? 'yes' : '',
             CONFIG.accessLabels(b.access_needs).join(', '), b.access_notes || '',
             b.booked_by || '', new Date(b.created_at).toLocaleString('en-IE'),
@@ -1351,7 +1358,8 @@ import { drawSeatPlan } from './seatplan.js';
                 <tr>
                   <td style="font-size:1.1rem">☐</td>
                   <td><strong>${escapeHtml(b.customer_name)}</strong></td>
-                  <td><strong>${b.quantity}</strong></td>
+                  <td><strong>${b.quantity}</strong>${b.student_quantity ? `<br><span class="faint">${b.student_quantity} student${
+                    (b.booking_students || []).length ? ': ' + escapeHtml(b.booking_students.map(x => x.student_name).join(', ')) : ''}</span>` : ''}</td>
                   <td class="seats-cell">${b.seatsLabel ? escapeHtml(b.seatsLabel) : b.seat_conflict ? '<strong>⚠ Seats to be assigned — see the office</strong>' : ''}</td>
                   <td class="ref">${b.booking_reference}</td>
                   <td>${paidWord(b)}</td>
@@ -1581,14 +1589,26 @@ import { drawSeatPlan } from './seatplan.js';
         staffPaint(add.plan, add.data, add.picked);
         const seats = cleanSeats([...add.picked]);
         const pay = document.querySelector('[name="add-pay"]:checked').value;
-        const price = pay === 'comp' ? 0 : seats.length * CONFIG.ticket.price;
+        const students = addStudents(seats.length);
+        const price = pay === 'comp' ? 0 : CONFIG.priceFor(seats.length, students);
         $('add-picked').textContent = seats.length
-            ? `${describeSeats(seats)} — ${seats.length} ticket${seats.length === 1 ? '' : 's'}, ${pay === 'comp' ? 'complimentary' : CONFIG.money(price)}`
+            ? `${describeSeats(seats)} — ${CONFIG.ticketWords(seats.length, students)}, ${pay === 'comp' ? 'complimentary' : CONFIG.money(price)}`
             : 'No seats picked.';
         const what = pay === 'card_online' ? 'Hold seats and open card payment' : 'Add booking';
         $('add-btn').textContent = seats.length ? `${what} — ${seats.length} seat${seats.length === 1 ? '' : 's'}` : what;
         $('add-pay-hint').textContent = PAY_HINTS[pay] || '';
     }
+
+    /** Student tickets on the Add booking form, never more than the seats picked. */
+    function addStudents(seatCount) {
+        const box = $('add-students');
+        box.max = String(Math.max(0, seatCount));
+        let n = parseInt(box.value, 10);
+        if (!Number.isInteger(n) || n < 0) n = 0;
+        if (n > seatCount) { n = seatCount; box.value = String(n); }
+        return n;
+    }
+    $('add-students').addEventListener('input', () => paintAdd());
 
     const PAY_HINTS = {
         cash: 'Take the cash first. The booking is confirmed straight away.',
@@ -1664,6 +1684,7 @@ import { drawSeatPlan } from './seatplan.js';
                 accessNeeds: Array.from(document.querySelectorAll('[data-add-access]:checked')).map(cb => cb.value),
                 accessNotes: $('add-access-notes').value.trim(),
                 payment,
+                studentTickets: addStudents(seats.length),
                 accessRequestId: add.request?.id
             });
             const { booking, seatsLabel, email } = result;
@@ -1677,6 +1698,7 @@ import { drawSeatPlan } from './seatplan.js';
             }
             ['add-name', 'add-email', 'add-phone', 'add-notes', 'add-access-notes']
                 .forEach(id => { $(id).value = ''; });
+            $('add-students').value = '0';
             document.querySelectorAll('[data-add-access]').forEach(cb => { cb.checked = false; });
             add.picked.clear();
             clearRequestLink();

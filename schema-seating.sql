@@ -112,12 +112,59 @@ for each row execute function public.touch_updated_at();
 --                      customer was away. Shown on the admin Overview until
 --                      the office reseats them.
 --    access_request_id the access request this booking was made from.
+--    student_quantity  how many of the tickets are St Mary's student tickets
+--                      (charged at the student price). The rest are full price.
 -- ---------------------------------------------------------------------------
 alter table public.bookings add column if not exists seats_requested   text[];
 alter table public.bookings add column if not exists seat_conflict     boolean not null default false;
 alter table public.bookings add column if not exists access_request_id uuid references public.access_requests(id) on delete set null;
+alter table public.bookings add column if not exists student_quantity  integer not null default 0;
+
+alter table public.bookings drop constraint if exists bookings_student_quantity_check;
+alter table public.bookings add constraint bookings_student_quantity_check
+    check (student_quantity >= 0 and student_quantity <= quantity);
 
 create index if not exists bookings_conflict_idx on public.bookings (performance_date) where seat_conflict;
+
+-- ---------------------------------------------------------------------------
+-- 4b. Student tickets
+--
+--    student_codes     the one code emailed to a school address — one per
+--                      address, ever, so no address gets a second email. Only
+--                      a hash of the code is kept. The code can be typed in
+--                      again (an abandoned payment, a second visit) until it
+--                      is on a paid booking; each time, the browser is given a
+--                      fresh token (only its hash is kept) to send with the
+--                      booking. Too many wrong guesses lock the address; the
+--                      office can clear it by deleting the row.
+--    booking_students  which school addresses a booking's student tickets
+--                      belong to, with the name typed in for each. One
+--                      student ticket per address, across both nights: an
+--                      address on a confirmed booking, or on a hold that is
+--                      still alive, cannot be used again.
+-- ---------------------------------------------------------------------------
+create table if not exists public.student_codes (
+    id            uuid primary key default gen_random_uuid(),
+    email         text        not null,
+    student_name  text        not null,
+    code_hash     text        not null,
+    expires_at    timestamptz not null,
+    attempts      integer     not null default 0,
+    verified_at   timestamptz,
+    token_hash    text unique,
+    created_at    timestamptz not null default now()
+);
+drop index if exists public.student_codes_email_idx;
+-- One code per school address, ever: a second request is refused, never sent.
+create unique index if not exists student_codes_email_key on public.student_codes (email);
+
+create table if not exists public.booking_students (
+    booking_id    uuid not null references public.bookings(id) on delete cascade,
+    email         text not null,
+    student_name  text not null,
+    primary key (booking_id, email)
+);
+create index if not exists booking_students_email_idx on public.booking_students (email);
 
 -- Complimentary tickets get their own status. 'refunded' stays allowed so
 -- nothing already stored can break, but the site no longer sets it — there
@@ -255,11 +302,19 @@ from public.performances p;
 --    if two calls ever got past the lock at once, the second insert fails
 --    and its whole transaction — booking included — rolls back.
 --
---    The number of tickets is the number of seats.
+--    The number of tickets is the number of seats. p_student_quantity of
+--    them are student tickets; the API works out the amount from the two.
+--    Online, every student ticket comes with a verified school address in
+--    p_students ([{email, name}]); each address may have one student ticket
+--    in total. Staff may sell student tickets without addresses.
 -- ---------------------------------------------------------------------------
 drop function if exists public.create_hold(text, date, integer, numeric, text, text, text, text, integer);
 drop function if exists public.create_hold(text, date, integer, numeric, text, text, text, text, integer, text, text);
 drop function if exists public.create_hold(text, date, integer, numeric, text, text, text, text, integer, text, text, text[]);
+drop function if exists public.create_hold(text, date, text[], numeric, text, text, text, text, integer,
+                                           text, text, text[], boolean, boolean, text, text, text, uuid);
+drop function if exists public.create_hold(text, date, text[], numeric, text, text, text, text, integer,
+                                           text, text, text[], boolean, boolean, text, text, text, uuid, integer);
 drop function if exists public.assign_seats(text, text[]);
 
 create or replace function public.create_hold(
@@ -280,7 +335,9 @@ create or replace function public.create_hold(
     p_payment_status  text    default 'unpaid',
     p_payment_method  text    default null,
     p_notes           text    default null,
-    p_access_request  uuid    default null
+    p_access_request  uuid    default null,
+    p_student_quantity integer default 0,
+    p_students        jsonb   default '[]'
 )
 returns public.bookings
 language plpgsql
@@ -292,6 +349,8 @@ declare
     v_count     integer;
     v_bad       text;
     v_row       public.bookings;
+    v_students  jsonb := coalesce(p_students, '[]'::jsonb);
+    v_email     text;
 begin
     select count(distinct s) into v_count from unnest(p_seats) as s;
     if p_seats is null or v_count = 0 then
@@ -303,6 +362,35 @@ begin
     if p_confirm and not p_staff then
         raise exception 'NOT_ALLOWED';
     end if;
+    if coalesce(p_student_quantity, 0) < 0 or coalesce(p_student_quantity, 0) > v_count then
+        raise exception 'BAD_STUDENT_QUANTITY';
+    end if;
+    if jsonb_typeof(v_students) <> 'array' or jsonb_array_length(v_students) > coalesce(p_student_quantity, 0) then
+        raise exception 'BAD_STUDENT_QUANTITY';
+    end if;
+    if not p_staff and jsonb_array_length(v_students) <> coalesce(p_student_quantity, 0) then
+        raise exception 'STUDENT_NOT_VERIFIED';
+    end if;
+    if (select count(distinct lower(e->>'email')) from jsonb_array_elements(v_students) e)
+       <> jsonb_array_length(v_students) then
+        raise exception 'STUDENT_DUPLICATE';
+    end if;
+
+    -- One student ticket per school address, across both nights. Each address
+    -- is locked (in a fixed order, so two bookings cannot deadlock) and then
+    -- checked against confirmed bookings and holds that are still alive.
+    for v_email in
+        select lower(e->>'email') from jsonb_array_elements(v_students) e order by 1
+    loop
+        perform pg_advisory_xact_lock(hashtext('student:' || v_email));
+        if exists (select 1 from public.booking_students bs
+                   join public.bookings b on b.id = bs.booking_id
+                   where bs.email = v_email
+                     and (b.status = 'confirmed'
+                          or (b.status = 'held' and b.held_until > now()))) then
+            raise exception 'STUDENT_USED:%', v_email;
+        end if;
+    end loop;
 
     -- one writer at a time per performance
     perform pg_advisory_xact_lock(hashtext(p_date::text));
@@ -353,7 +441,7 @@ begin
         booked_by, status, held_until,
         payment_status, payment_method, notes,
         access_needs, access_notes,
-        seats_requested, access_request_id
+        seats_requested, access_request_id, student_quantity
     ) values (
         p_reference, p_date, v_count, p_amount,
         p_name, p_email, nullif(p_phone, ''),
@@ -362,12 +450,16 @@ begin
         case when p_confirm then null else now() + make_interval(mins => p_hold_minutes) end,
         coalesce(p_payment_status, 'unpaid'), p_payment_method, nullif(btrim(p_notes), ''),
         nullif(btrim(p_access_needs), ''), nullif(btrim(p_access_notes), ''),
-        p_seats, p_access_request
+        p_seats, p_access_request, coalesce(p_student_quantity, 0)
     )
     returning * into v_row;
 
     insert into public.booking_seats (performance_date, seat_id, booking_id)
     select p_date, s, v_row.id from unnest(p_seats) as s;
+
+    insert into public.booking_students (booking_id, email, student_name)
+    select v_row.id, lower(e->>'email'), coalesce(nullif(btrim(e->>'name'), ''), lower(e->>'email'))
+    from jsonb_array_elements(v_students) e;
 
     -- a booking made from an access request marks the request seated
     if p_access_request is not null then
@@ -702,11 +794,15 @@ alter table public.booking_seats       enable row level security;
 alter table public.seat_blocks         enable row level security;
 alter table public.accessible_releases enable row level security;
 alter table public.access_requests     enable row level security;
+alter table public.student_codes       enable row level security;
+alter table public.booking_students    enable row level security;
 
 revoke all on public.booking_seats       from anon, authenticated;
 revoke all on public.seat_blocks         from anon, authenticated;
 revoke all on public.accessible_releases from anon, authenticated;
 revoke all on public.access_requests     from anon, authenticated;
+revoke all on public.student_codes       from anon, authenticated;
+revoke all on public.booking_students    from anon, authenticated;
 revoke all on public.taken_seats              from anon, authenticated;
 revoke all on public.performance_availability from anon, authenticated;
 
@@ -718,7 +814,7 @@ revoke execute on function public.set_seat_blocks(date, text[], boolean, text) f
 revoke execute on function public.set_accessible_release(date, text[], boolean) from public, anon, authenticated;
 revoke execute on function public.claim_access_email(uuid, text, boolean, boolean) from public, anon, authenticated;
 revoke execute on function public.create_hold(text, date, text[], numeric, text, text, text, text, integer,
-                                              text, text, text[], boolean, boolean, text, text, text, uuid)
+                                              text, text, text[], boolean, boolean, text, text, text, uuid, integer, jsonb)
     from public, anon, authenticated;
 
 -- Postgres lets PUBLIC execute every new function, so revoking anon alone
@@ -734,7 +830,8 @@ begin
         -- Supabase normally grants these by default; said out loud so a
         -- re-run, which rebuilds the views, can never leave the API locked out.
         grant select, insert, update, delete on public.booking_seats, public.seat_blocks,
-                                                public.accessible_releases, public.access_requests to service_role;
+                                                public.accessible_releases, public.access_requests,
+                                                public.student_codes, public.booking_students to service_role;
         grant select on public.taken_seats, public.performance_availability to service_role;
         grant execute on function public.release_stale_seats(date)                    to service_role;
         grant execute on function public.release_booking_seats(text)                  to service_role;
@@ -746,7 +843,7 @@ begin
         grant execute on function public.claim_confirmation_email(text, boolean)      to service_role;
         grant execute on function public.record_email_result(text, text, text, boolean, text, text, text) to service_role;
         grant execute on function public.create_hold(text, date, text[], numeric, text, text, text, text, integer,
-                                                     text, text, text[], boolean, boolean, text, text, text, uuid)
+                                                     text, text, text[], boolean, boolean, text, text, text, uuid, integer, jsonb)
             to service_role;
     end if;
 end;

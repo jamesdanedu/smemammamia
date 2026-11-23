@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Book Tickets — Mamma Mia! | St Mary's Edenderry</title>
-<meta name="description" content="Book tickets online for Mamma Mia! at St Mary's Secondary School, Edenderry. Two nights, €10 a ticket, secure card payment by SumUp.">
+<meta name="description" content="Book tickets online for Mamma Mia! at St Mary's Secondary School, Edenderry. Two nights, €15 a ticket (€10 for St Mary's students), secure card payment by SumUp.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -166,6 +166,24 @@
 .access-grid { display: grid; gap: 2px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
 
 /* Summary */
+.student-list { display: grid; gap: 12px; margin: 4px 0 18px; }
+.student-row {
+    border: 1px solid var(--border-strong); border-radius: 12px; padding: 14px;
+    background: #fff;
+}
+.student-row.done { border-color: var(--cyan); background: var(--cyan-tint); }
+.student-head { display: flex; justify-content: space-between; gap: 10px; font-weight: 700; margin-bottom: 10px; }
+.student-row .field { margin-bottom: 10px; }
+.student-row .field label { font-size: 0.72rem; margin-bottom: 5px; }
+.student-row .field input { padding: 10px 12px; }
+.student-pair { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+.student-code { display: grid; gap: 10px; grid-template-columns: 1fr auto; align-items: end; }
+.student-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.student-msg { font-size: 0.85rem; margin-top: 8px; color: var(--text-dim); }
+.student-msg.err { color: #b3261e; }
+.student-ok { font-weight: 600; }
+@media (max-width: 520px) { .student-pair { grid-template-columns: 1fr; } }
+
 .summary-row {
     display: flex;
     justify-content: space-between;
@@ -439,10 +457,17 @@
     <section class="step">
       <div class="step-head"><div class="step-num">5</div><div class="step-title">Confirm and pay</div></div>
       <div class="card card-neon">
+        <div class="field" id="students-field">
+          <label for="student-n">How many of these tickets are for St Mary's students?</label>
+          <select id="student-n"><option value="0">0</option></select>
+          <div class="hint" id="student-hint"></div>
+        </div>
+        <div class="student-list" id="student-list"></div>
         <div class="summary-row"><span>Performance</span><strong id="sum-night" style="color:var(--text)">—</strong></div>
         <div class="summary-row"><span>Seats</span><strong id="sum-seats" style="color:var(--text)">—</strong></div>
         <div class="summary-row"><span>Tickets</span><strong id="sum-qty" style="color:var(--text)">—</strong></div>
-        <div class="summary-row"><span>Price each</span><strong id="sum-price" style="color:var(--text)">—</strong></div>
+        <div class="summary-row"><span>Full price</span><strong id="sum-full" style="color:var(--text)">—</strong></div>
+        <div class="summary-row hidden" id="sum-student-row"><span>Student</span><strong id="sum-student" style="color:var(--text)">—</strong></div>
         <div class="summary-row hidden" id="sum-access-row"><span>Access</span><strong id="sum-access" style="color:var(--text)">—</strong></div>
         <div class="summary-total"><span>Total</span><span class="amount" id="sum-total">—</span></div>
 
@@ -581,6 +606,8 @@ import { drawSeatPlan } from './seatplan.js';
         unavailable: new Set(),     // sold, held or blocked — the public is not told which
         released: new Set(),        // accessible seats put on general sale tonight
         seats: [],
+        students: 0,                // how many of the seats are student tickets
+        studentRows: [],            // one per student ticket: { name, email, code, sent, token, verifiedName, msg, err, busy }
         seatsLoading: false,
         seatsLoaded: false,
         access: [],
@@ -596,7 +623,130 @@ import { drawSeatPlan } from './seatplan.js';
 
     /* ---------------- chrome ---------------- */
     $('head-sub').textContent =
-        CONFIG.money(T.price) + ' per ticket · ' + S.venue;
+        CONFIG.priceLine() + ' · ' + S.venue;
+    $('student-hint').textContent =
+        `Student tickets are ${CONFIG.money(T.studentPrice)}, for current St Mary's students only, one per student. ` +
+        `Each needs the student's school email (@${T.studentDomain}): we email a code to it once. ` +
+        `Got your code already from the home page? Enter the email and type the code in. ` +
+        `Everyone else is ${CONFIG.money(T.price)}.`;
+    $('student-n').addEventListener('change', () => {
+        state.students = parseInt($('student-n').value, 10) || 0;
+        updateSummary();
+    });
+
+    /* ---------------- student tickets ----------------
+       Each student ticket needs the student's school email. We email one
+       code to it, ever; typing it back here proves it is theirs, and the
+       server hands back a token that goes with the booking. Without a token
+       the ticket cannot be booked at the student price — the server checks. */
+    function studentRow(i) {
+        return state.studentRows[i] ||= { name: '', email: '', code: '', sent: false, token: null, verifiedName: '', msg: '', err: false, busy: false };
+    }
+    const studentsVerified = () =>
+        state.studentRows.slice(0, state.students).every(r => r && r.token);
+
+    function renderStudents() {
+        const list = $('student-list');
+        const n = state.students;
+        let html = '';
+        for (let i = 0; i < n; i++) {
+            const r = studentRow(i);
+            const label = n === 1 ? 'Student ticket' : `Student ticket ${i + 1}`;
+            if (r.token) {
+                html += `<div class="student-row done" data-i="${i}">
+                  <div class="student-head"><span>${label}</span><span class="student-ok">✓ Verified</span></div>
+                  <div>${escapeHtml(r.verifiedName)} · ${escapeHtml(r.email)}</div>
+                  <div class="student-actions mt-1"><button type="button" class="btn btn-ghost btn-small" data-act="change">Change</button></div>
+                </div>`;
+                continue;
+            }
+            html += `<div class="student-row" data-i="${i}">
+              <div class="student-head"><span>${label}</span></div>
+              <div class="student-pair">
+                <div class="field"><label for="st-name-${i}">Student's name</label>
+                  <input type="text" id="st-name-${i}" data-f="name" maxlength="80" autocomplete="off" value="${escapeHtml(r.name)}"></div>
+                <div class="field"><label for="st-email-${i}">School email</label>
+                  <input type="email" id="st-email-${i}" data-f="email" maxlength="160" inputmode="email" autocomplete="off"
+                         placeholder="name@${T.studentDomain}" value="${escapeHtml(r.email)}"></div>
+              </div>
+              <div class="student-actions"><button type="button" class="btn btn-ghost btn-small" data-act="send" ${r.busy ? 'disabled' : ''}>Email the code</button></div>
+              <div class="student-code mt-1">
+                <div class="field" style="margin-bottom:0"><label for="st-code-${i}">Code from the email</label>
+                  <input type="text" id="st-code-${i}" data-f="code" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="6 digits" value="${escapeHtml(r.code)}"></div>
+                <button type="button" class="btn btn-primary btn-small" data-act="verify" ${r.busy ? 'disabled' : ''}>Verify</button>
+              </div>
+              <div class="student-msg ${r.err ? 'err' : ''}" role="status">${escapeHtml(r.msg || 'Already have a code for this email? Type it in and press Verify.')}</div>
+            </div>`;
+        }
+        list.innerHTML = html;
+        list.classList.toggle('hidden', n === 0);
+    }
+
+    function escapeHtml(v) {
+        return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    $('student-list').addEventListener('input', e => {
+        const f = e.target.dataset.f;
+        const row = e.target.closest('.student-row');
+        if (!f || !row) return;
+        const r = studentRow(Number(row.dataset.i));
+        r[f] = e.target.value;
+        if (f === 'email') r.sent = false;
+    });
+
+    $('student-list').addEventListener('click', async e => {
+        const act = e.target.dataset.act;
+        const row = e.target.closest('.student-row');
+        if (!act || !row) return;
+        const i = Number(row.dataset.i);
+        const r = studentRow(i);
+
+        if (act === 'change') {
+            Object.assign(r, { token: null, verifiedName: '', code: '', msg: '', err: false });
+            updateSummary();
+            return;
+        }
+
+        const email = r.email.trim().toLowerCase();
+        const say = (msg, err = true) => { r.msg = msg; r.err = err; renderStudents(); };
+        if (!email.endsWith('@' + T.studentDomain)) return say(`Use the student's school email, ending @${T.studentDomain}.`);
+        const dup = state.studentRows.slice(0, state.students)
+            .some((o, j) => j !== i && o && o.email.trim().toLowerCase() === email);
+        if (dup) return say('Each student ticket needs a different school email.');
+
+        let body;
+        if (act === 'send') {
+            if (r.name.trim().length < 2) return say("Please enter the student's name.");
+            body = { action: 'send', email, name: r.name.trim() };
+        } else {
+            const code = r.code.replace(/\s/g, '');
+            if (!/^\d{6}$/.test(code)) return say('Type the 6-digit code from the email.');
+            body = { action: 'verify', email, code };
+        }
+
+        r.busy = true; say(act === 'send' ? 'Sending…' : 'Checking…', false);
+        try {
+            const res = await fetch(CONFIG.api.studentCode, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json().catch(() => ({}));
+            r.busy = false;
+            if (act === 'send') {
+                if (res.ok) { r.sent = true; return say(`Code sent to ${email}. Check that inbox (and junk), then type it in.`, false); }
+                if (data.alreadySent) { r.sent = true; return say(data.error, false); }
+                return say(data.error || 'Could not send the code. Please try again.');
+            }
+            if (!res.ok) return say(data.error || 'Could not check the code. Please try again.');
+            Object.assign(r, { token: data.token, verifiedName: data.name, email: data.email, msg: '', err: false });
+            updateSummary();
+        } catch (_) {
+            r.busy = false;
+            say('No connection. Please try again.');
+        }
+    });
     $('footer-brand').textContent = S.title + ' · ' + S.year;
     $('footer-line').textContent = S.school;
     $('max-seats').textContent = T.maxPerBooking;
@@ -862,24 +1012,43 @@ import { drawSeatPlan } from './seatplan.js';
         const n = state.seats.length;
         const perf = state.date ? CONFIG.getPerformance(state.date) : null;
 
+        // Student tickets: 0 up to the number of seats chosen.
+        if (state.students > n) state.students = n;
+        const sel = $('student-n');
+        if (sel.options.length !== n + 1) {
+            sel.innerHTML = Array.from({ length: n + 1 }, (_, i) => `<option value="${i}">${i}</option>`).join('');
+        }
+        sel.value = String(state.students);
+        sel.disabled = n === 0;
+        if ($('student-list').children.length !== state.students ||
+            [...$('student-list').children].some((el, i) => el.classList.contains('done') !== Boolean(studentRow(i).token))) {
+            renderStudents();
+        }
+        const st = state.students, full = n - st;
+        const total = CONFIG.priceFor(n, st);
+
         $('seat-words').textContent = n ? describeSeats(state.seats)
             : (state.date ? 'No seats chosen yet' : 'Choose a night first');
         $('seat-count').textContent = n
-            ? `${n} ticket${n === 1 ? '' : 's'} · ${CONFIG.money(n * T.price)}`
+            ? `${CONFIG.ticketWords(n, st)} · ${CONFIG.money(total)}`
             : `Tap the seats you would like — up to ${state.max}.`;
 
         $('sum-night').textContent = perf ? perf.label : '—';
         $('sum-seats').textContent = n ? describeSeats(state.seats) : '—';
         $('sum-qty').textContent   = n + (n === 1 ? ' ticket' : ' tickets');
-        $('sum-price').textContent = CONFIG.money(T.price);
-        $('sum-total').textContent = CONFIG.money(n * T.price);
+        $('sum-full').textContent  = n ? `${full} × ${CONFIG.money(T.price)}` : CONFIG.money(T.price) + ' each';
+        $('sum-student').textContent = `${st} × ${CONFIG.money(T.studentPrice)}`;
+        $('sum-student-row').classList.toggle('hidden', !st);
+        $('sum-total').textContent = CONFIG.money(total);
 
-        const ready = state.date && n > 0;
+        const studentsOk = studentsVerified();
+        const ready = state.date && n > 0 && studentsOk;
         $('pay-btn').disabled = !ready || state.submitting || state.seatsLoading;
         $('pay-btn').innerHTML = !state.date
             ? 'Choose a night to continue'
             : !n ? 'Choose your seats to continue'
-            : `💳 Pay ${CONFIG.money(n * T.price)} by card`;
+            : !studentsOk ? 'Verify the student tickets to continue'
+            : `💳 Pay ${CONFIG.money(total)} by card`;
     }
 
     /* ---------------- other access needs ----------------
@@ -1045,6 +1214,7 @@ import { drawSeatPlan } from './seatplan.js';
 
         if (!state.date)              return alertBox('Please choose a performance.');
         if (!state.seats.length)      return alertBox('Please choose your seats on the plan.');
+        if (!studentsVerified())      return alertBox('Please verify each student ticket with the code from the school email.');
         if (name.length < 2)          return alertBox('Please enter your full name.');
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return alertBox('Please enter a valid email address.');
 
@@ -1055,13 +1225,17 @@ import { drawSeatPlan } from './seatplan.js';
         btn.textContent = 'Reserving your seats…';
 
         try {
-            // Seat ids only. The server counts them and sets the price.
+            // Seat ids and the student count only. The server counts the
+            // seats and sets the price.
             const res = await fetch(CONFIG.api.checkout, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     performanceDate: state.date,
                     seats: cleanSeats(state.seats),
+                    // One verified token per student ticket — the server
+                    // charges the student price only for these.
+                    students: state.studentRows.slice(0, Math.min(state.students, state.seats.length)).map(r => r.token),
                     customerName: name,
                     customerEmail: email,
                     customerPhone: phone,
@@ -1091,6 +1265,12 @@ import { drawSeatPlan } from './seatplan.js';
                     loadSeats(state.date);           // and catch up on anything else that went
                     refreshAvailability();
                     return;
+                }
+                if (data.studentProblem) {
+                    // A token expired or an address was used meanwhile:
+                    // verify again (the same code still works).
+                    state.studentRows.forEach(r => { if (r) r.token = null; });
+                    $('student-list').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
                 if (res.status === 409) await refreshAvailability();
                 throw new Error(data.error || 'Could not start the payment.');
@@ -1130,7 +1310,7 @@ import { drawSeatPlan } from './seatplan.js';
     function openPaymentModal(data) {
         const perf = CONFIG.getPerformance(state.date);
         $('pay-summary').textContent =
-            `${perf ? perf.label : ''} · ${data.quantity} ticket${data.quantity === 1 ? '' : 's'} · ` +
+            `${perf ? perf.label : ''} · ${CONFIG.ticketWords(data.quantity, data.studentTickets || 0)} · ` +
             `${data.seatsLabel ? data.seatsLabel + ' · ' : ''}${CONFIG.money(data.amount)}`;
 
         $('payment-loading').style.display = 'block';
