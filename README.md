@@ -58,6 +58,9 @@ photos.html        Gallery + lightbox   (content in photos.js)
 games.html         Arcade games
 quiz.html          Trivia bank, 10 questions per round
 wall.html          Public good-luck message wall (moderated)
+scanner.html       Door scanner — camera reads the QR tickets (DOOR_PASSWORD or admin)
+qr-ticket.js       Draws a QR ticket with the school crest in the middle
+vendor/            qrcode-generator (MIT) and jsQR (Apache-2.0), unmodified, minified
 seating.html       The hall plan, for the public — where everything is
 donna.js           "Ask Donna" chat bubble, on the public pages (styles in donna.css)
 admin.html         Password-protected dashboard
@@ -84,6 +87,7 @@ api/seats.js           GET  — which seats are unavailable for a night, and not
 api/access-request.js  POST — "Need accessible seating?": stores it, emails the team
 api/_sumup.js          Opens a SumUp hosted checkout — the website and staff card payments
 api/_students.js       Student tickets: school-email check, code and token hashing
+api/_tickets.js        QR tickets: signed code per ticket, which ticket is whose
 api/student-code.js    POST — emails a student's one code, and checks it when typed in
 api/create-checkout.js POST — holds the chosen seats atomically, opens SumUp checkout
 api/verify-payment.js  POST — asks SumUp if it was paid, confirms, sends the email
@@ -530,6 +534,19 @@ Things worth knowing:
   across both nights). Five wrong guesses lock the address: to unlock it, delete
   its row in `student_codes` in Supabase. Staff and students share the domain, so
   a staff member could claim one — accepted, it is €5.
+* **Two ticket types: SME Student and Standard.** SME Student (€10) is for current
+  St Mary's Edenderry students; Standard (€15) is everyone else, children included.
+* **Tickets are QR codes, one per person.** The confirmation email links to the
+  booking page (`success.html?ref=…`), which draws a QR code per ticket with the
+  school crest in the middle (error correction H, so the crest does not stop it
+  scanning). Each code is `MM-XXXXXX.<ticket number>.<signature>`, signed with
+  `TICKET_SECRET`, so codes cannot be made up and nothing extra is stored. Tickets
+  1…student_quantity are the SME Student tickets, in student-name order, then the
+  Standard ones; seats go to tickets in plan order. At the door, `scanner.html`
+  reads the code with the camera (works on iPad Safari) and `check_in_ticket`
+  records the first scan; any later scan shows when and on which device it got in.
+  An SME Student ticket shows the student's name in yellow, so the door can check it is
+  them. Anyone without a phone is still found by name on the admin Door list.
 * **The booking reference is the thread through everything.** `MM-XXXXXX` is the
   SumUp `checkout_reference`, the database key the reconciler looks up, the subject
   line tag on the confirmation and what the customer quotes at the door.

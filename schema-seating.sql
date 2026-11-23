@@ -166,6 +166,53 @@ create table if not exists public.booking_students (
 );
 create index if not exists booking_students_email_idx on public.booking_students (email);
 
+-- ---------------------------------------------------------------------------
+-- 4c. Door check-in
+--
+--    One row per ticket that has come through the door. A ticket is
+--    <booking>.<ticket number>; its QR code is built from the booking by the
+--    API (api/_tickets.js), so nothing about the code itself is stored. The
+--    primary key means the first scan wins: two iPads scanning the same
+--    ticket at once both get an answer, and only one of them says "in".
+-- ---------------------------------------------------------------------------
+create table if not exists public.ticket_checkins (
+    booking_id       uuid        not null references public.bookings(id) on delete cascade,
+    ticket_no        integer     not null check (ticket_no > 0),
+    performance_date date        not null references public.performances(key) on delete restrict,
+    scanned_at       timestamptz not null default now(),
+    scanned_by       text,
+    primary key (booking_id, ticket_no)
+);
+create index if not exists ticket_checkins_night_idx on public.ticket_checkins (performance_date);
+
+-- Check a ticket in. Returns whether this was the first scan, and when and
+-- where the first scan happened.
+create or replace function public.check_in_ticket(
+    p_booking uuid,
+    p_ticket  integer,
+    p_date    date,
+    p_by      text default null
+)
+returns table (first_scan boolean, scanned_at timestamptz, scanned_by text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    insert into public.ticket_checkins (booking_id, ticket_no, performance_date, scanned_by)
+    values (p_booking, p_ticket, p_date, nullif(btrim(p_by), ''))
+    on conflict do nothing;
+
+    if found then
+        return query select true, c.scanned_at, c.scanned_by from public.ticket_checkins c
+                     where c.booking_id = p_booking and c.ticket_no = p_ticket;
+    else
+        return query select false, c.scanned_at, c.scanned_by from public.ticket_checkins c
+                     where c.booking_id = p_booking and c.ticket_no = p_ticket;
+    end if;
+end;
+$$;
+
 -- Complimentary tickets get their own status. 'refunded' stays allowed so
 -- nothing already stored can break, but the site no longer sets it — there
 -- are no refunds.
@@ -796,6 +843,7 @@ alter table public.accessible_releases enable row level security;
 alter table public.access_requests     enable row level security;
 alter table public.student_codes       enable row level security;
 alter table public.booking_students    enable row level security;
+alter table public.ticket_checkins     enable row level security;
 
 revoke all on public.booking_seats       from anon, authenticated;
 revoke all on public.seat_blocks         from anon, authenticated;
@@ -803,6 +851,7 @@ revoke all on public.accessible_releases from anon, authenticated;
 revoke all on public.access_requests     from anon, authenticated;
 revoke all on public.student_codes       from anon, authenticated;
 revoke all on public.booking_students    from anon, authenticated;
+revoke all on public.ticket_checkins     from anon, authenticated;
 revoke all on public.taken_seats              from anon, authenticated;
 revoke all on public.performance_availability from anon, authenticated;
 
@@ -813,6 +862,7 @@ revoke execute on function public.reseat_booking(text, text[])               fro
 revoke execute on function public.set_seat_blocks(date, text[], boolean, text) from public, anon, authenticated;
 revoke execute on function public.set_accessible_release(date, text[], boolean) from public, anon, authenticated;
 revoke execute on function public.claim_access_email(uuid, text, boolean, boolean) from public, anon, authenticated;
+revoke execute on function public.check_in_ticket(uuid, integer, date, text)  from public, anon, authenticated;
 revoke execute on function public.create_hold(text, date, text[], numeric, text, text, text, text, integer,
                                               text, text, text[], boolean, boolean, text, text, text, uuid, integer, jsonb)
     from public, anon, authenticated;
@@ -831,7 +881,8 @@ begin
         -- re-run, which rebuilds the views, can never leave the API locked out.
         grant select, insert, update, delete on public.booking_seats, public.seat_blocks,
                                                 public.accessible_releases, public.access_requests,
-                                                public.student_codes, public.booking_students to service_role;
+                                                public.student_codes, public.booking_students,
+                                                public.ticket_checkins to service_role;
         grant select on public.taken_seats, public.performance_availability to service_role;
         grant execute on function public.release_stale_seats(date)                    to service_role;
         grant execute on function public.release_booking_seats(text)                  to service_role;
@@ -840,6 +891,7 @@ begin
         grant execute on function public.set_seat_blocks(date, text[], boolean, text) to service_role;
         grant execute on function public.set_accessible_release(date, text[], boolean) to service_role;
         grant execute on function public.claim_access_email(uuid, text, boolean, boolean) to service_role;
+        grant execute on function public.check_in_ticket(uuid, integer, date, text)   to service_role;
         grant execute on function public.claim_confirmation_email(text, boolean)      to service_role;
         grant execute on function public.record_email_result(text, text, text, boolean, text, text, text) to service_role;
         grant execute on function public.create_hold(text, date, text[], numeric, text, text, text, text, integer,

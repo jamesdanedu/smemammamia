@@ -62,12 +62,16 @@ export function cleanStudentCount(value, quantity) {
     return n;
 }
 
-/** '3 tickets (1 student)' — for emails and payment descriptions. */
+/** The two ticket types. ⚠️ KEEP IN SYNC WITH CONFIG.ticket.types in config.js. */
+export const TICKET_TYPES = { student: 'SME Student', standard: 'Standard' };
+
+/** '3 tickets (1 SME Student)' — for emails and payment descriptions. */
 export function ticketWords(quantity, students = 0) {
     const base = quantity + (quantity === 1 ? ' ticket' : ' tickets');
     if (!students) return base;
-    if (students === quantity) return base + (quantity === 1 ? ' (student)' : ' (all student)');
-    return `${base} (${students} student)`;
+    const S = TICKET_TYPES.student;
+    if (students === quantity) return base + (quantity === 1 ? ` (${S})` : ` (all ${S})`);
+    return `${base} (${students} ${S})`;
 }
 
 /**

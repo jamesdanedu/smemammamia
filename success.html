@@ -96,8 +96,24 @@
     .contact-link { display: inline-block; padding: 12px 4px; margin: -12px -4px; }
 }
 
+/* QR tickets */
+.tickets-intro { font-size: 0.9rem; margin-bottom: 14px; }
+.ticket-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.ticket-card {
+    background: #fff; border: 1px solid var(--border-strong); border-radius: 14px;
+    padding: 14px; text-align: center; break-inside: avoid; page-break-inside: avoid;
+}
+.ticket-card canvas { width: 100%; max-width: 240px; height: auto; display: block; margin: 0 auto 8px; image-rendering: pixelated; }
+.ticket-kind { display: inline-block; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+               padding: 3px 10px; border-radius: 999px; background: var(--cyan-tint); color: var(--cyan); }
+.ticket-kind.student { background: var(--yellow-tint); color: #8a5a00; }
+.ticket-name { font-weight: 700; margin-top: 6px; }
+.ticket-meta { font-size: 0.85rem; color: var(--text-dim); }
+.ticket-save { margin-top: 8px; font-size: 0.82rem; }
+
 @media print {
-    body::before, body::after, .navbar, .actions, .footer { display: none !important; }
+    body::before, body::after, .navbar, .actions, .footer, .ticket-save { display: none !important; }
+    .ticket-grid { grid-template-columns: repeat(2, 1fr); }
     body { background: #fff; color: #000; padding-top: 0; }
     .card { border: 1px solid #999; background: #fff; box-shadow: none; }
     .tick { background: #fff; box-shadow: none; color: #000; }
@@ -147,7 +163,7 @@
     <div class="ref-box">
       <div class="ref-label">Booking reference</div>
       <div class="ref-value" id="ref-value">—</div>
-      <p class="dim mt-1" style="font-size:0.83rem">Every reference starts <strong>MM-</strong> (for example <strong>MM-4F2K9A</strong>). Nothing to print — just give the booking name or this reference at the door.</p>
+      <p class="dim mt-1" style="font-size:0.83rem">Every reference starts <strong>MM-</strong> (for example <strong>MM-4F2K9A</strong>). Show your QR tickets below at the door — on your phone or printed.</p>
     </div>
 
     <div id="conflict-note" class="alert alert-info hidden" style="font-size:0.9rem">
@@ -169,6 +185,15 @@
       <div class="detail-row hidden" id="d-seats-row"><span class="k">Your seats</span><span class="v" id="d-seats">—</span></div>
       <div class="detail-row"><span class="k">Paid</span><span class="v" id="d-amount">—</span></div>
       <div class="detail-row hidden" id="d-access-row"><span class="k">Access</span><span class="v" id="d-access">—</span></div>
+    </div>
+
+    <div class="card mt-3 hidden" id="tickets-card">
+      <h2 style="font-size:1.05rem;margin-bottom:6px">Your tickets</h2>
+      <p class="dim tickets-intro" id="tickets-intro">
+        One QR code per person. Show it at the door on your phone, or print this page.
+        Coming separately? Each person can save their own ticket.
+      </p>
+      <div class="ticket-grid" id="ticket-grid"></div>
     </div>
 
     <div class="actions">
@@ -228,6 +253,8 @@
 </footer>
 
 <script src="config.js"></script>
+<script src="vendor/qrcode.min.js"></script>
+<script src="qr-ticket.js"></script>
 <script>
 (function () {
     'use strict';
@@ -325,6 +352,8 @@
             $('d-access-row').classList.remove('hidden');
         }
 
+        renderTickets(b, perf);
+
         $('cal-btn').href = calendarLink(b, perf);
         $('cal-btn').setAttribute('download', 'mamma-mia.ics');
 
@@ -358,6 +387,41 @@
                 box.className = 'alert alert-info';
                 box.innerHTML = '✉️ Your confirmation email is on its way' + to + '.';
         }
+    }
+
+    /* ---------------- QR tickets ----------------
+       One code per ticket, drawn here from the codes the server signed.
+       SME Student tickets carry the student's name: the door sees it on the scan. */
+    async function renderTickets(b, perf) {
+        const list = b.tickets || [];
+        if (!list.length) return;
+        const logo = await loadQRLogo(CONFIG.ticket.qrLogo);
+        const grid = $('ticket-grid');
+        grid.innerHTML = '';
+        for (const t of list) {
+            const card = document.createElement('div');
+            card.className = 'ticket-card';
+            const canvas = drawTicketQR(document.createElement('canvas'), t.code, { logo, size: 360 });
+            canvas.setAttribute('role', 'img');
+            canvas.setAttribute('aria-label', `QR code for ticket ${t.n} of ${t.of}`);
+            const kind = document.createElement('span');
+            kind.className = 'ticket-kind' + (t.kind === 'student' ? ' student' : '');
+            kind.textContent = CONFIG.ticket.types[t.kind] || t.kind;
+            const name = document.createElement('div');
+            name.className = 'ticket-name';
+            name.textContent = t.name;
+            const meta = document.createElement('div');
+            meta.className = 'ticket-meta';
+            meta.textContent = [`Ticket ${t.n} of ${t.of}`, t.seatLabel, perf ? perf.short : ''].filter(Boolean).join(' · ');
+            const save = document.createElement('a');
+            save.className = 'ticket-save';
+            save.href = canvas.toDataURL('image/png');
+            save.download = `mamma-mia-${b.reference}-ticket-${t.n}.png`;
+            save.textContent = 'Save this ticket';
+            card.append(canvas, kind, name, meta, save);
+            grid.append(card);
+        }
+        $('tickets-card').classList.remove('hidden');
     }
 
     function calendarLink(b, perf) {

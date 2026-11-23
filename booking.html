@@ -458,7 +458,7 @@
       <div class="step-head"><div class="step-num">5</div><div class="step-title">Confirm and pay</div></div>
       <div class="card card-neon">
         <div class="field" id="students-field">
-          <label for="student-n">How many of these tickets are for St Mary's students?</label>
+          <label for="student-n">How many of these are SME Student tickets?</label>
           <select id="student-n"><option value="0">0</option></select>
           <div class="hint" id="student-hint"></div>
         </div>
@@ -466,8 +466,8 @@
         <div class="summary-row"><span>Performance</span><strong id="sum-night" style="color:var(--text)">—</strong></div>
         <div class="summary-row"><span>Seats</span><strong id="sum-seats" style="color:var(--text)">—</strong></div>
         <div class="summary-row"><span>Tickets</span><strong id="sum-qty" style="color:var(--text)">—</strong></div>
-        <div class="summary-row"><span>Full price</span><strong id="sum-full" style="color:var(--text)">—</strong></div>
-        <div class="summary-row hidden" id="sum-student-row"><span>Student</span><strong id="sum-student" style="color:var(--text)">—</strong></div>
+        <div class="summary-row"><span id="sum-full-label">Standard</span><strong id="sum-full" style="color:var(--text)">—</strong></div>
+        <div class="summary-row hidden" id="sum-student-row"><span id="sum-student-label">SME Student</span><strong id="sum-student" style="color:var(--text)">—</strong></div>
         <div class="summary-row hidden" id="sum-access-row"><span>Access</span><strong id="sum-access" style="color:var(--text)">—</strong></div>
         <div class="summary-total"><span>Total</span><span class="amount" id="sum-total">—</span></div>
 
@@ -625,10 +625,10 @@ import { drawSeatPlan } from './seatplan.js';
     $('head-sub').textContent =
         CONFIG.priceLine() + ' · ' + S.venue;
     $('student-hint').textContent =
-        `Student tickets are ${CONFIG.money(T.studentPrice)}, for current St Mary's students only, one per student. ` +
+        `${T.types.student} tickets (${CONFIG.money(T.studentPrice)}) are for current St Mary's Edenderry students only, one per student. ` +
         `Each needs the student's school email (@${T.studentDomain}): we email a code to it once. ` +
         `Got your code already from the home page? Enter the email and type the code in. ` +
-        `Everyone else is ${CONFIG.money(T.price)}.`;
+        `Everyone else has a ${T.types.standard} ticket (${CONFIG.money(T.price)}).`;
     $('student-n').addEventListener('change', () => {
         state.students = parseInt($('student-n').value, 10) || 0;
         updateSummary();
@@ -651,7 +651,7 @@ import { drawSeatPlan } from './seatplan.js';
         let html = '';
         for (let i = 0; i < n; i++) {
             const r = studentRow(i);
-            const label = n === 1 ? 'Student ticket' : `Student ticket ${i + 1}`;
+            const label = n === 1 ? `${T.types.student} ticket` : `${T.types.student} ticket ${i + 1}`;
             if (r.token) {
                 html += `<div class="student-row done" data-i="${i}">
                   <div class="student-head"><span>${label}</span><span class="student-ok">✓ Verified</span></div>
@@ -1047,7 +1047,7 @@ import { drawSeatPlan } from './seatplan.js';
         $('pay-btn').innerHTML = !state.date
             ? 'Choose a night to continue'
             : !n ? 'Choose your seats to continue'
-            : !studentsOk ? 'Verify the student tickets to continue'
+            : !studentsOk ? `Verify the ${T.types.student} tickets to continue`
             : `💳 Pay ${CONFIG.money(total)} by card`;
     }
 

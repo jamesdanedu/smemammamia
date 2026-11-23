@@ -10,6 +10,7 @@ import {
 import { sendConfirmationFor } from './_confirmations.js';
 import { siteUrl } from './_show.js';
 import { cleanSeats, describeSeats } from '../seating.js';
+import { ticketsFor } from './_tickets.js';
 
 export default async function handler(req, res) {
     if (applyCors(req, res)) return;
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
     try {
         /* ---- what do we have on file? ---- */
         const [booking] = await sbSelect(
-            `bookings?select=*,booking_seats(seat_id)&booking_reference=eq.${encodeURIComponent(bookingRef)}&limit=1`
+            `bookings?select=*,booking_seats(seat_id),booking_students(email,student_name)&booking_reference=eq.${encodeURIComponent(bookingRef)}&limit=1`
         );
 
         if (!booking) {
@@ -90,7 +91,7 @@ export default async function handler(req, res) {
         });
 
         const [confirmed] = await sbSelect(
-            `bookings?select=*,booking_seats(seat_id)&booking_reference=eq.${encodeURIComponent(bookingRef)}&limit=1`
+            `bookings?select=*,booking_seats(seat_id),booking_students(email,student_name)&booking_reference=eq.${encodeURIComponent(bookingRef)}&limit=1`
         );
         if (confirmed?.seat_conflict) {
             console.error('paid booking', bookingRef, 'lost its seats while the customer was away — flagged for the office');
@@ -164,6 +165,10 @@ function publicView(b) {
         performanceDate: b.performance_date,
         quantity: b.quantity,
         studentTickets: b.student_quantity || 0,
+        // One QR code per ticket, only once the booking is confirmed.
+        tickets: b.status === 'confirmed'
+            ? ticketsFor(b).map(t => ({ n: t.n, of: t.of, kind: t.kind, name: t.name, seatLabel: t.seatLabel, code: t.code }))
+            : [],
         amount: Number(b.amount),
         customerName: b.customer_name,
         customerEmail: maskEmail(b.customer_email),
