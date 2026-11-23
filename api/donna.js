@@ -34,8 +34,13 @@ const DAILY_CAP = Math.max(0, parseInt(process.env.DONNA_DAILY_CAP, 10) || 2000)
 /* Provider-specific request options, as JSON, merged into every request —
    for example a switch to turn a model's reasoning mode off. Check the
    provider's docs; tests/donna-live.mjs shows whether replies come back. */
-let EXTRA = {};
-try { EXTRA = JSON.parse(process.env.DEEPSEEK_EXTRA || '{}'); } catch { console.error('DEEPSEEK_EXTRA is not valid JSON'); }
+/* deepseek-v4-flash thinks before it answers unless told not to, and the
+   thinking counts against max_tokens: the judge's 10-token "OK" ran out of
+   room, every verdict came back cut off, and every reply was blocked. Donna
+   needs no reasoning, so it is off by default; DEEPSEEK_EXTRA can still
+   override it. */
+let EXTRA = { thinking: { type: 'disabled' } };
+try { EXTRA = { ...EXTRA, ...JSON.parse(process.env.DEEPSEEK_EXTRA || '{}') }; } catch { console.error('DEEPSEEK_EXTRA is not valid JSON'); }
 
 const PER_10_MIN = 20;          // messages one visitor can send in ten minutes
 const PER_DAY    = 60;          // and in a day
@@ -122,7 +127,7 @@ async function judgeSaysOk(reply) {
         const verdict = await callModel([
             { role: 'system', content: JUDGE_SYSTEM },
             { role: 'user', content: `<reply>\n${reply.replace(/<\/?reply>/gi, '')}\n</reply>` }
-        ], { maxTokens: 10, temperature: 0, timeoutMs: 8000 });
+        ], { maxTokens: 20, temperature: 0, timeoutMs: 8000 });
         return /^\W*ok\W*$/i.test(verdict);
     } catch (err) {
         console.error('donna judge failed:', err.message);
