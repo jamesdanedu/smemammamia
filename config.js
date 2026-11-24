@@ -148,6 +148,22 @@ const CONFIG = {
            page. To stop her answering but keep the bubble, set DONNA_ENABLED
            to false in Vercel instead — see README, Step 3e. */
         showDonna: true
+    },
+
+    /* --- Photos page background music -------------------------------------
+       Plays quietly behind the slideshow, only after a visitor taps "Music",
+       and pauses when the slideshow scrolls out of view.
+
+       aegean-breeze.mp3 was composed and synthesised for this site, so it is
+       free to use. To swap in another licence-free track (e.g. from Pixabay
+       Music), drop the MP3 in /audio, change `file`, and set loopStart and
+       loopEnd to null so it loops from start to end.
+       Set file to null to remove the Music button. */
+    photoMusic: {
+        file: 'audio/aegean-breeze.mp3',
+        loopStart: 2.307664,          // seconds — this file is built to loop seamlessly here
+        loopEnd: 76.152925,
+        volume: 0.35                // 0–1; it's already mastered quietly
     }
 };
 
