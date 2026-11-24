@@ -32,14 +32,14 @@ const CAST = {
     principals: [
         { name: "Kitty Carey", role: "Sophie Sheridan",       photo: "" },
         { name: "KatieAnn Rowan", role: "Donna Sheridan",        photo: "" },
-        { name: "TBC", role: "Sam Carmichael",        photo: "" },
+        { name: "Ozzie Moore", role: "Sam Carmichael",        photo: "" },
         { name: "Ollie Murphy", role: "Bill Austin",           photo: "" },
-        { name: "TBC", role: "Harry Bright",          photo: "" },
+        { name: "Ben Callaghan", role: "Harry Bright",          photo: "" },
         { name: "Sean Usher", role: "Sky",                   photo: "" },
         { name: "Amelia Hayden", role: "Tanya",                 photo: "" },
         { name: "Jenny Brady", role: "Rosie",                 photo: "" },
         { name: "TBC", role: "Lisa",                  photo: "" },
-        { name: "TBC", role: "Ali",                   photo: "" },
+        { name: "Luisa Minciuna", role: "Ali",                   photo: "" },
         { name: "Alfie Cleary", role: "Pepper",                photo: "" },
         { name: "Bobby Nolan", role: "Eddie",                 photo: "" },
         { name: "TBC", role: "Father Alexandrios",    photo: "" }
