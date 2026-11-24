@@ -30,8 +30,8 @@ const CAST = {
 
     /* ---- Principals -------------------------------------------------- */
     principals: [
-        { name: "TBC", role: "Sophie Sheridan",       photo: "" },
-        { name: "TBC", role: "Donna Sheridan",        photo: "" },
+        { name: "Kitty Carey", role: "Sophie Sheridan",       photo: "" },
+        { name: "KatieAnn Rowan", role: "Donna Sheridan",        photo: "" },
         { name: "TBC", role: "Sam Carmichael",        photo: "" },
         { name: "TBC", role: "Bill Austin",           photo: "" },
         { name: "TBC", role: "Harry Bright",          photo: "" },
