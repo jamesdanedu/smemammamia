@@ -48,6 +48,7 @@ body { padding-top: 0; }
 }
 .result.ok      { background: #e4f4e0; border-color: #6f8b4e; color: #2f4a1c; }
 .result.student { background: #fff3d1; border-color: #e0a020; color: #5c3d00; }
+.result.child   { background: #ece6f7; border-color: #7a52b3; color: #3e2366; }
 .result.already { background: #fde9d3; border-color: #c2663f; color: #6b2e12; }
 .result.bad     { background: #fbe1e8; border-color: #c2356b; color: #7a1336; }
 .result .access { margin-top: 8px; font-weight: 700; }
@@ -105,6 +106,7 @@ body { padding-top: 0; }
     <p class="faint-note">
       No QR code? Find them by name on the admin Door list. A green screen lets them in.
       A yellow <strong>SME Student</strong> screen: check the name is the student in front of you.
+      A purple <strong>Child</strong> screen: check it is a child under <span class="child-age">10</span>.
       Orange means the ticket has already been used.
     </p>
   </section>
@@ -112,6 +114,7 @@ body { padding-top: 0; }
 
 <canvas id="grab" hidden></canvas>
 
+<script src="prices.js"></script>
 <script src="config.js"></script>
 <script src="vendor/jsQR.min.js"></script>
 <script>
@@ -280,6 +283,14 @@ body { padding-top: 0; }
                  <div class="line">Check this is the student in front of you.${t.email ? ' (' + esc(t.email) + ')' : ''}</div>
                  <div class="line">${seat}</div><div class="line">${ticketLine}</div>${access}`);
         }
+        if (r.result === 'ok' && t.kind === 'child') {
+            buzz([60, 60, 60]); beep(880);
+            return paint('child',
+                `<div class="big">✓ In — CHILD</div>
+                 <div class="who">Under ${esc(CONFIG.ticket.childAge)}</div>
+                 <div class="line">Check this is a child under ${esc(CONFIG.ticket.childAge)}. Booked by ${esc(r.bookingName)}.</div>
+                 <div class="line">${seat}</div><div class="line">${ticketLine}</div>${access}`);
+        }
         if (r.result === 'ok') {
             buzz(80); beep(880);
             return paint('ok',
@@ -291,7 +302,7 @@ body { padding-top: 0; }
         if (r.result === 'already') {
             return paint('already',
                 `<div class="big">Already scanned</div>
-                 <div class="who">${esc(t.name)}${t.kind === 'student' ? ' (' + esc(CONFIG.ticket.types.student) + ')' : ''}</div>
+                 <div class="who">${esc(t.name)}${t.kind === 'student' ? ' (' + esc(CONFIG.ticket.types.student) + ')' : t.kind === 'child' ? ' (' + esc(CONFIG.ticket.types.child) + ')' : ''}</div>
                  <div class="line">Came in at ${time(r.scannedAt)}${r.scannedBy ? ' on ' + esc(r.scannedBy) : ''}.</div>
                  <div class="line">${seat}</div><div class="line">${ticketLine}</div>`);
         }
@@ -329,6 +340,7 @@ body { padding-top: 0; }
         } catch (_) {}
     }
 
+    document.querySelectorAll('.child-age').forEach(el => { el.textContent = CONFIG.ticket.childAge; });
     if (pw) api('door-whoami').then(open).catch(() => {});
 })();
 </script>

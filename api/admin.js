@@ -17,7 +17,7 @@ import {
 import { runReconcile } from './reconcile.js';
 import { parseTicketCode, ticketsFor } from './_tickets.js';
 import { openCheckout, baseUrlFor } from './_sumup.js';
-import { siteUrl, SHOW, ENQUIRIES_TO, cleanAccessNeeds, accessLabels, priceFor, cleanStudentCount } from './_show.js';
+import { siteUrl, SHOW, ENQUIRIES_TO, cleanAccessNeeds, accessLabels, priceFor, cleanStudentCount, cleanCount } from './_show.js';
 import { accessTeamAddresses, sendAccessEmails } from './_access.js';
 import { loadSeatState, countNight, seatRefusal } from './_seats.js';
 import { cleanSeats, describeSeats, isAccessible, ACCESSIBLE_IDS, SEAT_MAP } from '../seating.js';
@@ -108,7 +108,7 @@ export default async function handler(req, res) {
                     sbSelect('performances?select=key,label,on_sale&order=key.asc'),
                     sbSelectAll('bookings?select=booking_reference,performance_date,quantity,amount,status,' +
                              'payment_status,payment_method,booked_by,customer_name,confirmation_sent_at,' +
-                             'last_email_error,seat_conflict,seats_requested,access_needs,access_notes,student_quantity' +
+                             'last_email_error,seat_conflict,seats_requested,access_needs,access_notes,student_quantity,child_quantity' +
                              '&status=eq.confirmed&order=created_at.asc'),
                     sbSelect('access_requests?select=id,reference,performance_date,name,wheelchair_spaces,' +
                              'companion_seats,status,team_emailed_at,ack_emailed_at,created_at&order=created_at.asc')
@@ -160,6 +160,7 @@ export default async function handler(req, res) {
                         cardDoorTickets: tickets(b => b.payment_method === 'card_door'),
                         compTickets:    tickets(isComp),
                         studentTickets: confirmed.reduce((t, b) => t + (b.student_quantity || 0), 0),
+                        childTickets:   confirmed.reduce((t, b) => t + (b.child_quantity || 0), 0),
                         compByNight
                     },
                     bySeller,
@@ -214,7 +215,7 @@ export default async function handler(req, res) {
                 if (!isDate(body.performanceDate)) return res.status(400).json({ error: 'Choose tonight\'s performance.' });
 
                 const [b] = await sbSelect(
-                    'bookings?select=id,booking_reference,performance_date,quantity,student_quantity,status,' +
+                    'bookings?select=id,booking_reference,performance_date,quantity,student_quantity,child_quantity,status,' +
                     'customer_name,payment_status,access_needs,access_notes,booking_seats(seat_id),booking_students(email,student_name)' +
                     `&booking_reference=eq.${enc(parsed.ref)}&limit=1`
                 );
@@ -254,12 +255,13 @@ export default async function handler(req, res) {
             case 'checkin-stats': {
                 if (!isDate(body.performanceDate)) return res.status(400).json({ error: 'performanceDate required' });
                 const [rows, checked] = await Promise.all([
-                    sbSelectAll(`bookings?select=quantity,student_quantity&performance_date=eq.${enc(body.performanceDate)}&status=eq.confirmed`),
+                    sbSelectAll(`bookings?select=quantity,student_quantity,child_quantity&performance_date=eq.${enc(body.performanceDate)}&status=eq.confirmed`),
                     sbSelectAll(`ticket_checkins?select=ticket_no&performance_date=eq.${enc(body.performanceDate)}`)
                 ]);
                 return res.status(200).json({
                     tickets: rows.reduce((t, b) => t + b.quantity, 0),
                     studentTickets: rows.reduce((t, b) => t + (b.student_quantity || 0), 0),
+                    childTickets: rows.reduce((t, b) => t + (b.child_quantity || 0), 0),
                     checkedIn: checked.length
                 });
             }
@@ -318,9 +320,13 @@ export default async function handler(req, res) {
                 if (students === null) {
                     return res.status(400).json({ error: 'Student tickets must be between 0 and the number of seats.' });
                 }
+                const children = cleanCount(body.childTickets, seats.length - students);
+                if (children === null) {
+                    return res.status(400).json({ error: 'SME Student and Child tickets together cannot be more than the seats.' });
+                }
 
                 const payment = STAFF_PAYMENTS[body.payment] || (body.free ? STAFF_PAYMENTS.comp : STAFF_PAYMENTS.cash);
-                const amount = payment.free ? 0 : priceFor(seats.length, students);
+                const amount = payment.free ? 0 : priceFor(seats.length, students, children);
                 const reference = newBookingRef();
 
                 let accessRequestId = null;
@@ -354,7 +360,8 @@ export default async function handler(req, res) {
                         p_payment_method: payment.method,
                         p_notes:          String(body.notes || '').trim().slice(0, 300),
                         p_access_request: accessRequestId,
-                        p_student_quantity: students
+                        p_student_quantity: students,
+                        p_child_quantity: children
                     });
                 } catch (err) {
                     const problem = seatProblem(err);
@@ -373,6 +380,7 @@ export default async function handler(req, res) {
                         amount,
                         quantity: seats.length,
                         students,
+                        children,
                         performanceDate: body.performanceDate,
                         baseUrl: baseUrlFor(req)
                     });

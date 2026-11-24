@@ -12,7 +12,7 @@ import {
     sbRpc, newBookingRef, supabaseConfigured
 } from './_supabase.js';
 import { openCheckout, baseUrlFor } from './_sumup.js';
-import { cleanAccessNeeds, BOOKING_OPEN, MAX_PER_ORDER, priceFor, cleanStudentCount } from './_show.js';
+import { cleanAccessNeeds, BOOKING_OPEN, MAX_PER_ORDER, priceFor, cleanStudentCount, cleanCount } from './_show.js';
 import { cleanSeats, describeSeats, ACCESSIBLE_IDS } from '../seating.js';
 import { seatRefusal } from './_seats.js';
 import { studentsForTokens } from './_students.js';
@@ -61,6 +61,8 @@ export default async function handler(req, res) {
     const quantity        = seats.length;
     const studentTokens   = Array.isArray(body.students) ? body.students.slice(0, 50) : [];
     const students        = cleanStudentCount(studentTokens.length, quantity);
+    // Child tickets (under CHILD_AGE) need no code: the door checks the age.
+    const children        = students === null ? null : cleanCount(body.childTickets, quantity - students);
 
     /* ---------------- validation ---------------- */
     if (!/^\d{4}-\d{2}-\d{2}$/.test(performanceDate)) {
@@ -77,6 +79,9 @@ export default async function handler(req, res) {
     }
     if (students === null) {
         return res.status(400).json({ error: 'The number of student tickets must be between 0 and the number of seats.' });
+    }
+    if (children === null) {
+        return res.status(400).json({ error: 'SME Student and Child tickets together cannot be more than the number of seats.' });
     }
     if (customerName.length < 2) {
         return res.status(400).json({ error: 'Please enter your name.' });
@@ -99,7 +104,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: verified.error, studentProblem: true });
     }
 
-    const amount = priceFor(quantity, students);
+    const amount = priceFor(quantity, students, children);
     const bookingRef = newBookingRef();
 
     /* ---------------- 1. hold the seats ----------------
@@ -123,7 +128,8 @@ export default async function handler(req, res) {
             p_access_notes: accessNotes,
             p_restricted:   ACCESSIBLE_IDS,
             p_student_quantity: students,
-            p_students:     verified.students
+            p_students:     verified.students,
+            p_child_quantity: children
         });
     } catch (err) {
         const msg = err.pgMessage || err.message || '';
@@ -160,6 +166,9 @@ export default async function handler(req, res) {
         if (msg.includes('STUDENT_DUPLICATE')) {
             return res.status(400).json({ error: 'Each student ticket needs a different school email.', studentProblem: true });
         }
+        if (msg.includes('BAD_CHILD_QUANTITY')) {
+            return res.status(400).json({ error: 'SME Student and Child tickets together cannot be more than the number of seats.' });
+        }
         if (msg.includes('BAD_STUDENT_QUANTITY') || msg.includes('STUDENT_NOT_VERIFIED')) {
             return res.status(400).json({ error: 'The number of student tickets must be between 0 and the number of seats.' });
         }
@@ -180,6 +189,7 @@ export default async function handler(req, res) {
         amount,
         quantity,
         students,
+        children,
         performanceDate,
         baseUrl: baseUrlFor(req)
     });
@@ -197,6 +207,7 @@ export default async function handler(req, res) {
         amount,
         quantity,
         studentTickets: students,
+        childTickets: children,
         seats,
         seatsLabel: describeSeats(seats),
         performanceDate,

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Book Tickets — Mamma Mia! | St Mary's Edenderry</title>
-<meta name="description" content="Book tickets online for Mamma Mia! at St Mary's Secondary School, Edenderry. Two nights, €15 a ticket (€10 for SME students), secure card payment by SumUp.">
+<meta name="description" content="Book tickets online for Mamma Mia! at St Mary's Secondary School, Edenderry. Two nights, €15 a ticket (€10 for SME students and under 10s), secure card payment by SumUp.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -463,11 +463,17 @@
           <div class="hint" id="student-hint"></div>
         </div>
         <div class="student-list" id="student-list"></div>
+        <div class="field" id="children-field">
+          <label for="child-n" id="child-label">How many are children under 10?</label>
+          <select id="child-n"><option value="0">0</option></select>
+          <div class="hint" id="child-hint"></div>
+        </div>
         <div class="summary-row"><span>Performance</span><strong id="sum-night" style="color:var(--text)">—</strong></div>
         <div class="summary-row"><span>Seats</span><strong id="sum-seats" style="color:var(--text)">—</strong></div>
         <div class="summary-row"><span>Tickets</span><strong id="sum-qty" style="color:var(--text)">—</strong></div>
         <div class="summary-row"><span id="sum-full-label">Standard</span><strong id="sum-full" style="color:var(--text)">—</strong></div>
         <div class="summary-row hidden" id="sum-student-row"><span id="sum-student-label">SME Student</span><strong id="sum-student" style="color:var(--text)">—</strong></div>
+        <div class="summary-row hidden" id="sum-child-row"><span id="sum-child-label">Child</span><strong id="sum-child" style="color:var(--text)">—</strong></div>
         <div class="summary-row hidden" id="sum-access-row"><span>Access</span><strong id="sum-access" style="color:var(--text)">—</strong></div>
         <div class="summary-total"><span>Total</span><span class="amount" id="sum-total">—</span></div>
 
@@ -585,6 +591,7 @@
   </p>
 </footer>
 
+<script src="prices.js"></script>
 <script src="config.js"></script>
 <script type="module">
 // The hall is described once, in seating.js, and drawn by seatplan.js. The
@@ -606,7 +613,8 @@ import { drawSeatPlan } from './seatplan.js';
         unavailable: new Set(),     // sold, held or blocked — the public is not told which
         released: new Set(),        // accessible seats put on general sale tonight
         seats: [],
-        students: 0,                // how many of the seats are student tickets
+        students: 0,                // how many of the seats are SME Student tickets
+        children: 0,                // and how many are Child tickets (no code: the door checks)
         studentRows: [],            // one per student ticket: { name, email, code, sent, token, verifiedName, msg, err, busy }
         seatsLoading: false,
         seatsLoaded: false,
@@ -626,21 +634,33 @@ import { drawSeatPlan } from './seatplan.js';
         CONFIG.priceLine() + ' · ' + S.venue;
     $('student-hint').textContent =
         `${T.types.student} tickets (${CONFIG.money(T.studentPrice)}) are for current St Mary's Edenderry students only, one per student. ` +
-        `Each needs the student's school email (@${T.studentDomain}): we email a code to it once. ` +
-        `Got your code already from the home page? Enter the email and type the code in. ` +
-        `Everyone else has a ${T.types.standard} ticket (${CONFIG.money(T.price)}).`;
+        `Each needs the student's SME Student code: get one on the home page with your school email (@${T.studentDomain}). ` +
+        `Tickets that are neither SME Student nor Child are ${T.types.standard} (${CONFIG.money(T.price)}).`;
     $('student-n').addEventListener('change', () => {
         state.students = parseInt($('student-n').value, 10) || 0;
         updateSummary();
     });
+    $('child-label').textContent = `How many are children ${CONFIG.childWords().replace(/s$/, '')}?`;
+    $('child-hint').textContent =
+        `${T.types.child} tickets are ${CONFIG.money(T.childPrice)} for children ${CONFIG.childWords().replace(/s$/, '')}. ` +
+        `No code needed — just bring them along; the door team may check.`;
+    $('child-n').addEventListener('change', () => {
+        state.children = parseInt($('child-n').value, 10) || 0;
+        updateSummary();
+    });
 
     /* ---------------- student tickets ----------------
-       Each student ticket needs the student's school email. We email one
-       code to it, ever; typing it back here proves it is theirs, and the
-       server hands back a token that goes with the booking. Without a token
-       the ticket cannot be booked at the student price — the server checks. */
+       Each SME Student ticket needs the student's code: 8 letters and
+       numbers, like K7PM-29XQ, emailed once to their school address. The
+       code alone finds the student; the server hands back a token that goes
+       with the booking, and without one the ticket cannot be booked at the
+       student price. Old 6-digit codes still work, with the school email.
+       No code yet? The row can send one, as the home page does. */
     function studentRow(i) {
-        return state.studentRows[i] ||= { name: '', email: '', code: '', sent: false, token: null, verifiedName: '', msg: '', err: false, busy: false };
+        return state.studentRows[i] ||= {
+            code: '', email: '', name: '', getting: false, needEmail: false,
+            token: null, verifiedName: '', verifiedEmail: '', msg: '', err: false, busy: false
+        };
     }
     const studentsVerified = () =>
         state.studentRows.slice(0, state.students).every(r => r && r.token);
@@ -655,27 +675,36 @@ import { drawSeatPlan } from './seatplan.js';
             if (r.token) {
                 html += `<div class="student-row done" data-i="${i}">
                   <div class="student-head"><span>${label}</span><span class="student-ok">✓ Verified</span></div>
-                  <div>${escapeHtml(r.verifiedName)} · ${escapeHtml(r.email)}</div>
+                  <div>${escapeHtml(r.verifiedName)}</div>
                   <div class="student-actions mt-1"><button type="button" class="btn btn-ghost btn-small" data-act="change">Change</button></div>
                 </div>`;
                 continue;
             }
+            const legacy = /^\d{6}$/.test(r.code.replace(/[\s-]/g, '')) || r.needEmail;
             html += `<div class="student-row" data-i="${i}">
               <div class="student-head"><span>${label}</span></div>
-              <div class="student-pair">
-                <div class="field"><label for="st-name-${i}">Student's name</label>
-                  <input type="text" id="st-name-${i}" data-f="name" maxlength="80" autocomplete="off" value="${escapeHtml(r.name)}"></div>
-                <div class="field"><label for="st-email-${i}">School email</label>
-                  <input type="email" id="st-email-${i}" data-f="email" maxlength="160" inputmode="email" autocomplete="off"
-                         placeholder="name@${T.studentDomain}" value="${escapeHtml(r.email)}"></div>
-              </div>
-              <div class="student-actions"><button type="button" class="btn btn-ghost btn-small" data-act="send" ${r.busy ? 'disabled' : ''}>Email the code</button></div>
-              <div class="student-code mt-1">
-                <div class="field" style="margin-bottom:0"><label for="st-code-${i}">Code from the email</label>
-                  <input type="text" id="st-code-${i}" data-f="code" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="6 digits" value="${escapeHtml(r.code)}"></div>
+              <div class="student-code">
+                <div class="field" style="margin-bottom:0"><label for="st-code-${i}">SME Student code</label>
+                  <input type="text" id="st-code-${i}" data-f="code" maxlength="12" autocomplete="off" autocapitalize="characters"
+                         spellcheck="false" placeholder="e.g. K7PM-29XQ" value="${escapeHtml(r.code)}" style="text-transform:uppercase;letter-spacing:0.08em"></div>
                 <button type="button" class="btn btn-primary btn-small" data-act="verify" ${r.busy ? 'disabled' : ''}>Verify</button>
               </div>
-              <div class="student-msg ${r.err ? 'err' : ''}" role="status">${escapeHtml(r.msg || 'Already have a code for this email? Type it in and press Verify.')}</div>
+              <div class="field mt-1 ${legacy ? '' : 'hidden'}" data-legacy style="margin-bottom:0">
+                <label for="st-email-${i}">School email <span class="faint" style="text-transform:none">(needed for an older 6-digit code)</span></label>
+                <input type="email" id="st-email-${i}" data-f="email" maxlength="160" inputmode="email" autocomplete="off"
+                       placeholder="name@${T.studentDomain}" value="${escapeHtml(r.email)}">
+              </div>
+              <div class="student-msg ${r.err ? 'err' : ''}" role="status">${escapeHtml(r.msg || 'Type the code from the SME Student email and press Verify.')}</div>
+              ${r.getting ? `
+              <div class="student-pair mt-1">
+                <div class="field"><label for="st-name-${i}">Student's name</label>
+                  <input type="text" id="st-name-${i}" data-f="name" maxlength="80" autocomplete="off" value="${escapeHtml(r.name)}"></div>
+                <div class="field"><label for="st-gemail-${i}">School email</label>
+                  <input type="email" id="st-gemail-${i}" data-f="email" maxlength="160" inputmode="email" autocomplete="off"
+                         placeholder="name@${T.studentDomain}" value="${escapeHtml(r.email)}"></div>
+              </div>
+              <div class="student-actions"><button type="button" class="btn btn-ghost btn-small" data-act="send" ${r.busy ? 'disabled' : ''}>Email the code</button></div>`
+              : `<div class="student-actions mt-1"><button type="button" class="btn btn-ghost btn-small" data-act="get">No code yet? Get one by email</button></div>`}
             </div>`;
         }
         list.innerHTML = html;
@@ -692,7 +721,17 @@ import { drawSeatPlan } from './seatplan.js';
         if (!f || !row) return;
         const r = studentRow(Number(row.dataset.i));
         r[f] = e.target.value;
-        if (f === 'email') r.sent = false;
+        if (f === 'code') {
+            // An old 6-digit code needs the email too: show the box as soon as it looks like one.
+            const box = row.querySelector('[data-legacy]');
+            if (box) box.classList.toggle('hidden', !(/^\d{6}$/.test(r.code.replace(/[\s-]/g, '')) || r.needEmail));
+        }
+    });
+    $('student-list').addEventListener('keydown', e => {
+        if (e.key === 'Enter' && e.target.dataset.f === 'code') {
+            e.preventDefault();
+            e.target.closest('.student-row').querySelector('[data-act="verify"]').click();
+        }
     });
 
     $('student-list').addEventListener('click', async e => {
@@ -701,28 +740,26 @@ import { drawSeatPlan } from './seatplan.js';
         if (!act || !row) return;
         const i = Number(row.dataset.i);
         const r = studentRow(i);
+        const say = (msg, err = true) => { r.msg = msg; r.err = err; renderStudents(); };
 
         if (act === 'change') {
-            Object.assign(r, { token: null, verifiedName: '', code: '', msg: '', err: false });
+            Object.assign(r, { token: null, verifiedName: '', verifiedEmail: '', code: '', msg: '', err: false });
             updateSummary();
             return;
         }
-
-        const email = r.email.trim().toLowerCase();
-        const say = (msg, err = true) => { r.msg = msg; r.err = err; renderStudents(); };
-        if (!email.endsWith('@' + T.studentDomain)) return say(`Use the student's school email, ending @${T.studentDomain}.`);
-        const dup = state.studentRows.slice(0, state.students)
-            .some((o, j) => j !== i && o && o.email.trim().toLowerCase() === email);
-        if (dup) return say('Each student ticket needs a different school email.');
+        if (act === 'get') { r.getting = true; renderStudents(); return; }
 
         let body;
         if (act === 'send') {
+            const email = r.email.trim().toLowerCase();
             if (r.name.trim().length < 2) return say("Please enter the student's name.");
+            if (!email.endsWith('@' + T.studentDomain)) return say(`Use the student's school email, ending @${T.studentDomain}.`);
             body = { action: 'send', email, name: r.name.trim() };
         } else {
-            const code = r.code.replace(/\s/g, '');
-            if (!/^\d{6}$/.test(code)) return say('Type the 6-digit code from the email.');
-            body = { action: 'verify', email, code };
+            const code = r.code.toUpperCase().replace(/[\s-]/g, '');
+            if (!code) return say('Type the code from the email.');
+            body = { action: 'verify', code };
+            if (/^\d{6}$/.test(code) || r.needEmail) body.email = r.email.trim().toLowerCase();
         }
 
         r.busy = true; say(act === 'send' ? 'Sending…' : 'Checking…', false);
@@ -735,12 +772,19 @@ import { drawSeatPlan } from './seatplan.js';
             const data = await res.json().catch(() => ({}));
             r.busy = false;
             if (act === 'send') {
-                if (res.ok) { r.sent = true; return say(`Code sent to ${email}. Check that inbox (and junk), then type it in.`, false); }
-                if (data.alreadySent) { r.sent = true; return say(data.error, false); }
+                if (res.ok) { r.getting = false; return say(`Code sent to ${body.email}. Check that inbox (and junk), then type it in above.`, false); }
+                if (data.alreadySent) { r.getting = false; return say(data.error, false); }
                 return say(data.error || 'Could not send the code. Please try again.');
             }
-            if (!res.ok) return say(data.error || 'Could not check the code. Please try again.');
-            Object.assign(r, { token: data.token, verifiedName: data.name, email: data.email, msg: '', err: false });
+            if (!res.ok) {
+                if (data.needEmail) r.needEmail = true;
+                return say(data.error || 'Could not check the code. Please try again.');
+            }
+            // One SME Student ticket per student: the same code twice in one booking is refused.
+            const dup = state.studentRows.slice(0, state.students)
+                .some((o, j) => j !== i && o && o.token && o.verifiedEmail === data.email);
+            if (dup) return say('That student already has an SME Student ticket in this booking.');
+            Object.assign(r, { token: data.token, verifiedName: data.name, verifiedEmail: data.email, msg: '', err: false, getting: false });
             updateSummary();
         } catch (_) {
             r.busy = false;
@@ -1012,25 +1056,29 @@ import { drawSeatPlan } from './seatplan.js';
         const n = state.seats.length;
         const perf = state.date ? CONFIG.getPerformance(state.date) : null;
 
-        // Student tickets: 0 up to the number of seats chosen.
+        // SME Student and Child tickets together: 0 up to the number of seats.
         if (state.students > n) state.students = n;
-        const sel = $('student-n');
-        if (sel.options.length !== n + 1) {
-            sel.innerHTML = Array.from({ length: n + 1 }, (_, i) => `<option value="${i}">${i}</option>`).join('');
-        }
-        sel.value = String(state.students);
-        sel.disabled = n === 0;
+        if (state.students + state.children > n) state.children = n - state.students;
+        const fill = (sel, max, value) => {
+            if (sel.options.length !== max + 1) {
+                sel.innerHTML = Array.from({ length: max + 1 }, (_, i) => `<option value="${i}">${i}</option>`).join('');
+            }
+            sel.value = String(value);
+            sel.disabled = n === 0;
+        };
+        fill($('student-n'), n - state.children, state.students);
+        fill($('child-n'), n - state.students, state.children);
         if ($('student-list').children.length !== state.students ||
             [...$('student-list').children].some((el, i) => el.classList.contains('done') !== Boolean(studentRow(i).token))) {
             renderStudents();
         }
-        const st = state.students, full = n - st;
-        const total = CONFIG.priceFor(n, st);
+        const st = state.students, ch = state.children, full = n - st - ch;
+        const total = CONFIG.priceFor(n, st, ch);
 
         $('seat-words').textContent = n ? describeSeats(state.seats)
             : (state.date ? 'No seats chosen yet' : 'Choose a night first');
         $('seat-count').textContent = n
-            ? `${CONFIG.ticketWords(n, st)} · ${CONFIG.money(total)}`
+            ? `${CONFIG.ticketWords(n, st, ch)} · ${CONFIG.money(total)}`
             : `Tap the seats you would like — up to ${state.max}.`;
 
         $('sum-night').textContent = perf ? perf.label : '—';
@@ -1039,6 +1087,8 @@ import { drawSeatPlan } from './seatplan.js';
         $('sum-full').textContent  = n ? `${full} × ${CONFIG.money(T.price)}` : CONFIG.money(T.price) + ' each';
         $('sum-student').textContent = `${st} × ${CONFIG.money(T.studentPrice)}`;
         $('sum-student-row').classList.toggle('hidden', !st);
+        $('sum-child').textContent = `${ch} × ${CONFIG.money(T.childPrice)}`;
+        $('sum-child-row').classList.toggle('hidden', !ch);
         $('sum-total').textContent = CONFIG.money(total);
 
         const studentsOk = studentsVerified();
@@ -1214,7 +1264,7 @@ import { drawSeatPlan } from './seatplan.js';
 
         if (!state.date)              return alertBox('Please choose a performance.');
         if (!state.seats.length)      return alertBox('Please choose your seats on the plan.');
-        if (!studentsVerified())      return alertBox('Please verify each student ticket with the code from the school email.');
+        if (!studentsVerified())      return alertBox('Please verify each SME Student ticket with its code.');
         if (name.length < 2)          return alertBox('Please enter your full name.');
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return alertBox('Please enter a valid email address.');
 
@@ -1236,6 +1286,7 @@ import { drawSeatPlan } from './seatplan.js';
                     // One verified token per student ticket — the server
                     // charges the student price only for these.
                     students: state.studentRows.slice(0, Math.min(state.students, state.seats.length)).map(r => r.token),
+                    childTickets: Math.min(state.children, state.seats.length - state.students),
                     customerName: name,
                     customerEmail: email,
                     customerPhone: phone,
@@ -1310,7 +1361,7 @@ import { drawSeatPlan } from './seatplan.js';
     function openPaymentModal(data) {
         const perf = CONFIG.getPerformance(state.date);
         $('pay-summary').textContent =
-            `${perf ? perf.label : ''} · ${CONFIG.ticketWords(data.quantity, data.studentTickets || 0)} · ` +
+            `${perf ? perf.label : ''} · ${CONFIG.ticketWords(data.quantity, data.studentTickets || 0, data.childTickets || 0)} · ` +
             `${data.seatsLabel ? data.seatsLabel + ' · ' : ''}${CONFIG.money(data.amount)}`;
 
         $('payment-loading').style.display = 'block';

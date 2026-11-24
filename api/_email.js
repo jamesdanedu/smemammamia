@@ -307,7 +307,7 @@ function icsAttachment(booking, dateLabel, url) {
  */
 export function buildConfirmation(booking, { performanceLabel, url } = {}) {
     const dateLabel = formatPerformanceDate(booking.performance_date, performanceLabel);
-    const qty = ticketWords(booking.quantity, booking.student_quantity || 0);
+    const qty = ticketWords(booking.quantity, booking.student_quantity || 0, booking.child_quantity || 0);
     const studentNames = (booking.booking_students || []).map(st => st.student_name).filter(Boolean).join(', ');
     const paid = '€' + Number(booking.amount).toFixed(2).replace(/\.00$/, '');
     const ref = booking.booking_reference;
@@ -638,10 +638,11 @@ export function buildStudentCode({ to, name, code }) {
         '',
         `Hello ${name},`,
         '',
-        `Your code for a student ticket is: ${code}`,
+        `Your SME Student ticket code is: ${code}`,
         '',
-        'Type it into the booking page. Keep this email: this is the only code',
-        'we send to this address, and it works until your student ticket is paid for.',
+        'Type it in when you (or your parents) book — that is all you need.',
+        'Keep this email: this is the only code we send to this address, and it',
+        'works until your SME Student ticket is paid for.',
         'If you did not ask for this, ignore this email: nothing has been booked.',
         '',
         SHOW.school
@@ -650,8 +651,8 @@ export function buildStudentCode({ to, name, code }) {
     const html = simpleHtml({
         kicker: `${SHOW.name} · student ticket`,
         heading: 'Your student ticket code',
-        intro: `Hello ${esc(name)},<br><br>Type this code into the booking page:
-                <div style="font-size:32px;font-weight:bold;letter-spacing:6px;margin:18px 0;color:#22333f;">${esc(code)}</div>
+        intro: `Hello ${esc(name)},<br><br>Your SME Student ticket code. Type it in when you (or your parents) book:
+                <div style="font-size:32px;font-weight:bold;letter-spacing:4px;margin:18px 0;color:#22333f;font-family:Menlo,Consolas,monospace;">${esc(code)}</div>
                 Keep this email: this is the only code we send to this address, and it works
                 until your student ticket is paid for.`,
         rows: [],

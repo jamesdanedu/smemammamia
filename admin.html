@@ -726,6 +726,10 @@ input[type="checkbox"] {
           <input type="number" id="add-students" min="0" max="20" step="1" value="0" inputmode="numeric" style="max-width:120px">
         </div>
         <div class="field">
+          <label for="add-children">Child tickets <span class="faint" style="text-transform:none" id="add-children-note">(children under 10, at the child price)</span></label>
+          <input type="number" id="add-children" min="0" max="20" step="1" value="0" inputmode="numeric" style="max-width:120px">
+        </div>
+        <div class="field">
           <label>Payment</label>
           <div class="pay-choice">
             <label class="check-label"><input type="radio" name="add-pay" value="cash" checked> Cash</label>
@@ -817,6 +821,7 @@ input[type="checkbox"] {
   </div>
 </div>
 
+<script src="prices.js"></script>
 <script src="config.js"></script>
 <script type="module">
 // Same plan the booking page and the API use — see seating.js. Every seat
@@ -977,7 +982,8 @@ import { drawSeatPlan } from './seatplan.js';
             [t.cashTickets, 'Cash'],
             [t.cardDoorTickets, 'Card swipe (office)'],
             [t.compTickets, 'Complimentary'],
-            [t.studentTickets || 0, 'SME Student tickets']
+            [t.studentTickets || 0, 'SME Student tickets'],
+            [t.childTickets || 0, 'Child tickets']
         ].map(([n, l, cls]) => `<div class="stat ${cls || ''}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
 
         $('perf-cards').innerHTML = (s.performances || []).map(p => {
@@ -1168,7 +1174,7 @@ import { drawSeatPlan } from './seatplan.js';
                 <td>${escapeHtml(b.customer_email || '')}<br><span class="faint">${escapeHtml(b.customer_phone || '')}</span></td>
                 <td class="night">${perfShort(b.performance_date)}</td>
                 <td><strong>${b.quantity}</strong>${b.student_quantity ? `<br><span class="faint">${b.student_quantity} SME Student${
-                    (b.booking_students || []).length ? ': ' + escapeHtml(b.booking_students.map(x => x.student_name).join(', ')) : ''}</span>` : ''}</td>
+                    (b.booking_students || []).length ? ': ' + escapeHtml(b.booking_students.map(x => x.student_name).join(', ')) : ''}</span>` : ''}${b.child_quantity ? `<br><span class="faint">${b.child_quantity} ${b.child_quantity === 1 ? 'Child' : 'Children'}</span>` : ''}</td>
                 <td class="seats-cell">${b.seatsLabel ? escapeHtml(b.seatsLabel) : b.seat_conflict ? '<strong style="color:var(--pink)">To assign</strong>' : '<span class="faint">—</span>'}</td>
                 <td>${CONFIG.money(b.amount)}</td>
                 <td>${statusTag}${payTag}${conflictTag}</td>
@@ -1254,13 +1260,13 @@ import { drawSeatPlan } from './seatplan.js';
     /* ---------------- CSV ---------------- */
     $('csv-btn').addEventListener('click', () => {
         const rows = filteredBookings();
-        const header = ['Reference', 'Name', 'Email', 'Phone', 'Performance', 'Tickets', 'SME Student tickets', 'SME Students', 'Seats', 'Seats (ids)', 'Amount',
+        const header = ['Reference', 'Name', 'Email', 'Phone', 'Performance', 'Tickets', 'SME Student tickets', 'SME Students', 'Child tickets', 'Seats', 'Seats (ids)', 'Amount',
                         'Status', 'Payment', 'Payment method', 'Seat conflict', 'Access', 'Access notes', 'Sold by',
                         'Booked at', 'Confirmation sent', 'Email error'];
         const body = rows.map(b => [
             b.booking_reference, b.customer_name, b.customer_email, b.customer_phone || '',
             b.performance_date, b.quantity, b.student_quantity || 0,
-            (b.booking_students || []).map(x => `${x.student_name} <${x.email}>`).join('; '), b.seatsLabel || '', (b.seats || []).join(' '), b.amount, b.status,
+            (b.booking_students || []).map(x => `${x.student_name} <${x.email}>`).join('; '), b.child_quantity || 0, b.seatsLabel || '', (b.seats || []).join(' '), b.amount, b.status,
             isComp(b) ? 'comp' : b.payment_status, b.payment_method || '', b.seat_conflict ? 'yes' : '',
             CONFIG.accessLabels(b.access_needs).join(', '), b.access_notes || '',
             b.booked_by || '', new Date(b.created_at).toLocaleString('en-IE'),
@@ -1360,7 +1366,7 @@ import { drawSeatPlan } from './seatplan.js';
                   <td style="font-size:1.1rem">☐</td>
                   <td><strong>${escapeHtml(b.customer_name)}</strong></td>
                   <td><strong>${b.quantity}</strong>${b.student_quantity ? `<br><span class="faint">${b.student_quantity} SME Student${
-                    (b.booking_students || []).length ? ': ' + escapeHtml(b.booking_students.map(x => x.student_name).join(', ')) : ''}</span>` : ''}</td>
+                    (b.booking_students || []).length ? ': ' + escapeHtml(b.booking_students.map(x => x.student_name).join(', ')) : ''}</span>` : ''}${b.child_quantity ? `<br><span class="faint">${b.child_quantity} ${b.child_quantity === 1 ? 'Child' : 'Children'}</span>` : ''}</td>
                   <td class="seats-cell">${b.seatsLabel ? escapeHtml(b.seatsLabel) : b.seat_conflict ? '<strong>⚠ Seats to be assigned — see the office</strong>' : ''}</td>
                   <td class="ref">${b.booking_reference}</td>
                   <td>${paidWord(b)}</td>
@@ -1591,9 +1597,10 @@ import { drawSeatPlan } from './seatplan.js';
         const seats = cleanSeats([...add.picked]);
         const pay = document.querySelector('[name="add-pay"]:checked').value;
         const students = addStudents(seats.length);
-        const price = pay === 'comp' ? 0 : CONFIG.priceFor(seats.length, students);
+        const children = addChildren(seats.length - students);
+        const price = pay === 'comp' ? 0 : CONFIG.priceFor(seats.length, students, children);
         $('add-picked').textContent = seats.length
-            ? `${describeSeats(seats)} — ${CONFIG.ticketWords(seats.length, students)}, ${pay === 'comp' ? 'complimentary' : CONFIG.money(price)}`
+            ? `${describeSeats(seats)} — ${CONFIG.ticketWords(seats.length, students, children)}, ${pay === 'comp' ? 'complimentary' : CONFIG.money(price)}`
             : 'No seats picked.';
         const what = pay === 'card_online' ? 'Hold seats and open card payment' : 'Add booking';
         $('add-btn').textContent = seats.length ? `${what} — ${seats.length} seat${seats.length === 1 ? '' : 's'}` : what;
@@ -1610,6 +1617,18 @@ import { drawSeatPlan } from './seatplan.js';
         return n;
     }
     $('add-students').addEventListener('input', () => paintAdd());
+
+    /** Child tickets on the Add booking form, never more than the seats left after SME Student. */
+    function addChildren(left) {
+        const box = $('add-children');
+        box.max = String(Math.max(0, left));
+        let n = parseInt(box.value, 10);
+        if (!Number.isInteger(n) || n < 0) n = 0;
+        if (n > left) { n = Math.max(0, left); box.value = String(n); }
+        return n;
+    }
+    $('add-children').addEventListener('input', () => paintAdd());
+    $('add-children-note').textContent = `(children ${CONFIG.childWords().replace(/s$/, '')}, ${CONFIG.money(CONFIG.ticket.childPrice)} each)`;
 
     const PAY_HINTS = {
         cash: 'Take the cash first. The booking is confirmed straight away.',
@@ -1686,6 +1705,7 @@ import { drawSeatPlan } from './seatplan.js';
                 accessNotes: $('add-access-notes').value.trim(),
                 payment,
                 studentTickets: addStudents(seats.length),
+                childTickets: addChildren(seats.length - addStudents(seats.length)),
                 accessRequestId: add.request?.id
             });
             const { booking, seatsLabel, email } = result;
@@ -1700,6 +1720,7 @@ import { drawSeatPlan } from './seatplan.js';
             ['add-name', 'add-email', 'add-phone', 'add-notes', 'add-access-notes']
                 .forEach(id => { $(id).value = ''; });
             $('add-students').value = '0';
+            $('add-children').value = '0';
             document.querySelectorAll('[data-add-access]').forEach(cb => { cb.checked = false; });
             add.picked.clear();
             clearRequestLink();

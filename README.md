@@ -421,8 +421,10 @@ under **Settings → Environment Variables**:
 | `SITE_URL` | your live URL, for links inside emails — e.g. `https://mammamiathemusical.ie` (an example, not a registered domain) |
 | `EMAIL_BCC` | optional, office copy of every confirmation |
 | `ACCESS_REQUESTS_TO` | optional, where accessible-seating requests go — defaults to `ENQUIRIES_TO` |
-| `TICKET_PRICE` | optional, full price, defaults to 15 — must match `config.js` |
-| `STUDENT_PRICE` | optional, St Mary's student price, defaults to 10 — must match `config.js` |
+| `TICKET_PRICE` | optional, Standard price, defaults to 15. The pages read all prices from `/prices.js`, so a change here plus a redeploy changes the whole site |
+| `STUDENT_PRICE` | optional, SME Student price, defaults to 10 |
+| `CHILD_PRICE` | optional, Child ticket price, defaults to 10 |
+| `CHILD_AGE` | optional, Child tickets are for under this age, defaults to 10 |
 | `HOLD_MINUTES` | optional, defaults to 15 |
 | `MAX_PER_ORDER` | optional, defaults to 10 — the most seats in one online booking; must match `maxPerBooking` in `config.js` |
 | `WALL_AUTO_APPROVE` | optional, `true` posts wall messages without moderation |
@@ -525,17 +527,27 @@ Things worth knowing:
   seats is the number of tickets. Full price is `TICKET_PRICE`, student tickets are
   `STUDENT_PRICE`; the split is stored on the booking as `student_quantity`.
 * **Student tickets are proved by school email.** Each one needs an
-  `@stmarysedenderry.ie` address. `/api/student-code` emails ONE 6-digit code per
-  address, ever — asking again is refused, so no address gets a second email. The
-  code keeps working until it is on a paid booking, so an abandoned payment is
-  just typed in again. Typing it in returns a token; `/api/create-checkout` only
+  `@stmarysedenderry.ie` address. `/api/student-code` emails ONE code per address,
+  ever — asking again is refused, so no address gets a second email. Codes are 8
+  characters (`K7PM-29XQ`, no 0/O or 1/I/L) and are enough on their own at booking:
+  ~850 billion possible codes for ~1,000 students, so guessing one is hopeless
+  (wrong codes are also limited per IP). Codes sent before 23 Nov were 6 digits;
+  those still work, typed in with the school email. The code keeps working until
+  it is on a paid booking, so an abandoned payment is just typed in again. Typing
+  it in returns a token; `/api/create-checkout` only
   charges the student price for valid tokens, and `create_hold` refuses an address
   already on a confirmed booking or a live hold (one student ticket per student,
-  across both nights). Five wrong guesses lock the address: to unlock it, delete
+  across both nights). Five wrong guesses at an old 6-digit code lock the address: to unlock it, delete
   its row in `student_codes` in Supabase. Staff and students share the domain, so
   a staff member could claim one — accepted, it is €5.
-* **Two ticket types: SME Student and Standard.** SME Student (€10) is for current
-  St Mary's Edenderry students; Standard (€15) is everyone else, children included.
+* **Three ticket types: Standard, SME Student and Child.** Standard (`TICKET_PRICE`,
+  €15) is for everyone; SME Student (`STUDENT_PRICE`, €10) for current St Mary's
+  Edenderry students, with a code; Child (`CHILD_PRICE`, €10) for under-`CHILD_AGE`s
+  (10), no code — the door checks. The counts are `student_quantity` and
+  `child_quantity` on the booking; QR tickets go SME Student, then Child, then
+  Standard. Every page loads `/prices.js` (a rewrite to `api/availability.js`)
+  before `config.js`, so prices are set in Vercel only. Live database change:
+  `migrations/2026-11-24-child-tickets.sql`.
 * **Tickets are QR codes, one per person.** The confirmation email links to the
   booking page (`success.html?ref=…`), which draws a QR code per ticket with the
   school crest in the middle (error correction H, so the crest does not stop it

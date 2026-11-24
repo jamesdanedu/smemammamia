@@ -16,7 +16,7 @@ import { ticketWords } from './_show.js';
  * nobody can pay for a checkout that does not exist, so there is nothing to
  * wait for.
  */
-export async function openCheckout({ reference, amount, quantity, students = 0, performanceDate, baseUrl }) {
+export async function openCheckout({ reference, amount, quantity, students = 0, children = 0, performanceDate, baseUrl }) {
     const SUMUP_API_KEY       = process.env.SUMUP_API_KEY;
     const SUMUP_MERCHANT_CODE = process.env.SUMUP_MERCHANT_CODE;
 
@@ -32,7 +32,7 @@ export async function openCheckout({ reference, amount, quantity, students = 0, 
             amount,
             currency: 'EUR',
             merchant_code: SUMUP_MERCHANT_CODE,
-            description: `Mamma Mia! — ${ticketWords(quantity, students)} (${performanceDate})`,
+            description: `Mamma Mia! — ${ticketWords(quantity, students, children)} (${performanceDate})`,
             // Where SumUp sends the customer once they are done paying.
             redirect_url: `${baseUrl}/success.html?ref=${reference}`,
             // Without this, SumUp builds an API-only checkout for its card

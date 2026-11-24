@@ -8,6 +8,9 @@
   "crons": [
     { "path": "/api/reconcile", "schedule": "0 * * * *" }
   ],
+  "rewrites": [
+    { "source": "/prices.js", "destination": "/api/availability?format=js" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

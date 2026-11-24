@@ -107,6 +107,7 @@
 .ticket-kind { display: inline-block; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
                padding: 3px 10px; border-radius: 999px; background: var(--cyan-tint); color: var(--cyan); }
 .ticket-kind.student { background: var(--yellow-tint); color: #8a5a00; }
+.ticket-kind.child { background: #ece6f7; color: #5b3a8e; }
 .ticket-name { font-weight: 700; margin-top: 6px; }
 .ticket-meta { font-size: 0.85rem; color: var(--text-dim); }
 .ticket-save { margin-top: 8px; font-size: 0.82rem; }
@@ -252,6 +253,7 @@
   </p>
 </footer>
 
+<script src="prices.js"></script>
 <script src="config.js"></script>
 <script src="vendor/qrcode.min.js"></script>
 <script src="qr-ticket.js"></script>
@@ -327,7 +329,7 @@
         $('d-night').textContent   = perf ? perf.label : b.performanceDate;
         $('d-time').textContent    = S.doorsTime + ' / ' + S.startTime;
         $('d-venue').textContent   = S.venue;
-        $('d-qty').textContent     = CONFIG.ticketWords(b.quantity, b.studentTickets || 0);
+        $('d-qty').textContent     = CONFIG.ticketWords(b.quantity, b.studentTickets || 0, b.childTickets || 0);
         const comp = b.paymentStatus === 'comp' || b.paymentStatus === 'refunded';
         $('d-amount').textContent  = comp ? 'Complimentary' : CONFIG.money(b.amount);
         if (comp) $('going-line').textContent = 'Your tickets are booked. See you on the island.';
@@ -405,7 +407,7 @@
             canvas.setAttribute('role', 'img');
             canvas.setAttribute('aria-label', `QR code for ticket ${t.n} of ${t.of}`);
             const kind = document.createElement('span');
-            kind.className = 'ticket-kind' + (t.kind === 'student' ? ' student' : '');
+            kind.className = 'ticket-kind' + (t.kind === 'student' ? ' student' : t.kind === 'child' ? ' child' : '');
             kind.textContent = CONFIG.ticket.types[t.kind] || t.kind;
             const name = document.createElement('div');
             name.className = 'ticket-name';
