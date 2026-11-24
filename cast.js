@@ -31,7 +31,7 @@ const CAST = {
     /* ---- Principals -------------------------------------------------- */
     principals: [
         { name: "Kitty Carey", role: "Sophie Sheridan",       photo: "" },
-        { name: "KatieAnn Rowan", role: "Donna Sheridan",        photo: "" },
+        { name: "Katieann Rowan", role: "Donna Sheridan",        photo: "" },
         { name: "Ozzie Moore", role: "Sam Carmichael",        photo: "" },
         { name: "Ollie Murphy", role: "Bill Austin",           photo: "" },
         { name: "Ben Callaghan", role: "Harry Bright",          photo: "" },
