@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Cast &amp; Crew — Mamma Mia! | St Mary's Edenderry</title>
-<meta name="description" content="Meet the company of Mamma Mia! at St Mary's Secondary School, Edenderry: principals, ensemble and production team.">
+<meta name="description" content="Meet the company of Mamma Mia! at St Mary's Secondary School, Edenderry: principals, lead vocalists, ensemble and production team.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,6 +49,8 @@
 }
 
 .people { display: grid; gap: 22px 18px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+/* a short row (the lead vocalists) sits in the middle rather than to the left */
+#vocalists { grid-template-columns: repeat(auto-fit, minmax(160px, 183px)); justify-content: center; }
 
 .person { text-align: center; }
 
@@ -174,6 +176,13 @@
   </div>
 </section>
 
+<section class="section" id="vocalists-section">
+  <div class="container">
+    <h2 class="section-title" style="font-size:1.3rem"><span class="neon-pink">Lead Vocalists</span></h2>
+    <div class="people" id="vocalists"></div>
+  </div>
+</section>
+
 <section class="section">
   <div class="container">
     <h2 class="section-title" style="font-size:1.3rem"><span class="neon-cyan">Ensemble</span></h2>
@@ -263,6 +272,9 @@
     }
 
     render(cast.principals || [], 'principals');
+    const vocalists = (cast.vocalists || []).map(v => ({ role: 'Lead Vocalist', ...v }));
+    if (vocalists.length) render(vocalists, 'vocalists');
+    else $('vocalists-section').hidden = true;
     render(cast.crew || [], 'crew');
 
     $('ensemble').innerHTML = (cast.ensemble || [])
