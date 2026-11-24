@@ -38,11 +38,22 @@ const CAST = {
         { name: "Sean Usher", role: "Sky",                   photo: "" },
         { name: "Amelia Hayden", role: "Tanya",                 photo: "" },
         { name: "Jenny Brady", role: "Rosie",                 photo: "" },
-        { name: "TBC", role: "Lisa",                  photo: "" },
+        { name: "Cara Staunton", role: "Lisa",                  photo: "" },
         { name: "Luisa Minciuna", role: "Ali",                   photo: "" },
         { name: "Alfie Cleary", role: "Pepper",                photo: "" },
         { name: "Bobby Nolan", role: "Eddie",                 photo: "" },
         { name: "TBC", role: "Father Alexandrios",    photo: "" }
+    ],
+
+    /* ---- Lead vocalists ------------------------------------------------
+       Shown between the principals and the ensemble, with a portrait each.
+       Same shape as the principals; leave "photo" empty for initials.
+       -------------------------------------------------------------------- */
+    vocalists: [
+        { name: "Ciara O'Meara",        photo: "" },
+        { name: "Gracie Slevin",        photo: "" },
+        { name: "Roisin Malone",        photo: "" },
+        { name: "Kinga Rusinkowska",    photo: "" }
     ],
 
     /* ---- Ensemble ------------------------------------------------------
