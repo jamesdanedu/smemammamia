@@ -27,16 +27,19 @@ const CONFIG = {
 
     /* --- Tickets ------------------------------------------------------- */
     ticket: {
-        price: 15,                    // euro, full price
-        studentPrice: 10,             // euro, St Mary's students
+        // Prices are set in Vercel (TICKET_PRICE, STUDENT_PRICE, CHILD_PRICE,
+        // CHILD_AGE) and reach every page through /prices.js, loaded just
+        // before this file. These numbers are only the fallback if that fails.
+        price: 15,                    // euro, Standard
+        studentPrice: 10,             // euro, SME Student
+        childPrice: 10,               // euro, Child
+        childAge: 10,                 // Child tickets are for under-10s
         studentLabel: 'SME student',      // in price lines: '€10 for SME students'
-        // The two ticket types, as printed on tickets and the booking summary.
-        types: { student: 'SME Student', standard: 'Standard' },
+        // The ticket types, as printed on tickets and the booking summary.
+        types: { student: 'SME Student', child: 'Child', standard: 'Standard' },
         qrLogo: 'images/crest-qr.png',  // shown in the middle of every QR ticket
         studentDomain: 'stmarysedenderry.ie', // student tickets need a school email here
                                       // (STUDENT_EMAIL_DOMAIN in Vercel, if set)
-                                      // both must match TICKET_PRICE / STUDENT_PRICE
-                                      // in api/_show.js (and Vercel, if set there)
         currency: 'EUR',
         maxPerBooking: 10,            // most seats one person can pick in one booking
                                       // (must match MAX_PER_ORDER in Vercel, default 10)
@@ -157,29 +160,48 @@ CONFIG.getPerformance = function (key) {
     return CONFIG.performances.find(p => p.key === key) || null;
 };
 
+/* The prices set in Vercel, from /prices.js (see api/availability.js). */
+(function () {
+    const p = typeof window !== 'undefined' && window.SITE_PRICES;
+    if (!p) return;
+    const ok = v => typeof v === 'number' && isFinite(v) && v >= 0;
+    if (ok(p.standard)) CONFIG.ticket.price = p.standard;
+    if (ok(p.student))  CONFIG.ticket.studentPrice = p.student;
+    if (ok(p.child))    CONFIG.ticket.childPrice = p.child;
+    if (ok(p.childAge) && p.childAge > 0) CONFIG.ticket.childAge = p.childAge;
+})();
+
 CONFIG.money = function (n) {
     return '€' + Number(n).toFixed(2).replace(/\.00$/, '');
 };
 
 /** What `quantity` tickets cost when `students` of them are student tickets. */
-CONFIG.priceFor = function (quantity, students = 0) {
+CONFIG.priceFor = function (quantity, students = 0, children = 0) {
     const T = CONFIG.ticket;
-    return (quantity - students) * T.price + students * T.studentPrice;
+    return (quantity - students - children) * T.price + students * T.studentPrice + children * T.childPrice;
 };
 
-/** '3 tickets (1 SME Student)' */
-CONFIG.ticketWords = function (quantity, students = 0) {
+/** '3 tickets (1 SME Student, 1 Child)' */
+CONFIG.ticketWords = function (quantity, students = 0, children = 0) {
     const base = quantity + (quantity === 1 ? ' ticket' : ' tickets');
-    if (!students) return base;
-    const S = CONFIG.ticket.types.student;
-    if (students === quantity) return base + (quantity === 1 ? ` (${S})` : ` (all ${S})`);
-    return `${base} (${students} ${S})`;
+    const parts = [];
+    if (students) parts.push(`${students} ${CONFIG.ticket.types.student}`);
+    if (children) parts.push(`${children} ${children === 1 ? CONFIG.ticket.types.child : 'Children'}`);
+    return parts.length ? `${base} (${parts.join(', ')})` : base;
 };
 
-/** '€15 · €10 for St Mary's students' */
+/** 'under 10s' */
+CONFIG.childWords = function () {
+    return `under ${CONFIG.ticket.childAge}s`;
+};
+
+/** '€15 · €10 for SME students and under 10s' (or each price, if they differ) */
 CONFIG.priceLine = function () {
-    const T = CONFIG.ticket;
-    return `${CONFIG.money(T.price)} · ${CONFIG.money(T.studentPrice)} for ${T.studentLabel}s`;
+    const T = CONFIG.ticket, m = CONFIG.money;
+    if (T.studentPrice === T.childPrice) {
+        return `${m(T.price)} · ${m(T.studentPrice)} for ${T.studentLabel}s and ${CONFIG.childWords()}`;
+    }
+    return `${m(T.price)} · ${m(T.studentPrice)} for ${T.studentLabel}s · ${m(T.childPrice)} for ${CONFIG.childWords()}`;
 };
 
 /** Turn stored access codes ('wheelchair,aisle') into readable labels. */

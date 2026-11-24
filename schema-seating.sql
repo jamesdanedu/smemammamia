@@ -113,6 +113,7 @@ for each row execute function public.touch_updated_at();
 --                      the office reseats them.
 --    access_request_id the access request this booking was made from.
 --    student_quantity  how many of the tickets are St Mary's student tickets
+--    child_quantity    how many are Child tickets (under CHILD_AGE, 10; checked at the door)
 --                      (charged at the student price). The rest are full price.
 -- ---------------------------------------------------------------------------
 alter table public.bookings add column if not exists seats_requested   text[];
@@ -123,6 +124,11 @@ alter table public.bookings add column if not exists student_quantity  integer n
 alter table public.bookings drop constraint if exists bookings_student_quantity_check;
 alter table public.bookings add constraint bookings_student_quantity_check
     check (student_quantity >= 0 and student_quantity <= quantity);
+
+alter table public.bookings add column if not exists child_quantity integer not null default 0;
+alter table public.bookings drop constraint if exists bookings_child_quantity_check;
+alter table public.bookings add constraint bookings_child_quantity_check
+    check (child_quantity >= 0 and student_quantity + child_quantity <= quantity);
 
 create index if not exists bookings_conflict_idx on public.bookings (performance_date) where seat_conflict;
 
@@ -350,7 +356,8 @@ from public.performances p;
 --    and its whole transaction — booking included — rolls back.
 --
 --    The number of tickets is the number of seats. p_student_quantity of
---    them are student tickets; the API works out the amount from the two.
+--    them are SME Student tickets and p_child_quantity Child tickets; the
+--    rest are Standard. The API works out the amount from the three.
 --    Online, every student ticket comes with a verified school address in
 --    p_students ([{email, name}]); each address may have one student ticket
 --    in total. Staff may sell student tickets without addresses.
@@ -362,6 +369,8 @@ drop function if exists public.create_hold(text, date, text[], numeric, text, te
                                            text, text, text[], boolean, boolean, text, text, text, uuid);
 drop function if exists public.create_hold(text, date, text[], numeric, text, text, text, text, integer,
                                            text, text, text[], boolean, boolean, text, text, text, uuid, integer);
+drop function if exists public.create_hold(text, date, text[], numeric, text, text, text, text, integer,
+                                           text, text, text[], boolean, boolean, text, text, text, uuid, integer, jsonb);
 drop function if exists public.assign_seats(text, text[]);
 
 create or replace function public.create_hold(
@@ -384,7 +393,8 @@ create or replace function public.create_hold(
     p_notes           text    default null,
     p_access_request  uuid    default null,
     p_student_quantity integer default 0,
-    p_students        jsonb   default '[]'
+    p_students        jsonb   default '[]',
+    p_child_quantity  integer default 0
 )
 returns public.bookings
 language plpgsql
@@ -411,6 +421,10 @@ begin
     end if;
     if coalesce(p_student_quantity, 0) < 0 or coalesce(p_student_quantity, 0) > v_count then
         raise exception 'BAD_STUDENT_QUANTITY';
+    end if;
+    if coalesce(p_child_quantity, 0) < 0
+       or coalesce(p_student_quantity, 0) + coalesce(p_child_quantity, 0) > v_count then
+        raise exception 'BAD_CHILD_QUANTITY';
     end if;
     if jsonb_typeof(v_students) <> 'array' or jsonb_array_length(v_students) > coalesce(p_student_quantity, 0) then
         raise exception 'BAD_STUDENT_QUANTITY';
@@ -488,7 +502,7 @@ begin
         booked_by, status, held_until,
         payment_status, payment_method, notes,
         access_needs, access_notes,
-        seats_requested, access_request_id, student_quantity
+        seats_requested, access_request_id, student_quantity, child_quantity
     ) values (
         p_reference, p_date, v_count, p_amount,
         p_name, p_email, nullif(p_phone, ''),
@@ -497,7 +511,7 @@ begin
         case when p_confirm then null else now() + make_interval(mins => p_hold_minutes) end,
         coalesce(p_payment_status, 'unpaid'), p_payment_method, nullif(btrim(p_notes), ''),
         nullif(btrim(p_access_needs), ''), nullif(btrim(p_access_notes), ''),
-        p_seats, p_access_request, coalesce(p_student_quantity, 0)
+        p_seats, p_access_request, coalesce(p_student_quantity, 0), coalesce(p_child_quantity, 0)
     )
     returning * into v_row;
 
@@ -864,7 +878,7 @@ revoke execute on function public.set_accessible_release(date, text[], boolean) 
 revoke execute on function public.claim_access_email(uuid, text, boolean, boolean) from public, anon, authenticated;
 revoke execute on function public.check_in_ticket(uuid, integer, date, text)  from public, anon, authenticated;
 revoke execute on function public.create_hold(text, date, text[], numeric, text, text, text, text, integer,
-                                              text, text, text[], boolean, boolean, text, text, text, uuid, integer, jsonb)
+                                              text, text, text[], boolean, boolean, text, text, text, uuid, integer, jsonb, integer)
     from public, anon, authenticated;
 
 -- Postgres lets PUBLIC execute every new function, so revoking anon alone
@@ -895,7 +909,7 @@ begin
         grant execute on function public.claim_confirmation_email(text, boolean)      to service_role;
         grant execute on function public.record_email_result(text, text, text, boolean, text, text, text) to service_role;
         grant execute on function public.create_hold(text, date, text[], numeric, text, text, text, text, integer,
-                                                     text, text, text[], boolean, boolean, text, text, text, uuid, integer, jsonb)
+                                                     text, text, text[], boolean, boolean, text, text, text, uuid, integer, jsonb, integer)
             to service_role;
     end if;
 end;

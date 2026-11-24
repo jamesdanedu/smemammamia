@@ -351,6 +351,7 @@
   </p>
 </footer>
 
+<script src="prices.js"></script>
 <script src="config.js"></script>
 <script src="donna.js" defer></script>
 <script>
@@ -361,7 +362,7 @@
         ['📅', 'Performances', CONFIG.performances.map(p => p.label).join('<br>')],
         ['🕖', 'Times', 'Doors ' + S.doorsTime + '<br>Curtain up ' + S.startTime],
         ['📍', 'Venue', `<a href="${S.venueMapUrl}" target="_blank" rel="noopener">${S.venue}</a><br>${S.venueLine2}`],
-        ['🎟️', 'Tickets', CONFIG.money(T.price) + ' each, ' + CONFIG.money(T.studentPrice) + ' for ' + T.studentLabel + 's<br><span class="faint" style="font-size:0.85rem">Booked online, card payment by SumUp</span>']
+        ['🎟️', 'Tickets', CONFIG.money(T.price) + ' each, ' + CONFIG.money(T.studentPrice) + ' for ' + T.studentLabel + 's, ' + CONFIG.money(T.childPrice) + ' for ' + CONFIG.childWords() + '<br><span class="faint" style="font-size:0.85rem">Booked online, card payment by SumUp</span>']
     ].map(([icon, label, value]) => `
         <div>
           <div class="char-name">${icon} ${label}</div>

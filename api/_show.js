@@ -38,40 +38,51 @@ export const PERFORMANCES = [
     { key: '2027-01-29', label: 'Friday 29th January 2027' }
 ];
 
-/* Two prices: full price for everyone, and a lower price for St Mary's
-   students. ⚠️  KEEP IN SYNC WITH CONFIG.ticket in config.js — the browser
-   shows those, the server charges these. */
-export const TICKET_PRICE  = Number(process.env.TICKET_PRICE  || 15);
-export const STUDENT_PRICE = Number(process.env.STUDENT_PRICE || 10);
+/* Three ticket types, three prices, all set in Vercel:
+     Standard     TICKET_PRICE   everyone
+     SME Student  STUDENT_PRICE  St Mary's Edenderry students, with their code
+     Child        CHILD_PRICE    children under 10 (CHILD_AGE), checked at the door
+   The browser gets these same numbers from /prices.js (api/availability.js),
+   so what a page shows is what the server charges. config.js only holds
+   fallbacks for when that file cannot load. */
+const envPrice = (name, fallback) => {
+    const n = Number(process.env[name]);
+    return Number.isFinite(n) && n >= 0 && process.env[name] !== '' && process.env[name] !== undefined ? n : fallback;
+};
+export const TICKET_PRICE  = envPrice('TICKET_PRICE', 15);
+export const STUDENT_PRICE = envPrice('STUDENT_PRICE', 10);
+export const CHILD_PRICE   = envPrice('CHILD_PRICE', 10);
+export const CHILD_AGE     = Math.max(1, parseInt(process.env.CHILD_AGE, 10) || 10);   // "under 10"
 export const MAX_PER_ORDER = Number(process.env.MAX_PER_ORDER || 10);
 
-/** Amount in euro for `quantity` tickets, `students` of them student tickets. */
-export function priceFor(quantity, students = 0) {
-    const full = quantity - students;
-    return Number((full * TICKET_PRICE + students * STUDENT_PRICE).toFixed(2));
+/** Amount in euro for `quantity` tickets: `students` SME Student, `children` Child, the rest Standard. */
+export function priceFor(quantity, students = 0, children = 0) {
+    const standard = quantity - students - children;
+    return Number((standard * TICKET_PRICE + students * STUDENT_PRICE + children * CHILD_PRICE).toFixed(2));
 }
 
 /**
- * How many student tickets the request asked for, or null if the answer is
- * not a whole number between 0 and the number of seats.
+ * A ticket count from the request, or null if it is not a whole number
+ * between 0 and `max`. Missing means 0.
  */
-export function cleanStudentCount(value, quantity) {
+export function cleanCount(value, max) {
     if (value === undefined || value === null || value === '') return 0;
     const n = Number(value);
-    if (!Number.isInteger(n) || n < 0 || n > quantity) return null;
+    if (!Number.isInteger(n) || n < 0 || n > max) return null;
     return n;
 }
+export const cleanStudentCount = cleanCount;
 
-/** The two ticket types. ⚠️ KEEP IN SYNC WITH CONFIG.ticket.types in config.js. */
-export const TICKET_TYPES = { student: 'SME Student', standard: 'Standard' };
+/** The ticket types. ⚠️ KEEP IN SYNC WITH CONFIG.ticket.types in config.js. */
+export const TICKET_TYPES = { student: 'SME Student', child: 'Child', standard: 'Standard' };
 
-/** '3 tickets (1 SME Student)' — for emails and payment descriptions. */
-export function ticketWords(quantity, students = 0) {
+/** '3 tickets (1 SME Student, 1 Child)' — for emails and payment descriptions. */
+export function ticketWords(quantity, students = 0, children = 0) {
     const base = quantity + (quantity === 1 ? ' ticket' : ' tickets');
-    if (!students) return base;
-    const S = TICKET_TYPES.student;
-    if (students === quantity) return base + (quantity === 1 ? ` (${S})` : ` (all ${S})`);
-    return `${base} (${students} ${S})`;
+    const parts = [];
+    if (students) parts.push(`${students} ${TICKET_TYPES.student}`);
+    if (children) parts.push(`${children} ${children === 1 ? TICKET_TYPES.child : 'Children'}`);
+    return parts.length ? `${base} (${parts.join(', ')})` : base;
 }
 
 /**

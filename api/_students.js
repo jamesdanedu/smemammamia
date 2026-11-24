@@ -1,9 +1,16 @@
 // Student tickets: proving a ticket belongs to a St Mary's student.
 //
 // A student ticket needs a school address (@stmarysedenderry.ie by default).
-// We email ONE 6-digit code to it, ever — a second request is refused rather
-// than sent; typing the code back proves the person can read that mailbox. Staff and students share the domain and cannot be told
-// apart — that is accepted: the saving is €5.
+// We email ONE code to it, ever — a second request is refused rather than
+// sent; typing the code back proves the person can read that mailbox. Staff
+// and students share the domain and cannot be told apart — that is accepted:
+// the saving is €5.
+//
+// Codes are 8 characters, like K7PM-29XQ, from 31 letters and digits with
+// the look-alikes left out (no 0/O, 1/I/L). That is about 850 billion
+// possible codes for ~1,000 students, so a code is enough on its own at
+// booking: guessing one that someone was sent is hopeless. Codes sent before
+// this change were 6 digits; those still work, typed in with the email.
 //
 // Only hashes of codes and tokens are stored. The token handed to the browser
 // after verification is what /api/create-checkout accepts for a student ticket.
@@ -25,9 +32,33 @@ const SECRET = process.env.STUDENT_CODE_SECRET || process.env.SUPABASE_SERVICE_R
 export const hash = (...parts) =>
     crypto.createHash('sha256').update([SECRET, ...parts].join('|')).digest('hex');
 
+export const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const CODE_RE = new RegExp(`^[${CODE_ALPHABET}]{8}$`);
+
+/** A new 8-character code, without the dash: 'K7PM29XQ'. */
 export function newCode() {
-    return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+    let out = '';
+    for (let i = 0; i < 8; i++) out += CODE_ALPHABET[crypto.randomInt(0, CODE_ALPHABET.length)];
+    return out;
 }
+
+/** 'K7PM29XQ' -> 'K7PM-29XQ', as shown in the email. */
+export const formatCode = code => code.slice(0, 4) + '-' + code.slice(4);
+
+/**
+ * What the person typed, tidied: ' k7pm 29xq ' -> { kind: 'code', code: 'K7PM29XQ' };
+ * '482 913' -> { kind: 'legacy', code: '482913' }; anything else -> null.
+ */
+export function readCode(value) {
+    const raw = String(value || '').toUpperCase().replace(/[\s-]/g, '');
+    if (/^\d{6}$/.test(raw)) return { kind: 'legacy', code: raw };
+    if (CODE_RE.test(raw)) return { kind: 'code', code: raw };
+    return null;
+}
+
+/** The hash a code is stored under: new codes on their own, old ones with the email. */
+export const codeHash = (code, email = null) =>
+    email ? hash('code', email, code) : hash('code8', code);
 
 export function newToken() {
     return crypto.randomBytes(24).toString('base64url');

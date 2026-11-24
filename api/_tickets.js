@@ -8,7 +8,8 @@
 //
 // Which ticket is which: tickets 1..S are the student tickets (S =
 // student_quantity), the SME Student tickets, matched to the booking's
-// students in name order; the rest are Standard, under the booking name. Seats go to tickets in plan
+// students in name order; then the Child tickets (child_quantity, under CHILD_AGE);
+// the rest are Standard. Child and Standard tickets carry the booking name. Seats go to tickets in plan
 // order, so ticket 1 has the first seat. Moving a party to other seats does
 // not change their codes.
 
@@ -46,16 +47,18 @@ export function ticketsFor(booking) {
     const students = [...(booking.booking_students || [])]
         .sort((a, b) => a.student_name.localeCompare(b.student_name) || a.email.localeCompare(b.email));
     const studentCount = booking.student_quantity || 0;
+    const childCount = booking.child_quantity || 0;
 
     const out = [];
     for (let n = 1; n <= booking.quantity; n++) {
         const isStudent = n <= studentCount;
+        const isChild = !isStudent && n <= studentCount + childCount;
         const st = isStudent ? students[n - 1] : null;
         const seat = seats[n - 1] || null;
         out.push({
             n,
             of: booking.quantity,
-            kind: isStudent ? 'student' : 'standard',
+            kind: isStudent ? 'student' : isChild ? 'child' : 'standard',
             name: st ? st.student_name : booking.customer_name,
             email: st ? st.email : null,
             seat,

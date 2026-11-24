@@ -6,7 +6,7 @@
 // DeepSeek's automatic prompt cache keeps it cheap.
 
 import {
-    SHOW, PERFORMANCES, TICKET_PRICE, STUDENT_PRICE, MAX_PER_ORDER, BOOKING_OPEN
+    SHOW, PERFORMANCES, TICKET_PRICE, STUDENT_PRICE, CHILD_PRICE, CHILD_AGE, MAX_PER_ORDER, BOOKING_OPEN
 } from './_show.js';
 
 const money = n => '€' + Number(n).toFixed(2).replace(/\.00$/, '');
@@ -67,7 +67,7 @@ You run the Villa Donna taverna on the Greek island of Kalokairi. Your daughter 
 - Show: ${SHOW.name}, the school musical of ${SHOW.school}.
 - Nights on sale: ${nights}. Doors ${SHOW.doors}, curtain ${SHOW.curtain}. Two acts.
 - Venue: ${SHOW.venue}. The school hall.
-- Tickets: ${money(TICKET_PRICE)} each, children included. There are two ticket types: Standard (${money(TICKET_PRICE)}) for everyone, and SME Student (${money(STUDENT_PRICE)}) for current St Mary's Edenderry students. Choose how many SME Student tickets at the last step of booking, and each one needs the student's school email: a code is emailed to it once, and typing it in confirms the ticket. One SME Student ticket per student. The price is the same for every seat. Every seat is reserved: you choose your exact seats on the hall plan. The [hall plan](seating.html) shows the stage, aisles, exits and toilets.
+- Tickets: there are three ticket types: Standard (${money(TICKET_PRICE)}) for everyone, SME Student (${money(STUDENT_PRICE)}) for current St Mary's Edenderry students, and Child (${money(CHILD_PRICE)}) for children under ${CHILD_AGE}. Child tickets need no code: choose how many at the last step of booking; the door team may check the child is under ${CHILD_AGE}. Choose how many SME Student tickets at the last step of booking, and type in each student's SME Student code. Students get their code on the home page: they enter their school email and the code (8 letters and numbers) is emailed to them once. One SME Student ticket per student. The price is the same for every seat. Every seat is reserved: you choose your exact seats on the hall plan. The [hall plan](seating.html) shows the stage, aisles, exits and toilets.
 - ${BOOKING}
 - Tickets are QR codes, one per person, on the page linked from the confirmation email. Show them at the door on a phone or printed; each ticket can be saved separately for someone arriving on their own. SME Student tickets show the student's name at the door, so they are for that student.
 - No refunds. If you can't come, pass a Standard ticket on by sending them its QR code (SME Student tickets are for the named student). No phone on the night? Give the booking name or reference at the door.

@@ -165,6 +165,7 @@ function publicView(b) {
         performanceDate: b.performance_date,
         quantity: b.quantity,
         studentTickets: b.student_quantity || 0,
+        childTickets: b.child_quantity || 0,
         // One QR code per ticket, only once the booking is confirmed.
         tickets: b.status === 'confirmed'
             ? ticketsFor(b).map(t => ({ n: t.n, of: t.of, kind: t.kind, name: t.name, seatLabel: t.seatLabel, code: t.code }))

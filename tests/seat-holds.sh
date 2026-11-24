@@ -191,6 +191,16 @@ q "$(hold_sql MM-STU009 "array['H15','H16']" ", p_student_quantity => 2, p_staff
 check "staff can sell student tickets without addresses" 2 \
       "$(q "select student_quantity from bookings where booking_reference = 'MM-STU009'")"
 
+echo "11b. child tickets"
+q "$(hold_sql MM-CHD001 "array['L3','L4','L5']" "$(STU 1 '[{"email":"cara@stmarysedenderry.ie","name":"Cara"}]'), p_child_quantity => 2")" >/dev/null
+check "a hold records SME Student and Child counts" "1|2" \
+      "$(q "select student_quantity || '|' || child_quantity from bookings where booking_reference = 'MM-CHD001'")"
+OUT=$(q "$(hold_sql MM-CHD002 "array['L7','L8']" "$(STU 1 '[{"email":"dee@stmarysedenderry.ie","name":"Dee"}]'), p_child_quantity => 2")" 2>&1 || true)
+check "SME Student + Child more than the seats is refused" "BAD_CHILD_QUANTITY" "$(grep -o 'BAD_CHILD_QUANTITY' <<<"$OUT")"
+check "and holds nothing" 0 "$(q "select count(*) from booking_seats where seat_id in ('L7','L8')")"
+q "$(hold_sql MM-CHD003 "array['L10']" ", p_child_quantity => 1")" >/dev/null
+check "a Child ticket needs no code" 1 "$(q "select child_quantity from bookings where booking_reference = 'MM-CHD003'")"
+
 echo "12. door check-in"
 BID=$(q "select id from bookings where booking_reference = 'MM-STU007'")
 check "the first scan lets the ticket in" t "$(q "select first_scan from check_in_ticket('$BID', 1, $NIGHT, 'iPad 1')")"
@@ -205,7 +215,7 @@ rm -f /tmp/mm_scan.$$
 echo "13. the anon key can call nothing"
 check "anon cannot check a ticket in" f "$(q "select has_function_privilege('anon', 'public.check_in_ticket(uuid, integer, date, text)', 'execute')")"
 check "anon cannot create a hold" f \
-      "$(q "select has_function_privilege('anon', 'public.create_hold(text, date, text[], numeric, text, text, text, text, integer, text, text, text[], boolean, boolean, text, text, text, uuid, integer, jsonb)', 'execute')")"
+      "$(q "select has_function_privilege('anon', 'public.create_hold(text, date, text[], numeric, text, text, text, text, integer, text, text, text[], boolean, boolean, text, text, text, uuid, integer, jsonb, integer)', 'execute')")"
 check "anon cannot confirm a payment" f "$(q "select has_function_privilege('anon', 'public.confirm_paid_booking(text, text)', 'execute')")"
 check "service_role can" t "$(q "select has_function_privilege('service_role', 'public.confirm_paid_booking(text, text)', 'execute')")"
 

@@ -697,6 +697,7 @@
   <a href="admin.html" class="admin-link">🔒 Admin Access</a>
 </footer>
 
+<script src="prices.js"></script>
 <script src="config.js"></script>
 <script src="donna.js" defer></script>
 <script>
@@ -708,7 +709,7 @@
     document.getElementById('footer-brand').textContent = S.title + ' · ' + S.year;
     document.getElementById('footer-line').textContent = S.school;
     document.getElementById('book-sub').textContent =
-        CONFIG.money(T.price) + ' a ticket · ' + CONFIG.money(T.studentPrice) + ' for ' + T.studentLabel + 's';
+        CONFIG.priceLine();
 
     /* ---------- SME student discount code ----------
        Students get their one code ahead of booking. The booking page takes
@@ -756,14 +757,14 @@
         ['📅', dates],
         ['🕢', S.startTime],
         ['📍', S.venue],
-        ['🎟️', CONFIG.money(T.price) + ' / ' + CONFIG.money(T.studentPrice) + ' SME students']
+        ['🎟️', CONFIG.priceLine()]
     ].map(([icon, text]) => `<span class="fact">${icon} ${text}</span>`).join('');
 
     /* ---------- Info tiles ---------- */
     document.getElementById('info-grid').innerHTML = [
         ['📍', 'Venue', `<a href="${S.venueMapUrl}" target="_blank" rel="noopener">${S.venue}</a><br><span class="dim" style="font-size:0.85rem">${S.venueLine2}</span>`],
         ['🕖', 'Doors / Curtain', `${S.doorsTime} / ${S.startTime}`],
-        ['🎟️', 'Tickets', `${CONFIG.money(T.price)} each<br><span class="dim" style="font-size:0.85rem">${CONFIG.money(T.studentPrice)} for ${T.studentLabel}s</span>`],
+        ['🎟️', 'Tickets', `${CONFIG.money(T.price)} each<br><span class="dim" style="font-size:0.85rem">${CONFIG.money(T.studentPrice)} for ${T.studentLabel}s<br>${CONFIG.money(T.childPrice)} for ${CONFIG.childWords()}</span>`],
         ['✉️', 'Questions', `<a href="${S.contactPage}">Ask us a question</a>`]
     ].map(([icon, label, value]) => `
         <div class="info-tile">
@@ -833,7 +834,7 @@
           <div class="perf-date">${rest.join(' ')} · ${CONFIG.show.startTime}</div>
           ${pill}
           <div class="perf-meta">
-            <span class="perf-price">${CONFIG.money(CONFIG.ticket.price)} · SME students ${CONFIG.money(CONFIG.ticket.studentPrice)}</span>
+            <span class="perf-price">${CONFIG.money(CONFIG.ticket.price)} · SME students &amp; ${CONFIG.childWords()} from ${CONFIG.money(Math.min(CONFIG.ticket.studentPrice, CONFIG.ticket.childPrice))}</span>
             <span class="perf-go">${go}</span>
           </div>
         </a>`;
