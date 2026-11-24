@@ -757,14 +757,14 @@
         ['📅', dates],
         ['🕢', S.startTime],
         ['📍', S.venue],
-        ['🎟️', CONFIG.priceLine()]
+        ...CONFIG.priceItems().map(([label, price], i) => [['🎟️', '🎓', '🧒'][i], `${label} ${price}`])
     ].map(([icon, text]) => `<span class="fact">${icon} ${text}</span>`).join('');
 
     /* ---------- Info tiles ---------- */
     document.getElementById('info-grid').innerHTML = [
         ['📍', 'Venue', `<a href="${S.venueMapUrl}" target="_blank" rel="noopener">${S.venue}</a><br><span class="dim" style="font-size:0.85rem">${S.venueLine2}</span>`],
         ['🕖', 'Doors / Curtain', `${S.doorsTime} / ${S.startTime}`],
-        ['🎟️', 'Tickets', `${CONFIG.money(T.price)} each<br><span class="dim" style="font-size:0.85rem">${CONFIG.money(T.studentPrice)} for ${T.studentLabel}s<br>${CONFIG.money(T.childPrice)} for ${CONFIG.childWords()}</span>`],
+        ['🎟️', 'Tickets', CONFIG.priceItems().map(([label, price]) => `${label} <strong>${price}</strong>`).join('<br>')],
         ['✉️', 'Questions', `<a href="${S.contactPage}">Ask us a question</a>`]
     ].map(([icon, label, value]) => `
         <div class="info-tile">
@@ -834,7 +834,7 @@
           <div class="perf-date">${rest.join(' ')} · ${CONFIG.show.startTime}</div>
           ${pill}
           <div class="perf-meta">
-            <span class="perf-price">${CONFIG.money(CONFIG.ticket.price)} · SME students &amp; ${CONFIG.childWords()} from ${CONFIG.money(Math.min(CONFIG.ticket.studentPrice, CONFIG.ticket.childPrice))}</span>
+            <span class="perf-price">${CONFIG.priceLine()}</span>
             <span class="perf-go">${go}</span>
           </div>
         </a>`;
