@@ -30,18 +30,18 @@ const CAST = {
 
     /* ---- Principals -------------------------------------------------- */
     principals: [
-        { name: "TBC", role: "Sophie Sheridan",       photo: "" },
-        { name: "TBC", role: "Donna Sheridan",        photo: "" },
-        { name: "TBC", role: "Sam Carmichael",        photo: "" },
-        { name: "TBC", role: "Bill Austin",           photo: "" },
-        { name: "TBC", role: "Harry Bright",          photo: "" },
-        { name: "TBC", role: "Sky",                   photo: "" },
-        { name: "TBC", role: "Tanya",                 photo: "" },
-        { name: "TBC", role: "Rosie",                 photo: "" },
+        { name: "Kitty Carey", role: "Sophie Sheridan",       photo: "" },
+        { name: "KatieAnn Rowan", role: "Donna Sheridan",        photo: "" },
+        { name: "Ozzie Moore", role: "Sam Carmichael",        photo: "" },
+        { name: "Ollie Murphy", role: "Bill Austin",           photo: "" },
+        { name: "Ben Callaghan", role: "Harry Bright",          photo: "" },
+        { name: "Sean Usher", role: "Sky",                   photo: "" },
+        { name: "Amelia Hayden", role: "Tanya",                 photo: "" },
+        { name: "Jenny Brady", role: "Rosie",                 photo: "" },
         { name: "TBC", role: "Lisa",                  photo: "" },
-        { name: "TBC", role: "Ali",                   photo: "" },
-        { name: "TBC", role: "Pepper",                photo: "" },
-        { name: "TBC", role: "Eddie",                 photo: "" },
+        { name: "Luisa Minciuna", role: "Ali",                   photo: "" },
+        { name: "Alfie Cleary", role: "Pepper",                photo: "" },
+        { name: "Bobby Nolan", role: "Eddie",                 photo: "" },
         { name: "TBC", role: "Father Alexandrios",    photo: "" }
     ],
 
