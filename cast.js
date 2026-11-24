@@ -37,7 +37,7 @@ const CAST = {
         { name: "TBC", role: "Harry Bright",          photo: "" },
         { name: "Sean Usher", role: "Sky",                   photo: "" },
         { name: "Amelia Hayden", role: "Tanya",                 photo: "" },
-        { name: "TBC", role: "Rosie",                 photo: "" },
+        { name: "Jenny Brady", role: "Rosie",                 photo: "" },
         { name: "TBC", role: "Lisa",                  photo: "" },
         { name: "TBC", role: "Ali",                   photo: "" },
         { name: "Alfie Cleary", role: "Pepper",                photo: "" },
