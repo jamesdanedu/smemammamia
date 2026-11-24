@@ -41,7 +41,7 @@ const CAST = {
         { name: "TBC", role: "Lisa",                  photo: "" },
         { name: "TBC", role: "Ali",                   photo: "" },
         { name: "Alfie Cleary", role: "Pepper",                photo: "" },
-        { name: "TBC", role: "Eddie",                 photo: "" },
+        { name: "Bobby Nolan", role: "Eddie",                 photo: "" },
         { name: "TBC", role: "Father Alexandrios",    photo: "" }
     ],
 
