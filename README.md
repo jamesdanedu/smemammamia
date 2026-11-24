@@ -766,3 +766,11 @@ The Photos page shows a slideshow and a grid. Pictures come from two places:
    the same tab. Changes show on the site at once — no GitHub commit or redeploy.
    Needs `schema-photos.sql` run once. Supabase's free plan gives 1 GB of storage.
 2. **`photos.js` + `/images`**, as before. These show after the uploaded ones.
+
+**Background music.** A "Play music" button above the slideshow plays
+`audio/aegean-breeze.mp3` quietly on a seamless loop; it pauses when the slideshow
+scrolls off screen or the tab is hidden. The track is original — composed and
+synthesised by `tools/compose-music.py` — so there is nothing to license. No ABBA
+recordings: the MTI licence covers the live show only, not playing recordings online.
+Settings (file, loop points, volume, or `file: null` to remove the button) are in
+`CONFIG.photoMusic` in `config.js`.
