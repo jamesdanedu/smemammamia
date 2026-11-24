@@ -211,13 +211,19 @@ CONFIG.childWords = function () {
     return `under ${CONFIG.ticket.childAge}s`;
 };
 
-/** '€15 · €10 for SME students and under 10s' (or each price, if they differ) */
-CONFIG.priceLine = function () {
+/** The three prices, as shown on the site: [['Standard', '€15'], ['SME students', '€10'], ['Under 10s', '€10']] */
+CONFIG.priceItems = function () {
     const T = CONFIG.ticket, m = CONFIG.money;
-    if (T.studentPrice === T.childPrice) {
-        return `${m(T.price)} · ${m(T.studentPrice)} for ${T.studentLabel}s and ${CONFIG.childWords()}`;
-    }
-    return `${m(T.price)} · ${m(T.studentPrice)} for ${T.studentLabel}s · ${m(T.childPrice)} for ${CONFIG.childWords()}`;
+    return [
+        [T.types.standard, m(T.price)],
+        ['SME students', m(T.studentPrice)],
+        [`Under ${T.childAge}s`, m(T.childPrice)]
+    ];
+};
+
+/** 'Standard €15 · SME students €10 · Under 10s €10' */
+CONFIG.priceLine = function () {
+    return CONFIG.priceItems().map(([label, price]) => `${label} ${price}`).join(' · ');
 };
 
 /** Turn stored access codes ('wheelchair,aisle') into readable labels. */
