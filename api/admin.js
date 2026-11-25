@@ -65,6 +65,9 @@ function seatProblem(err) {
         : `Not on sale: ${refused.seats.join(', ')}.`;
 }
 
+/** A cast member's name as the cast_photos key: trimmed, single-spaced, lower case. */
+const castKey = v => String(v || '').trim().replace(/\s+/g, ' ').toLowerCase().slice(0, 80) || null;
+
 /* The door scanner can use its own password (DOOR_PASSWORD), so the people on
    the door do not need the admin one. It only opens these actions. */
 const DOOR_ACTIONS = new Set(['scan', 'checkin-stats', 'door-whoami']);
@@ -707,6 +710,36 @@ export default async function handler(req, res) {
                 if (!row) return res.status(404).json({ error: 'Photo not found' });
                 await removeObjects([row.path]);
                 await sbDelete('photos', `id=eq.${enc(row.id)}`);
+                return res.status(200).json({ ok: true });
+            }
+
+            /* ---------------- cast photos ----------------
+               One portrait per person in cast.js, keyed by lower-case name.
+               The file is uploaded through photos-sign like a gallery photo;
+               only the name → file row passes through here. */
+            case 'cast-photos-list': {
+                const rows = await sbSelect('cast_photos?select=name,path,updated_at&limit=500');
+                return res.status(200).json({ photos: rows.map(r => ({ ...r, url: publicUrl(r.path) })) });
+            }
+
+            case 'cast-photo-set': {
+                const name = castKey(body.name);
+                if (!name) return res.status(400).json({ error: 'name required' });
+                if (!PATH_RE.test(String(body.path || ''))) return res.status(400).json({ error: 'valid path required' });
+                const [old] = await sbSelect(`cast_photos?select=path&name=eq.${enc(name)}`);
+                const [row] = await sbInsert('cast_photos', [{ name, path: body.path, updated_at: new Date().toISOString() }], { upsert: true });
+                if (old && old.path !== body.path) await removeObjects([old.path]).catch(() => {});
+                return res.status(200).json({ photo: { ...row, url: publicUrl(row.path) } });
+            }
+
+            case 'cast-photo-clear': {
+                const name = castKey(body.name);
+                if (!name) return res.status(400).json({ error: 'name required' });
+                const [old] = await sbSelect(`cast_photos?select=path&name=eq.${enc(name)}`);
+                if (old) {
+                    await sbDelete('cast_photos', `name=eq.${enc(name)}`);
+                    await removeObjects([old.path]).catch(() => {});
+                }
                 return res.status(200).json({ ok: true });
             }
 

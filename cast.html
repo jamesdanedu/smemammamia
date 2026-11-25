@@ -242,8 +242,8 @@
         $(target).innerHTML = list.map(p => `
             <div class="person">
               <div class="portrait">
-                ${p.photo
-                    ? `<img src="images/${encodeURI(p.photo)}" alt="${escapeHtml(p.name)}" loading="lazy"
+                ${p.photoUrl || p.photo
+                    ? `<img src="${p.photoUrl ? escapeHtml(p.photoUrl) : 'images/' + encodeURI(p.photo)}" alt="${escapeHtml(p.name)}" loading="lazy"
                             onerror="this.outerHTML='<span class=\\'initials\\'>${initials(p.name)}</span>'">`
                     : `<span class="initials">${initials(p.name)}</span>`}
               </div>
@@ -271,11 +271,22 @@
         return;
     }
 
-    render(cast.principals || [], 'principals');
     const vocalists = (cast.vocalists || []).map(v => ({ role: 'Lead Vocalist', ...v }));
-    if (vocalists.length) render(vocalists, 'vocalists');
-    else $('vocalists-section').hidden = true;
-    render(cast.crew || [], 'crew');
+    if (!vocalists.length) $('vocalists-section').hidden = true;
+
+    /* Portraits chosen on the admin Cast photos tab, keyed by lower-case
+       name. Until they arrive (or if they can't), initials show. */
+    function renderAll(photos = {}) {
+        const withPhoto = list => list.map(p => ({ ...p, photoUrl: photos[String(p.name).trim().replace(/\s+/g, ' ').toLowerCase()] || '' }));
+        render(withPhoto(cast.principals || []), 'principals');
+        if (vocalists.length) render(withPhoto(vocalists), 'vocalists');
+        render(withPhoto(cast.crew || []), 'crew');
+    }
+    renderAll();
+    fetch('/api/photos?set=cast')
+        .then(r => r.json())
+        .then(d => { if (d && d.photos && !Array.isArray(d.photos) && Object.keys(d.photos).length) renderAll(d.photos); })
+        .catch(() => {});
 
     $('ensemble').innerHTML = (cast.ensemble || [])
         .map(n => `<span>${escapeHtml(n)}</span>`).join('');

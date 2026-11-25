@@ -493,6 +493,34 @@ input[type="checkbox"] {
 .ph-actions .mini-btn { padding: 5px 10px; }
 .ph-actions .mini-btn:disabled { opacity: 0.35; cursor: default; }
 .ph-saved { font-size: 0.72rem; color: var(--lime); min-height: 1em; }
+
+/* ---------------- cast photos tab ---------------- */
+.cp-section h3 { font-size: 0.95rem; margin: 22px 0 10px; }
+.cp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.cp-card { text-align: center; }
+.cp-portrait {
+    position: relative; aspect-ratio: 3 / 4; border-radius: 999px 999px 10px 10px; overflow: hidden;
+    background: linear-gradient(178deg, #fff 0%, var(--cyan-tint) 100%); border: 1px solid var(--border);
+    display: grid; place-items: center; margin-bottom: 8px; cursor: pointer;
+}
+.cp-portrait:hover { border-color: var(--cyan); }
+.cp-portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cp-initials { font-family: var(--font-display); font-size: 1.6rem; color: var(--cyan); }
+.cp-name { font-weight: 700; font-size: 0.88rem; }
+.cp-role { font-size: 0.78rem; color: var(--text-dim); font-style: italic; margin-bottom: 6px; }
+.cp-actions { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; }
+.cp-actions .mini-btn { padding: 5px 10px; }
+
+/* cropper */
+.crop-box { max-width: 420px; width: 100%; text-align: center; }
+.crop-stage {
+    position: relative; width: 300px; height: 400px; margin: 0 auto 12px; overflow: hidden;
+    border-radius: 150px 150px 14px 14px; background: #20323e; touch-action: none; cursor: grab;
+    box-shadow: 0 0 0 3px var(--cyan-tint);
+}
+.crop-stage.dragging { cursor: grabbing; }
+.crop-stage canvas { display: block; width: 300px; height: 400px; }
+.crop-zoom { width: 100%; margin: 4px 0 14px; }
 </style>
 </head>
 <body>
@@ -544,6 +572,7 @@ input[type="checkbox"] {
     <button class="tab" data-panel="add">Add booking</button>
     <button class="tab" data-panel="wall">Message wall</button>
     <button class="tab" data-panel="photos">Photos</button>
+    <button class="tab" data-panel="cast">Cast photos</button>
     <button class="tab" data-panel="settings">Settings</button>
   </div>
 
@@ -780,6 +809,18 @@ input[type="checkbox"] {
     <div class="ph-grid" id="ph-grid"><p class="dim">Loading…</p></div>
   </section>
 
+  <!-- CAST PHOTOS -->
+  <section class="panel" id="panel-cast">
+    <p class="dim mb-2" style="font-size:0.86rem">
+      Choose a photo for anyone on the <a href="cast.html" target="_blank" rel="noopener">Cast page</a>:
+      tap their card, then drag and zoom to fit the arch, and save. It shows on the Cast page straight away.
+      Names come from <code>cast.js</code> — if a name there changes, choose that person's photo again.
+    </p>
+    <div id="cp-alert" class="alert hidden"></div>
+    <input type="file" id="cp-file" accept="image/webp,image/jpeg,image/png" hidden>
+    <div id="cp-list"><p class="dim">Loading…</p></div>
+  </section>
+
   <!-- SETTINGS -->
   <section class="panel" id="panel-settings">
     <div class="card mb-3" style="max-width:680px">
@@ -821,6 +862,23 @@ input[type="checkbox"] {
   </div>
 </div>
 
+<!-- =================== CAST PHOTO CROPPER =================== -->
+<div class="modal" id="crop-modal" role="dialog" aria-modal="true" aria-labelledby="crop-title">
+  <div class="modal-box crop-box">
+    <h2 id="crop-title" style="font-size:1.1rem;margin-bottom:4px">Fit the photo</h2>
+    <p class="dim mb-2" style="font-size:0.85rem" id="crop-sub">Drag to move, use the slider to zoom.</p>
+    <div class="crop-stage" id="crop-stage"><canvas id="crop-canvas" width="600" height="800"></canvas></div>
+    <label class="dim" for="crop-zoom" style="font-size:0.8rem">Zoom</label>
+    <input type="range" id="crop-zoom" class="crop-zoom" min="1" max="4" step="0.01" value="1">
+    <div id="crop-alert" class="alert hidden"></div>
+    <div class="plan-actions" style="justify-content:center">
+      <button class="btn btn-primary" id="crop-save" style="padding:11px 22px">Save photo</button>
+      <button class="btn btn-ghost" id="crop-cancel" style="padding:11px 22px">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="cast.js"></script>
 <script src="prices.js"></script>
 <script src="config.js"></script>
 <script type="module">
@@ -923,6 +981,7 @@ import { drawSeatPlan } from './seatplan.js';
         document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
         if (name === 'wall') loadWall();
         if (name === 'photos') loadPhotos();
+        if (name === 'cast') loadCastPhotos();
         if (name === 'seats') loadSeatPlan();
         if (name === 'add') loadAddPlan();
         if (name === 'access') loadRequests();
@@ -2011,6 +2070,197 @@ import { drawSeatPlan } from './seatplan.js';
         if (!blob || blob.type !== 'image/webp') blob = await encode('image/jpeg', 0.85);
         return { blob, type: blob.type, width: w, height: h };
     }
+
+
+    /* ---------------- cast photos ----------------
+       Every person in cast.js (principals, lead vocalists, production team)
+       as a card. Tap one, pick a picture, drag and zoom it into the arch, and
+       the 600×800 crop is uploaded like a gallery photo (photos-sign) and
+       linked to the person's name (cast-photo-set). */
+    const castKey = n => String(n || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const castInitials = n => String(n || '').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '★';
+    let castPhotos = {};
+    let cropFor = null;
+
+    function castPeople() {
+        const C = window.CAST || {};
+        const real = p => p && p.name && !/^tbc$/i.test(String(p.name).trim());
+        return [
+            ['Principals', (C.principals || []).filter(real)],
+            ['Lead vocalists', (C.vocalists || []).filter(real).map(v => ({ role: 'Lead Vocalist', ...v }))],
+            ['Production team', (C.crew || []).filter(real)]
+        ].filter(([, list]) => list.length);
+    }
+
+    async function loadCastPhotos() {
+        if (!window.CAST) {
+            $('cp-list').innerHTML = '<p class="alert alert-error">cast.js could not be read — check it for a typo.</p>';
+            return;
+        }
+        try {
+            const { photos } = await api('cast-photos-list');
+            castPhotos = Object.fromEntries(photos.map(p => [p.name, p.url]));
+        } catch (err) {
+            if (err.message === 'unauthorised') return;
+            note('cp-alert', `Couldn't load the photos: ${err.message}`);
+        }
+        renderCastPhotos();
+    }
+
+    function renderCastPhotos() {
+        $('cp-list').innerHTML = castPeople().map(([title, list]) => `
+          <div class="cp-section">
+            <h3>${escapeHtml(title)}</h3>
+            <div class="cp-grid">
+              ${list.map(p => {
+                  const url = castPhotos[castKey(p.name)];
+                  return `<div class="cp-card" data-name="${escapeHtml(p.name)}">
+                    <div class="cp-portrait" data-act="choose" title="Choose a photo for ${escapeHtml(p.name)}">
+                      ${url ? `<img src="${escapeHtml(url)}" alt="">` : `<span class="cp-initials">${escapeHtml(castInitials(p.name))}</span>`}
+                    </div>
+                    <div class="cp-name">${escapeHtml(p.name)}</div>
+                    <div class="cp-role">${escapeHtml(p.role || '')}</div>
+                    <div class="cp-actions">
+                      <button class="mini-btn" data-act="choose">${url ? 'Change' : 'Choose photo'}</button>
+                      ${url ? '<button class="mini-btn" data-act="clear">Remove</button>' : ''}
+                    </div>
+                  </div>`;
+              }).join('')}
+            </div>
+          </div>`).join('');
+    }
+
+    $('cp-list').addEventListener('click', async e => {
+        const act = e.target.closest('[data-act]')?.dataset.act;
+        const card = e.target.closest('.cp-card');
+        if (!act || !card) return;
+        const name = card.dataset.name;
+        if (act === 'choose') {
+            cropFor = name;
+            $('cp-file').value = '';
+            $('cp-file').click();
+        }
+        if (act === 'clear') {
+            if (!confirm(`Remove the photo for ${name}? Their initials will show instead.`)) return;
+            try {
+                await api('cast-photo-clear', { name });
+                delete castPhotos[castKey(name)];
+                renderCastPhotos();
+                note('cp-alert', `Photo removed for ${name}.`, 'success');
+            } catch (err) { if (err.message !== 'unauthorised') note('cp-alert', err.message); }
+        }
+    });
+
+    /* The cropper: the picture is drawn under a 3:4 arch at the size it will
+       be saved (600×800). Drag to move it, slide to zoom; it always covers
+       the frame. */
+    const crop = { img: null, scale: 1, min: 1, x: 0, y: 0 };
+    const CW = 600, CH = 800;
+
+    function drawCrop() {
+        const c = $('crop-canvas').getContext('2d');
+        c.fillStyle = '#20323e'; c.fillRect(0, 0, CW, CH);
+        if (!crop.img) return;
+        c.drawImage(crop.img, crop.x, crop.y, crop.img.width * crop.scale, crop.img.height * crop.scale);
+    }
+    function clampCrop() {
+        const w = crop.img.width * crop.scale, h = crop.img.height * crop.scale;
+        crop.x = Math.min(0, Math.max(CW - w, crop.x));
+        crop.y = Math.min(0, Math.max(CH - h, crop.y));
+    }
+    function zoomTo(z) {
+        const old = crop.scale, next = crop.min * z;
+        // keep the middle of the frame where it is
+        crop.x = CW / 2 - (CW / 2 - crop.x) * (next / old);
+        crop.y = CH / 2 - (CH / 2 - crop.y) * (next / old);
+        crop.scale = next;
+        clampCrop(); drawCrop();
+    }
+
+    $('cp-file').addEventListener('change', async () => {
+        const file = $('cp-file').files[0];
+        if (!file || !cropFor) return;
+        try {
+            const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+            crop.img = bmp;
+            crop.min = Math.max(CW / bmp.width, CH / bmp.height);
+            crop.scale = crop.min;
+            crop.x = (CW - bmp.width * crop.scale) / 2;
+            crop.y = Math.min(0, (CH - bmp.height * crop.scale) * 0.25);   // faces are usually near the top
+            clampCrop();
+            $('crop-zoom').value = '1';
+            $('crop-sub').textContent = `${cropFor}: drag to move, use the slider to zoom.`;
+            note('crop-alert', '');
+            drawCrop();
+            $('crop-modal').classList.add('visible');
+        } catch (err) {
+            note('cp-alert', 'That picture could not be opened. Try a JPEG or PNG.');
+        }
+    });
+
+    $('crop-zoom').addEventListener('input', e => zoomTo(Number(e.target.value)));
+    (() => {
+        const stage = $('crop-stage');
+        let drag = null;
+        const ratio = () => CW / stage.getBoundingClientRect().width;
+        stage.addEventListener('pointerdown', e => {
+            if (!crop.img) return;
+            drag = { px: e.clientX, py: e.clientY, x: crop.x, y: crop.y };
+            stage.setPointerCapture(e.pointerId);
+            stage.classList.add('dragging');
+        });
+        stage.addEventListener('pointermove', e => {
+            if (!drag) return;
+            crop.x = drag.x + (e.clientX - drag.px) * ratio();
+            crop.y = drag.y + (e.clientY - drag.py) * ratio();
+            clampCrop(); drawCrop();
+        });
+        const end = () => { drag = null; stage.classList.remove('dragging'); };
+        stage.addEventListener('pointerup', end);
+        stage.addEventListener('pointercancel', end);
+        stage.addEventListener('wheel', e => {
+            if (!crop.img) return;
+            e.preventDefault();
+            const z = Math.min(4, Math.max(1, Number($('crop-zoom').value) * (e.deltaY < 0 ? 1.06 : 1 / 1.06)));
+            $('crop-zoom').value = String(z);
+            zoomTo(z);
+        }, { passive: false });
+    })();
+
+    function closeCrop() {
+        $('crop-modal').classList.remove('visible');
+        crop.img?.close?.();
+        crop.img = null;
+    }
+    $('crop-cancel').addEventListener('click', closeCrop);
+
+    $('crop-save').addEventListener('click', async () => {
+        if (!crop.img || !cropFor) return;
+        const btn = $('crop-save');
+        btn.disabled = true; btn.textContent = 'Saving…';
+        try {
+            const canvas = $('crop-canvas');
+            const encode = (type, q) => new Promise(r => canvas.toBlob(r, type, q));
+            let blob = await encode('image/webp', 0.85);
+            if (!blob || blob.type !== 'image/webp') blob = await encode('image/jpeg', 0.88);
+            const { uploads: [up] } = await api('photos-sign', { types: [blob.type] });
+            const put = await fetch(up.uploadUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': blob.type, 'cache-control': 'max-age=31536000' },
+                body: blob
+            });
+            if (!put.ok) throw new Error(`storage said ${put.status}`);
+            const { photo } = await api('cast-photo-set', { name: cropFor, path: up.path });
+            castPhotos[castKey(cropFor)] = photo.url;
+            renderCastPhotos();
+            note('cp-alert', `Photo saved for ${cropFor}. It's on the Cast page now.`, 'success');
+            closeCrop();
+        } catch (err) {
+            if (err.message !== 'unauthorised') note('crop-alert', `Couldn't save: ${err.message}`);
+        } finally {
+            btn.disabled = false; btn.textContent = 'Save photo';
+        }
+    });
 
     async function uploadPhotos(fileList) {
         const files = [...fileList].filter(f => /^image\//.test(f.type));
