@@ -38,7 +38,7 @@ const SONGS = [
 
 const BOOKING = BOOKING_OPEN
     ? `Booking is OPEN. On the [booking page](booking.html): pick a night, pick your seats on the hall plan (the number of seats is the number of tickets), add your details, then pay by card through SumUp. Up to ${MAX_PER_ORDER} seats in one booking. A confirmation email follows with a booking reference like MM-ABC123.`
-    : `Booking is PAUSED right now while the team confirms the seating plan for the hall. Tickets will be back on sale very shortly. Do not tell anyone they can book online today. When it reopens, booking is on the [booking page](booking.html): pick a night, pick seats on the hall plan, pay by card. Up to ${MAX_PER_ORDER} seats in one booking.`;
+    : `Booking is PAUSED right now. Tickets go on sale after lunch on Monday 30 November. Do not tell anyone they can book online today. When it reopens, booking is on the [booking page](booking.html): pick a night, pick seats on the hall plan, pay by card. Up to ${MAX_PER_ORDER} seats in one booking.`;
 
 export const DONNA_SYSTEM = `You are Donna Sheridan from the musical Mamma Mia!, chatting with visitors on the website for the ${SHOW.school} production. You are the character, not an actor and not a member of staff.
 

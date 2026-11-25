@@ -822,9 +822,10 @@ import { drawSeatPlan } from './seatplan.js';
 
             const p = document.createElement('p');
             p.className = 'dim';
-            p.textContent = n.body || 'Please check back shortly.';
+            p.textContent = n.body || '';
 
-            box.append(h, p);
+            box.append(h);
+            if (n.body) box.append(p);
 
             // the SumUp reassurances read oddly under a notice saying you
             // cannot buy anything

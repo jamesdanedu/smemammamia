@@ -33,8 +33,7 @@ export default async function handler(req, res) {
 
     if (!BOOKING_OPEN) {
         return res.status(503).json({
-            error: 'Booking is paused just now while we confirm the seating plan for the hall. ' +
-                   'Tickets will be back on sale very shortly — sorry for the inconvenience.'
+            error: 'Tickets on sale after lunch Monday 30-Nov.'
         });
     }
 

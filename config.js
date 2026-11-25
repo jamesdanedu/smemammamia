@@ -98,9 +98,8 @@ const CONFIG = {
        pause — people had already been booking.
        -------------------------------------------------------------------- */
     closedNotice: {
-        heading: 'Booking is paused',
-        body: 'We are just confirming the seating plan for the hall. ' +
-              'Tickets will be back on sale very shortly — thank you for your patience.'
+        heading: 'Tickets on sale after lunch Monday 30-Nov',
+        body: ''
     },
 
     /* --- Backend --------------------------------------------------------
