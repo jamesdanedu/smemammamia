@@ -71,7 +71,7 @@ const CAST = {
         { name: "TBC", role: "Producer",            photo: "" },
         { name: "Emmanuelle Galisson", role: "Stage Manager",       photo: "" },
         { name: "Ciaran Doyle", role: "Set Design & Construction",          photo: "" },
-        { name: "James O'Sullivan", role: "IT, Lighting & Sound",    photo: "" },
+        { name: "James O'Sullivan", role: "Marketing, Ticketing, IT, Sound", photo: "" },
         { name: "Leah Prendergast", role: "Costumes",            photo: "" },
         { name: "TBC", role: "Hair & Make-up",      photo: "" },
         { name: "TBC", role: "Front of House",      photo: "" }
