@@ -33,6 +33,26 @@ begin
     end if;
 end $$;
 
+-- Cast photos: one portrait per cast or crew member, chosen and cropped on
+-- the admin page's Cast photos tab. Keyed by the person's name as written in
+-- cast.js (lower case), so renaming someone there means choosing their photo
+-- again. The file sits in the same bucket as the gallery.
+create table if not exists public.cast_photos (
+    name        text        primary key,              -- lower-case name from cast.js
+    path        text        not null,                 -- file name inside the bucket
+    updated_at  timestamptz not null default now()
+);
+
+alter table public.cast_photos enable row level security;
+revoke all on public.cast_photos from anon, authenticated;
+
+do $$
+begin
+    if exists (select 1 from pg_roles where rolname = 'service_role') then
+        grant select, insert, update, delete on public.cast_photos to service_role;
+    end if;
+end $$;
+
 -- The bucket: public to read, 6 MB per file, images only.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('photos', 'photos', true, 6291456, array['image/webp', 'image/jpeg', 'image/png'])

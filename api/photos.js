@@ -1,4 +1,6 @@
-// GET /api/photos  → the visible photos, in order, for the Photos page.
+// GET /api/photos          → the visible photos, in order, for the Photos page.
+// GET /api/photos?set=cast → { photos: { "<lower-case name>": url } } for the
+//                            Cast page: the portraits chosen in admin.
 //
 // Returns an empty list (not an error) when Supabase isn't set up, so the page
 // just falls back to whatever is listed in photos.js.
@@ -11,6 +13,16 @@ export default async function handler(req, res) {
     if (!requireMethod(req, res, 'GET')) return;
 
     if (!supabaseConfigured()) return res.status(200).json({ photos: [] });
+
+    if (req.query?.set === 'cast') {
+        try {
+            const rows = await sbSelect('cast_photos?select=name,path&limit=500');
+            return res.status(200).json({ photos: Object.fromEntries(rows.map(r => [r.name, publicUrl(r.path)])) });
+        } catch (err) {
+            console.error('cast photos read error:', err);
+            return res.status(200).json({ photos: {}, error: 'Could not load cast photos' });
+        }
+    }
 
     try {
         const rows = await sbSelect(
